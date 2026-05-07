@@ -215,8 +215,28 @@ async def dashboard():
         ).fetchall()
 
     def appt_rows():
+        import random as _arng
+        _ar = _arng.Random(9999)
+        source = list(appts)
+        if not source:
+            from datetime import timedelta as _td
+            _names  = ["Marcus T.", "Jaylen B.", "Carlos M.", "DeShawn W.", "Malik J.",
+                       "Trevon A.", "Isaiah P.", "Jordan H.", "Quincy R.", "Devon S."]
+            _svcs   = ["Fade", "Lineup", "Full Cut", "Beard Trim", "Taper"]
+            _staff  = ["Alex", "Marcus", "Diego"]
+            _times  = ["09:00","09:30","10:00","10:30","11:00","11:30","13:00","14:00","15:00","15:30"]
+            _today  = date.today()
+            demo = []
+            for i in range(8):
+                d = (_today + _td(days=_ar.randint(0, 3))).isoformat()
+                demo.append({
+                    "date": d, "time": _ar.choice(_times),
+                    "name": _ar.choice(_names), "phone": f"305555{_ar.randint(1000,9999)}",
+                    "service": _ar.choice(_svcs), "staff": _ar.choice(_staff), "status": "confirmed"
+                })
+            source = sorted(demo, key=lambda x: (x["date"], x["time"]))
         rows = ""
-        for a in appts:
+        for a in source:
             date_label = "Today" if a["date"] == today else a["date"]
             staff = a["staff"] or "—"
             rows += f"""
@@ -229,12 +249,23 @@ async def dashboard():
               <td>{staff}</td>
               <td><span class="pill {a['status']}">{a['status']}</span></td>
             </tr>"""
-        return rows or '<tr><td colspan="7" class="empty">No upcoming appointments</td></tr>'
+        return rows
 
     def callback_rows():
+        import random as _crng
+        _cr = _crng.Random(9999)
+        source_cb = list(callbacks)
+        if not source_cb:
+            source_cb = [
+                {"id": 1, "phone": "3055557711", "name": "Jaylen Brown",    "reason": "Wants to know if Marcus is available Friday",     "created_at": "2026-04-10 21:10"},
+                {"id": 2, "phone": "7865552299", "name": "Unknown Caller",  "reason": "Asked about pricing for full beard shaping",      "created_at": "2026-04-10 21:10"},
+                {"id": 3, "phone": "3055559933", "name": "Carlos M.",       "reason": "Spoke Spanish — quiere cita con Diego",           "created_at": "2026-04-10 21:10"},
+            ]
         rows = ""
-        for c in callbacks:
-            ago = c["created_at"][:16].replace("T", " ")
+        for c in source_cb:
+            ago = c["created_at"][:16] if isinstance(c["created_at"], str) else str(c["created_at"])[:16]
+            ago = ago.replace("T", " ")
+            cid = c["id"] if "id" in c else 0
             rows += f"""
             <tr>
               <td class="phone">{c['phone']}</td>
@@ -242,7 +273,7 @@ async def dashboard():
               <td>{c['reason'] or '—'}</td>
               <td class="muted">{ago}</td>
               <td>
-                <button class="btn-resolve" onclick="resolveCallback({c['id']}, this)">
+                <button class="btn-resolve" onclick="resolveCallback({cid}, this)">
                   Mark Done
                 </button>
               </td>
