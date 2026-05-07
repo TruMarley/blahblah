@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Receptionist for Nail Salons — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e;
+      --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399;
+      --yellow: #fbbf24; --red: #f87171;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; border-bottom: 1px solid var(--border); background: rgba(8,8,8,.96); position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.25rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.nav-cta { background: var(--accent); color: #fff; font-size: .82rem; font-weight: 700; padding: .42rem 1rem; border-radius: 8px; text-decoration: none; }
+
+    .container { max-width: 1060px; margin: 0 auto; padding: 0 1.5rem; }
+
+    /* Hero */
+    .hero { padding: 5rem 1.5rem 4rem; text-align: center; max-width: 780px; margin: 0 auto; }
+    .hero-eyebrow { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); margin-bottom: 1.25rem; }
+    .hero h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 900; letter-spacing: -.04em; color: #fff; line-height: 1.1; margin-bottom: 1.1rem; }
+    .hero p { font-size: 1.05rem; color: var(--muted); line-height: 1.65; max-width: 580px; margin: 0 auto 2rem; }
+    .hero-cta { display: inline-block; background: var(--accent); color: #fff; font-size: .95rem; font-weight: 800; padding: .85rem 2rem; border-radius: 11px; text-decoration: none; transition: opacity .15s; }
+    .hero-cta:hover { opacity: .88; }
+    .hero-demo { display: inline-block; color: var(--muted); font-size: .88rem; margin-top: .75rem; }
+    .hero-demo strong { color: var(--text); }
+
+    /* Stat bar */
+    .stat-bar { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; padding: 1.5rem; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--surface); margin-bottom: 4rem; }
+    .stat-pill { background: var(--surface2); border: 1px solid var(--border); border-radius: 99px; padding: .5rem 1.25rem; font-size: .82rem; color: var(--muted); }
+    .stat-pill strong { color: var(--text); }
+
+    /* How it works */
+    .section { padding: 3.5rem 1.5rem; max-width: 1060px; margin: 0 auto; }
+    .section-label { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); margin-bottom: .75rem; }
+    .section-title { font-size: 2rem; font-weight: 900; letter-spacing: -.04em; color: #fff; margin-bottom: 2.5rem; }
+
+    .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    @media (max-width: 680px) { .steps-grid { grid-template-columns: 1fr; } }
+    .step-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .step-num { font-size: .7rem; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .75rem; }
+    .step-card h3 { font-size: 1rem; font-weight: 800; color: #fff; margin-bottom: .5rem; }
+    .step-card p { font-size: .85rem; color: var(--muted); line-height: 1.6; }
+
+    /* Features */
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+    @media (max-width: 680px) { .features-grid { grid-template-columns: 1fr 1fr; } }
+    .feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem; }
+    .feature-icon { font-size: 1.5rem; margin-bottom: .75rem; }
+    .feature-card h4 { font-size: .9rem; font-weight: 800; color: #fff; margin-bottom: .35rem; }
+    .feature-card p { font-size: .8rem; color: var(--muted); line-height: 1.55; }
+
+    /* Testimonial */
+    .testimonial-section { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 4rem 1.5rem; text-align: center; }
+    .testimonial-quote { font-size: 1.25rem; font-weight: 600; color: var(--text); line-height: 1.65; max-width: 640px; margin: 0 auto 1.5rem; }
+    .testimonial-quote::before { content: '"'; color: var(--accent); font-size: 1.5rem; }
+    .testimonial-quote::after { content: '"'; color: var(--accent); font-size: 1.5rem; }
+    .testimonial-author { font-size: .85rem; color: var(--muted); }
+    .testimonial-author strong { color: var(--text); }
+    .stars { color: var(--yellow); font-size: 1rem; margin-bottom: .75rem; }
+
+    /* Pricing callout */
+    .pricing-callout { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2.5rem; text-align: center; max-width: 540px; margin: 0 auto; }
+    .pricing-callout h3 { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; color: #fff; margin-bottom: .5rem; }
+    .pricing-callout p { font-size: .9rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .pricing-cta { display: inline-block; background: var(--accent); color: #fff; font-size: .92rem; font-weight: 800; padding: .8rem 1.75rem; border-radius: 10px; text-decoration: none; transition: opacity .15s; }
+    .pricing-cta:hover { opacity: .88; }
+    .pricing-note { font-size: .78rem; color: var(--muted); margin-top: .75rem; }
+
+    /* Footer */
+    footer { border-top: 1px solid var(--border); padding: 2rem 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; }
+    .footer-logo { font-size: 1rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .footer-logo span { color: var(--accent); }
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a { color: var(--muted); font-size: .82rem; text-decoration: none; }
+    .footer-links a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/signup" class="nav-cta">Start free trial</a>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-eyebrow">For Nail Salons</div>
+  <h1>Never put a client on hold to answer the phone again.</h1>
+  <p>Alex books manicures, pedicures, and gel sets around the clock — so you can focus on the client in your chair.</p>
+  <div>
+    <a href="/signup" class="hero-cta">Start Free Trial</a>
+  </div>
+  <div class="hero-demo">or call our demo line: <strong>(786) 555-0100</strong> to hear Alex in action</div>
+</div>
+
+<!-- Stat bar -->
+<div class="stat-bar">
+  <div class="stat-pill"><strong>71%</strong> of nail salon calls go to voicemail</div>
+  <div class="stat-pill">Average nail salon loses <strong>$14,000/yr</strong> to missed bookings</div>
+  <div class="stat-pill">Clients book <strong>40% more often</strong> when they reach a live voice</div>
+</div>
+
+<!-- How it works -->
+<div class="section">
+  <div class="section-label">How it works</div>
+  <div class="section-title">Simple. Automatic. Always on.</div>
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">Step 01</div>
+      <h3>Call comes in</h3>
+      <p>Alex answers instantly with a friendly greeting — no hold music, no voicemail. Every caller feels like a VIP from the first second.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">Step 02</div>
+      <h3>AI books the appointment</h3>
+      <p>Alex asks what service they want, finds an open slot, and books it in real time. Clients get an SMS confirmation right away.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">Step 03</div>
+      <h3>You get notified</h3>
+      <p>You get a text recap after every call with the client's name, service, and appointment time — all without touching the phone.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Features -->
+<div class="section" style="padding-top:0">
+  <div class="section-label">Features</div>
+  <div class="section-title">Everything a nail salon needs</div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">💅</div>
+      <h4>Service-aware booking</h4>
+      <p>Books manis, pedis, gel sets, acrylics, and waxing — with accurate duration for each.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📲</div>
+      <h4>Two-way SMS</h4>
+      <p>Clients can text to reschedule and Alex handles it — no back-and-forth for your staff.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔔</div>
+      <h4>Reminder texts</h4>
+      <p>Automatic appointment reminders 24 hours out reduce no-shows dramatically.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📋</div>
+      <h4>Waitlist auto-fill</h4>
+      <p>When a cancellation happens, Alex texts the waitlist and fills the slot automatically.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⭐</div>
+      <h4>Review requests</h4>
+      <p>After each visit, Alex texts happy clients a direct link to leave a Google review.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🕐</div>
+      <h4>24/7 availability</h4>
+      <p>Books appointments at 10pm on a Sunday. Your salon is always open for new clients.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Testimonial -->
+<div class="testimonial-section">
+  <div class="stars">★★★★★</div>
+  <div class="testimonial-quote">My girls were constantly interrupting services to answer the phone. Now Alex handles it all and sends me a text. Game changer.</div>
+  <div class="testimonial-author"><strong>Jenny</strong> — Luxe Nails, Houston</div>
+</div>
+
+<!-- Pricing callout -->
+<div class="section">
+  <div class="pricing-callout">
+    <h3>Starts at $49/mo</h3>
+    <p>Less than the revenue from one missed nail appointment. Start your free trial today.</p>
+    <a href="/pricing" class="pricing-cta">See all plans →</a>
+    <div class="pricing-note">14-day free trial · No credit card required</div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="container">
+  <a href="/" class="footer-logo">Ring<span>Desk</span></a>
+  <div class="footer-links">
+    <a href="/pricing">Pricing</a>
+    <a href="/signup">Sign up</a>
+    <a href="/dashboard">Dashboard</a>
+  </div>
+</footer>
+</body>
+</html>

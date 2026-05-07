@@ -3,135 +3,425 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Onboarding — RingDesk</title>
+  <title>Set Up Your AI Receptionist — RingDesk</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
-    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
-    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
-    .logo span { color: var(--accent); }
-    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
-    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
-    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
-    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 1.75rem; }
-    /* Progress bar */
-    .prog-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 2rem; }
-    .prog-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: .6rem; }
-    .prog-label { font-size: .78rem; font-weight: 700; }
-    .prog-pct { font-size: .78rem; color: var(--muted); }
-    .prog-bar { background: var(--surface2); border-radius: 99px; height: 8px; overflow: hidden; }
-    .prog-fill { height: 8px; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--green)); transition: width .5s ease; }
-    /* Steps */
-    .steps { display: flex; flex-direction: column; gap: .65rem; }
-    .step { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; display: flex; gap: 1rem; align-items: flex-start; transition: opacity .2s; }
-    .step.done { opacity: .5; }
-    .step-check { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .9rem; transition: all .2s; }
-    .step.done .step-check { background: var(--green); border-color: var(--green); }
-    .step-body { flex: 1; }
-    .step-title { font-size: .9rem; font-weight: 800; margin-bottom: .2rem; }
-    .step.done .step-title { text-decoration: line-through; }
-    .step-desc { font-size: .78rem; color: var(--muted); line-height: 1.5; margin-bottom: .65rem; }
-    .step.done .step-desc { display: none; }
-    .step-action { display: inline-block; font-size: .78rem; font-weight: 700; padding: .38rem .9rem; border-radius: 8px; background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.25); color: var(--accent); text-decoration: none; transition: opacity .15s; }
-    .step-action:hover { opacity: .8; }
-    .mark-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: .72rem; font-weight: 600; padding: .3rem .7rem; border-radius: 7px; cursor: pointer; font-family: inherit; margin-left: .5rem; }
-    .mark-btn:hover { border-color: var(--green); color: var(--green); }
-    /* Confetti */
-    .confetti-wrap { display: none; position: fixed; inset: 0; pointer-events: none; z-index: 999; overflow: hidden; }
-    .confetti-wrap.show { display: block; }
-    .confetti-piece { position: absolute; width: 10px; height: 10px; border-radius: 2px; animation: confetti-fall 3s ease-in forwards; }
-    @keyframes confetti-fall {
-      0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
-      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e;
+      --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399;
+      --yellow: #fbbf24; --red: #f87171;
     }
-    .all-done-msg { display: none; text-align: center; padding: 2rem; }
-    .all-done-msg.show { display: block; }
-    .done-emoji { font-size: 3rem; margin-bottom: 1rem; }
-    .done-title { font-size: 1.3rem; font-weight: 900; margin-bottom: .5rem; color: var(--green); }
-    .done-sub { font-size: .85rem; color: var(--muted); }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; border-bottom: 1px solid var(--border); background: rgba(8,8,8,.96); position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.25rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .82rem; text-decoration: none; }
+
+    .main { max-width: 600px; margin: 0 auto; padding: 2.5rem 1.5rem 6rem; }
+
+    /* Progress */
+    .prog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .6rem; }
+    .prog-label { font-size: .82rem; font-weight: 700; color: var(--text); }
+    .prog-step { font-size: .78rem; color: var(--muted); }
+    .prog-track { background: var(--surface2); border-radius: 99px; height: 6px; overflow: hidden; margin-bottom: 2.5rem; }
+    .prog-fill { height: 6px; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--green)); transition: width .4s ease; }
+
+    /* Step panels */
+    .step-panel { display: none; }
+    .step-panel.active { display: block; }
+
+    .step-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; color: #fff; margin-bottom: .35rem; }
+    .step-sub { font-size: .85rem; color: var(--muted); margin-bottom: 2rem; line-height: 1.55; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+
+    label { display: block; font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .4rem; }
+    input[type=text], select {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+      font-family: inherit; font-size: .9rem; padding: .65rem .85rem; outline: none; transition: border-color .15s;
+    }
+    input[type=text]:focus, select:focus { border-color: var(--accent); }
+    select option { background: #1a1a1a; }
+
+    .field { margin-bottom: 1.1rem; }
+    .field:last-child { margin-bottom: 0; }
+
+    /* Step 2 — phone */
+    .phone-display { font-size: 2rem; font-weight: 900; color: var(--accent); letter-spacing: .04em; margin: 1rem 0 .5rem; }
+    .phone-instruction { font-size: .83rem; color: var(--muted); line-height: 1.6; margin-bottom: 1.25rem; }
+    .copy-btn { background: var(--accent); border: none; color: #fff; font-family: inherit; font-size: .88rem; font-weight: 700; padding: .65rem 1.5rem; border-radius: 9px; cursor: pointer; transition: opacity .15s; }
+    .copy-btn:hover { opacity: .85; }
+    .copy-btn.copied { background: var(--green); }
+    .forward-row { display: flex; align-items: center; gap: .75rem; margin-top: 1.25rem; }
+    .toggle-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-track { position: absolute; inset: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 99px; cursor: pointer; transition: background .2s; }
+    .toggle-switch input:checked + .toggle-track { background: var(--green); border-color: var(--green); }
+    .toggle-knob { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s; pointer-events: none; }
+    .toggle-switch input:checked ~ .toggle-knob { transform: translateX(20px); }
+    .forward-label { font-size: .85rem; color: var(--muted); }
+    .check-icon { display: none; color: var(--green); font-size: 1.1rem; }
+    #fwd-toggle:checked ~ .toggle-knob { transform: translateX(20px); }
+
+    /* Step 3 — hours */
+    .hours-row { display: grid; grid-template-columns: 90px 1fr 1fr 1fr; gap: .75rem; align-items: center; padding: .6rem 0; border-bottom: 1px solid var(--border); font-size: .85rem; }
+    .hours-row:last-child { border-bottom: none; }
+    .day-name { font-weight: 600; }
+    .hours-row select { padding: .4rem .6rem; font-size: .82rem; }
+    .closed-label { color: var(--muted); font-size: .8rem; grid-column: 2 / 5; }
+
+    /* Step 4 — services */
+    .services-grid { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.25rem; }
+    .svc-pill { background: var(--surface2); border: 1px solid var(--border); border-radius: 99px; padding: .4rem 1rem; font-size: .82rem; cursor: pointer; transition: all .15s; user-select: none; }
+    .svc-pill.selected { background: rgba(167,139,250,.15); border-color: var(--accent); color: var(--accent); }
+    .add-svc-btn { background: transparent; border: 1px dashed var(--border); border-radius: 99px; color: var(--muted); font-family: inherit; font-size: .82rem; padding: .4rem 1rem; cursor: pointer; transition: border-color .15s, color .15s; }
+    .add-svc-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .custom-svc-row { display: flex; gap: .5rem; margin-top: .5rem; }
+    .custom-svc-row input { flex: 1; }
+    .custom-svc-row button { background: var(--accent); border: none; color: #fff; font-family: inherit; font-size: .82rem; font-weight: 700; padding: .4rem .9rem; border-radius: 8px; cursor: pointer; }
+    .svc-details { display: none; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-top: 1rem; }
+    .svc-details.show { display: block; }
+    .svc-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .svc-detail-item label { font-size: .72rem; }
+
+    /* Step 5 — summary */
+    .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .summary-row { display: flex; justify-content: space-between; align-items: baseline; padding: .6rem 0; border-bottom: 1px solid var(--border); font-size: .88rem; }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-key { color: var(--muted); }
+    .summary-val { font-weight: 700; color: var(--text); }
+    .alex-callout { background: rgba(167,139,250,.07); border: 1px solid rgba(167,139,250,.2); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; font-size: .88rem; color: var(--muted); line-height: 1.6; }
+    .alex-callout strong { color: var(--accent); }
+    .activate-btn { display: block; width: 100%; background: var(--accent); border: none; color: #fff; font-family: inherit; font-size: 1rem; font-weight: 800; padding: 1rem; border-radius: 12px; cursor: pointer; transition: opacity .15s; text-align: center; }
+    .activate-btn:hover { opacity: .88; }
+
+    /* Nav buttons */
+    .btn-row { display: flex; gap: .75rem; margin-top: 2rem; }
+    .btn-next { flex: 1; background: var(--accent); border: none; color: #fff; font-family: inherit; font-size: .92rem; font-weight: 800; padding: .8rem 1rem; border-radius: 10px; cursor: pointer; transition: opacity .15s; }
+    .btn-next:hover { opacity: .88; }
+    .btn-back { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: inherit; font-size: .88rem; font-weight: 600; padding: .8rem 1.25rem; border-radius: 10px; cursor: pointer; transition: border-color .15s; }
+    .btn-back:hover { border-color: var(--muted); color: var(--text); }
   </style>
 </head>
 <body>
 <nav>
   <a href="/" class="logo">Ring<span>Desk</span></a>
-  <a href="/dashboard" class="back">← Dashboard</a>
+  <a href="/dashboard" class="back">← Back</a>
 </nav>
+
 <div class="main">
-  <div class="page-title">Setup Checklist</div>
-  <p class="page-sub">Complete these steps to get your AI receptionist fully configured.</p>
-  <div class="prog-wrap">
-    <div class="prog-top">
-      <span class="prog-label" id="prog-label">Loading…</span>
-      <span class="prog-pct" id="prog-pct"></span>
-    </div>
-    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+  <div class="prog-header">
+    <span class="prog-label" id="prog-label">Step 1 of 5</span>
+    <span class="prog-step" id="prog-step">Business Profile</span>
   </div>
-  <div class="steps" id="steps"></div>
-  <div class="all-done-msg" id="all-done">
-    <div class="done-emoji">🎉</div>
-    <div class="done-title">You're all set!</div>
-    <div class="done-sub">Your AI receptionist is fully configured and ready to handle calls.</div>
+  <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:20%"></div></div>
+
+  <!-- Step 1: Business Profile -->
+  <div class="step-panel active" id="step-1">
+    <div class="step-title">Business Profile</div>
+    <div class="step-sub">Tell us about your business so Alex can introduce herself correctly to every caller.</div>
+    <div class="card">
+      <div class="field">
+        <label>Business name</label>
+        <input type="text" id="biz-name" placeholder="e.g. Cuts &amp; Fades Miami">
+      </div>
+      <div class="field">
+        <label>Business type</label>
+        <select id="biz-type">
+          <option value="">Select type…</option>
+          <option>Barbershop</option>
+          <option>Nail Salon</option>
+          <option>Hair Salon</option>
+          <option>Spa</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Address</label>
+        <input type="text" id="biz-address" placeholder="123 Main St, Miami, FL 33101">
+      </div>
+      <div class="field">
+        <label>Timezone</label>
+        <select id="biz-tz">
+          <option value="ET">Eastern Time (ET)</option>
+          <option value="CT">Central Time (CT)</option>
+          <option value="MT">Mountain Time (MT)</option>
+          <option value="PT">Pacific Time (PT)</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-next" onclick="goStep(2)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- Step 2: Phone Setup -->
+  <div class="step-panel" id="step-2">
+    <div class="step-title">Phone Setup</div>
+    <div class="step-sub">Your dedicated RingDesk number is ready. Forward your existing number to it, or start using it directly.</div>
+    <div class="card">
+      <label>Your RingDesk number</label>
+      <div class="phone-display">(786) 555-0100</div>
+      <div class="phone-instruction">Forward your existing number to this number in your carrier settings, OR just use your RingDesk number directly with clients.</div>
+      <button class="copy-btn" id="copy-btn" onclick="copyNumber()">Copy number</button>
+      <div class="forward-row">
+        <label class="toggle-switch">
+          <input type="checkbox" id="fwd-toggle" onchange="onForwardToggle(this)">
+          <span class="toggle-track"></span>
+          <span class="toggle-knob"></span>
+        </label>
+        <span class="forward-label" id="fwd-label">I've forwarded my number</span>
+        <span class="check-icon" id="fwd-check">✓ Done!</span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goStep(1)">← Back</button>
+      <button class="btn-next" onclick="goStep(3)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Business Hours -->
+  <div class="step-panel" id="step-3">
+    <div class="step-title">Business Hours</div>
+    <div class="step-sub">Alex will only offer appointment times within your open hours. Set when you're available.</div>
+    <div class="card">
+      <div id="hours-grid"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goStep(2)">← Back</button>
+      <button class="btn-next" onclick="goStep(4)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- Step 4: Services -->
+  <div class="step-panel" id="step-4">
+    <div class="step-title">Services</div>
+    <div class="step-sub">Select the services you offer. Alex will only book what's on this list.</div>
+    <div class="card">
+      <div class="services-grid" id="services-grid"></div>
+      <button class="add-svc-btn" onclick="toggleCustomInput()">+ Add custom service</button>
+      <div id="custom-svc-wrap" style="display:none">
+        <div class="custom-svc-row">
+          <input type="text" id="custom-svc-input" placeholder="Service name…">
+          <button onclick="addCustomService()">Add</button>
+        </div>
+      </div>
+      <div class="svc-details" id="svc-details">
+        <div style="font-size:.82rem;font-weight:700;color:var(--muted);margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.06em;">Selected service details</div>
+        <div class="svc-details-grid" id="svc-details-grid"></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goStep(3)">← Back</button>
+      <button class="btn-next" onclick="goStep(5)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- Step 5: Go Live -->
+  <div class="step-panel" id="step-5">
+    <div class="step-title">You're almost live!</div>
+    <div class="step-sub">Review your setup and activate. Alex will start answering calls immediately.</div>
+    <div class="summary-card" id="summary-card">
+      <div class="summary-row"><span class="summary-key">Business name</span><span class="summary-val" id="sum-name">—</span></div>
+      <div class="summary-row"><span class="summary-key">Type</span><span class="summary-val" id="sum-type">—</span></div>
+      <div class="summary-row"><span class="summary-key">Phone number</span><span class="summary-val">(786) 555-0100</span></div>
+      <div class="summary-row"><span class="summary-key">Business hours</span><span class="summary-val" id="sum-hours">—</span></div>
+      <div class="summary-row"><span class="summary-key">Services configured</span><span class="summary-val" id="sum-services">—</span></div>
+    </div>
+    <div class="alex-callout">Your AI receptionist is named <strong>Alex</strong> and is ready to take calls. She'll introduce herself as Alex from your business, book appointments, answer questions, and text you summaries after every call.</div>
+    <button class="activate-btn" onclick="activateNow()">Activate My AI Receptionist →</button>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goStep(4)">← Back</button>
+    </div>
   </div>
 </div>
-<div class="confetti-wrap" id="confetti"></div>
+
 <script>
-  let steps = [];
+  const STEPS = ['Business Profile','Phone Setup','Business Hours','Services','Go Live'];
+  const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const DEFAULT_HOURS = [
+    { open: true,  from: '09:00', to: '18:00' },
+    { open: true,  from: '09:00', to: '18:00' },
+    { open: true,  from: '09:00', to: '18:00' },
+    { open: true,  from: '09:00', to: '18:00' },
+    { open: true,  from: '09:00', to: '18:00' },
+    { open: true,  from: '09:00', to: '16:00' },
+    { open: false, from: '09:00', to: '17:00' },
+  ];
+  const ALL_SERVICES = ['Haircut','Fade','Lineup','Beard Trim','Color','Highlights','Blowout','Manicure','Pedicure','Gel Nails','Acrylic Nails','Waxing','Facial','Massage','Taper','Full Cut'];
 
-  async function load() {
-    const r = await fetch('/api/onboarding');
-    const d = await r.json();
-    steps = d.steps || [];
-    const pct = Math.round(d.completed / d.total * 100);
-    document.getElementById('prog-label').textContent = d.completed + ' of ' + d.total + ' steps complete';
-    document.getElementById('prog-pct').textContent = pct + '%';
+  let hours = DEFAULT_HOURS.map(h => ({...h}));
+  let selectedServices = new Set();
+  let servicePrices = {};
+  let serviceDurations = {};
+  let customServices = [];
+  let currentStep = 1;
+
+  function goStep(n) {
+    if (n === 5) buildSummary();
+    document.getElementById('step-' + currentStep).classList.remove('active');
+    currentStep = n;
+    document.getElementById('step-' + n).classList.add('active');
+    const pct = (n / 5) * 100;
     document.getElementById('prog-fill').style.width = pct + '%';
-    if (d.completed === d.total) {
-      document.getElementById('steps').style.display = 'none';
-      document.getElementById('all-done').classList.add('show');
-      launchConfetti();
-    } else {
-      document.getElementById('steps').innerHTML = steps.map(s => `
-        <div class="step ${s.completed ? 'done' : ''}" id="step-${s.id}">
-          <div class="step-check">${s.completed ? '✓' : ''}</div>
-          <div class="step-body">
-            <div class="step-title">${esc(s.title)}</div>
-            <div class="step-desc">${esc(s.description)}</div>
-            ${!s.completed ? `<a class="step-action" href="${s.action_url}">Go →</a>
-              <button class="mark-btn" onclick="markDone('${s.id}')">Mark done</button>` : ''}
-          </div>
-        </div>`).join('');
+    document.getElementById('prog-label').textContent = 'Step ' + n + ' of 5';
+    document.getElementById('prog-step').textContent = STEPS[n - 1];
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+
+  // Step 2
+  function copyNumber() {
+    navigator.clipboard.writeText('(786) 555-0100').catch(() => {});
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy number'; btn.classList.remove('copied'); }, 2000);
+  }
+  function onForwardToggle(cb) {
+    const lbl = document.getElementById('fwd-label');
+    const chk = document.getElementById('fwd-check');
+    if (cb.checked) { lbl.style.display = 'none'; chk.style.display = 'inline'; }
+    else { lbl.style.display = 'inline'; chk.style.display = 'none'; }
+  }
+
+  // Step 3 — hours
+  function buildHoursGrid() {
+    const grid = document.getElementById('hours-grid');
+    grid.innerHTML = '';
+    DAYS.forEach((day, i) => {
+      const row = document.createElement('div');
+      row.className = 'hours-row';
+      const checked = hours[i].open ? 'checked' : '';
+      row.innerHTML = `
+        <label style="display:flex;align-items:center;gap:.5rem;text-transform:none;font-size:.85rem;font-weight:600;letter-spacing:0;color:var(--text)">
+          <input type="checkbox" ${checked} onchange="toggleDay(${i},this.checked)" style="accent-color:var(--accent);width:16px;height:16px">
+          ${day}
+        </label>
+        ${hours[i].open
+          ? `<select onchange="hours[${i}].from=this.value">${timeOptions(hours[i].from)}</select>
+             <span style="color:var(--muted);font-size:.8rem;text-align:center">to</span>
+             <select onchange="hours[${i}].to=this.value">${timeOptions(hours[i].to)}</select>`
+          : `<span class="closed-label">Closed</span>`
+        }
+      `;
+      grid.appendChild(row);
+    });
+  }
+  function timeOptions(selected) {
+    let opts = '';
+    for (let h = 0; h < 24; h++) {
+      for (let m of [0, 30]) {
+        const hh = String(h).padStart(2,'0');
+        const mm = String(m).padStart(2,'0');
+        const val = `${hh}:${mm}`;
+        const label = h === 0 ? `12:${mm} AM` : h < 12 ? `${h}:${mm} AM` : h === 12 ? `12:${mm} PM` : `${h-12}:${mm} PM`;
+        opts += `<option value="${val}" ${val===selected?'selected':''}>${label}</option>`;
+      }
+    }
+    return opts;
+  }
+  function toggleDay(i, open) {
+    hours[i].open = open;
+    buildHoursGrid();
+  }
+
+  // Step 4 — services
+  function buildServicesGrid() {
+    const grid = document.getElementById('services-grid');
+    const all = [...ALL_SERVICES, ...customServices];
+    grid.innerHTML = '';
+    all.forEach(svc => {
+      const pill = document.createElement('div');
+      pill.className = 'svc-pill' + (selectedServices.has(svc) ? ' selected' : '');
+      pill.textContent = svc;
+      pill.onclick = () => toggleService(svc);
+      grid.appendChild(pill);
+    });
+    updateSvcDetails();
+  }
+  function toggleService(svc) {
+    if (selectedServices.has(svc)) selectedServices.delete(svc);
+    else selectedServices.add(svc);
+    buildServicesGrid();
+  }
+  function toggleCustomInput() {
+    const w = document.getElementById('custom-svc-wrap');
+    w.style.display = w.style.display === 'none' ? 'block' : 'none';
+    if (w.style.display === 'block') document.getElementById('custom-svc-input').focus();
+  }
+  function addCustomService() {
+    const inp = document.getElementById('custom-svc-input');
+    const val = inp.value.trim();
+    if (!val) return;
+    customServices.push(val);
+    selectedServices.add(val);
+    inp.value = '';
+    document.getElementById('custom-svc-wrap').style.display = 'none';
+    buildServicesGrid();
+  }
+  function updateSvcDetails() {
+    const panel = document.getElementById('svc-details');
+    const dgrid = document.getElementById('svc-details-grid');
+    if (selectedServices.size === 0) { panel.classList.remove('show'); return; }
+    panel.classList.add('show');
+    dgrid.innerHTML = '';
+    selectedServices.forEach(svc => {
+      const cell = document.createElement('div');
+      cell.innerHTML = `
+        <label>${svc}</label>
+        <div style="display:flex;gap:.4rem">
+          <input type="text" placeholder="Price ($)" style="flex:1" value="${servicePrices[svc]||''}" oninput="servicePrices['${svc}']=this.value">
+          <input type="text" placeholder="Duration (min)" style="flex:1" value="${serviceDurations[svc]||''}" oninput="serviceDurations['${svc}']=this.value">
+        </div>
+      `;
+      dgrid.appendChild(cell);
+    });
+  }
+
+  // Step 5
+  function buildSummary() {
+    document.getElementById('sum-name').textContent = document.getElementById('biz-name').value || '—';
+    document.getElementById('sum-type').textContent = document.getElementById('biz-type').value || '—';
+    const openDays = DAYS.filter((_,i) => hours[i].open);
+    document.getElementById('sum-hours').textContent = openDays.length ? openDays.join(', ') : 'Not configured';
+    document.getElementById('sum-services').textContent = selectedServices.size ? selectedServices.size + ' service' + (selectedServices.size !== 1 ? 's' : '') : 'None selected';
+  }
+
+  async function activateNow() {
+    const btn = document.querySelector('.activate-btn');
+    btn.textContent = 'Activating…';
+    btn.disabled = true;
+    const payload = {
+      business_name: document.getElementById('biz-name').value,
+      business_type: document.getElementById('biz-type').value,
+      address: document.getElementById('biz-address').value,
+      timezone: document.getElementById('biz-tz').value,
+      phone: '(786) 555-0100',
+      forwarded: document.getElementById('fwd-toggle').checked,
+      hours: DAYS.map((d, i) => ({ day: d, ...hours[i] })),
+      services: [...selectedServices].map(s => ({ name: s, price: servicePrices[s] || '', duration: serviceDurations[s] || '' }))
+    };
+    try {
+      const r = await fetch('/api/onboarding/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const d = await r.json();
+      if (d.ok) window.location.href = '/dashboard';
+    } catch (e) {
+      btn.textContent = 'Activate My AI Receptionist →';
+      btn.disabled = false;
+      alert('Something went wrong. Please try again.');
     }
   }
 
-  async function markDone(id) {
-    await fetch('/api/onboarding/' + id + '/complete', {method:'POST'});
-    load();
+  // Init
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('name')) document.getElementById('biz-name').value = params.get('name');
+  if (params.get('type')) {
+    const sel = document.getElementById('biz-type');
+    [...sel.options].forEach(o => { if (o.value === params.get('type')) o.selected = true; });
   }
-
-  function launchConfetti() {
-    const wrap = document.getElementById('confetti');
-    wrap.classList.add('show');
-    const colors = ['#a78bfa','#34d399','#fbbf24','#f87171','#60a5fa','#fff'];
-    for (let i = 0; i < 80; i++) {
-      const el = document.createElement('div');
-      el.className = 'confetti-piece';
-      el.style.cssText = [
-        'left:' + Math.random()*100 + 'vw',
-        'top:' + (Math.random()*-50) + 'px',
-        'background:' + colors[Math.floor(Math.random()*colors.length)],
-        'animation-duration:' + (2 + Math.random()*2) + 's',
-        'animation-delay:' + Math.random()*1.5 + 's',
-        'width:' + (6+Math.random()*8) + 'px',
-        'height:' + (6+Math.random()*8) + 'px',
-      ].join(';');
-      wrap.appendChild(el);
-    }
-    setTimeout(() => wrap.classList.remove('show'), 5000);
-  }
-
-  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  load();
+  buildHoursGrid();
+  buildServicesGrid();
 </script>
 </body>
 </html>
