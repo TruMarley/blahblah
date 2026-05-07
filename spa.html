@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Receptionist for Spas — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e;
+      --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399;
+      --yellow: #fbbf24; --red: #f87171;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; border-bottom: 1px solid var(--border); background: rgba(8,8,8,.96); position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.25rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.nav-cta { background: var(--accent); color: #fff; font-size: .82rem; font-weight: 700; padding: .42rem 1rem; border-radius: 8px; text-decoration: none; }
+
+    .container { max-width: 1060px; margin: 0 auto; padding: 0 1.5rem; }
+
+    /* Hero */
+    .hero { padding: 5rem 1.5rem 4rem; text-align: center; max-width: 780px; margin: 0 auto; }
+    .hero-eyebrow { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); margin-bottom: 1.25rem; }
+    .hero h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 900; letter-spacing: -.04em; color: #fff; line-height: 1.1; margin-bottom: 1.1rem; }
+    .hero p { font-size: 1.05rem; color: var(--muted); line-height: 1.65; max-width: 600px; margin: 0 auto 2rem; }
+    .hero-cta { display: inline-block; background: var(--accent); color: #fff; font-size: .95rem; font-weight: 800; padding: .85rem 2rem; border-radius: 11px; text-decoration: none; transition: opacity .15s; }
+    .hero-cta:hover { opacity: .88; }
+    .hero-demo { display: inline-block; color: var(--muted); font-size: .88rem; margin-top: .75rem; }
+    .hero-demo strong { color: var(--text); }
+
+    /* Stat bar */
+    .stat-bar { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; padding: 1.5rem; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--surface); margin-bottom: 4rem; }
+    .stat-pill { background: var(--surface2); border: 1px solid var(--border); border-radius: 99px; padding: .5rem 1.25rem; font-size: .82rem; color: var(--muted); }
+    .stat-pill strong { color: var(--text); }
+
+    /* How it works */
+    .section { padding: 3.5rem 1.5rem; max-width: 1060px; margin: 0 auto; }
+    .section-label { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); margin-bottom: .75rem; }
+    .section-title { font-size: 2rem; font-weight: 900; letter-spacing: -.04em; color: #fff; margin-bottom: 2.5rem; }
+
+    .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    @media (max-width: 680px) { .steps-grid { grid-template-columns: 1fr; } }
+    .step-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .step-num { font-size: .7rem; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .75rem; }
+    .step-card h3 { font-size: 1rem; font-weight: 800; color: #fff; margin-bottom: .5rem; }
+    .step-card p { font-size: .85rem; color: var(--muted); line-height: 1.6; }
+
+    /* Features */
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+    @media (max-width: 680px) { .features-grid { grid-template-columns: 1fr 1fr; } }
+    .feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem; }
+    .feature-icon { font-size: 1.5rem; margin-bottom: .75rem; }
+    .feature-card h4 { font-size: .9rem; font-weight: 800; color: #fff; margin-bottom: .35rem; }
+    .feature-card p { font-size: .8rem; color: var(--muted); line-height: 1.55; }
+
+    /* Testimonial */
+    .testimonial-section { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 4rem 1.5rem; text-align: center; }
+    .testimonial-quote { font-size: 1.25rem; font-weight: 600; color: var(--text); line-height: 1.65; max-width: 640px; margin: 0 auto 1.5rem; }
+    .testimonial-quote::before { content: '"'; color: var(--accent); font-size: 1.5rem; }
+    .testimonial-quote::after { content: '"'; color: var(--accent); font-size: 1.5rem; }
+    .testimonial-author { font-size: .85rem; color: var(--muted); }
+    .testimonial-author strong { color: var(--text); }
+    .stars { color: var(--yellow); font-size: 1rem; margin-bottom: .75rem; }
+
+    /* Pricing callout */
+    .pricing-callout { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2.5rem; text-align: center; max-width: 540px; margin: 0 auto; }
+    .pricing-callout h3 { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; color: #fff; margin-bottom: .5rem; }
+    .pricing-callout p { font-size: .9rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .pricing-cta { display: inline-block; background: var(--accent); color: #fff; font-size: .92rem; font-weight: 800; padding: .8rem 1.75rem; border-radius: 10px; text-decoration: none; transition: opacity .15s; }
+    .pricing-cta:hover { opacity: .88; }
+    .pricing-note { font-size: .78rem; color: var(--muted); margin-top: .75rem; }
+
+    /* Footer */
+    footer { border-top: 1px solid var(--border); padding: 2rem 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; }
+    .footer-logo { font-size: 1rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .footer-logo span { color: var(--accent); }
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a { color: var(--muted); font-size: .82rem; text-decoration: none; }
+    .footer-links a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/signup" class="nav-cta">Start free trial</a>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-eyebrow">For Spas</div>
+  <h1>A 5-star experience starts before your clients walk in.</h1>
+  <p>Alex greets every caller with warmth, books massages and facials instantly, and follows up automatically — so your front desk can focus on the guest in front of them.</p>
+  <div>
+    <a href="/signup" class="hero-cta">Start Free Trial</a>
+  </div>
+  <div class="hero-demo">or call our demo line: <strong>(786) 555-0100</strong> to hear Alex in action</div>
+</div>
+
+<!-- Stat bar -->
+<div class="stat-bar">
+  <div class="stat-pill"><strong>81%</strong> of spa clients call outside business hours</div>
+  <div class="stat-pill">No-shows cost the average spa <strong>$22,000/yr</strong></div>
+  <div class="stat-pill">Automated reminders reduce no-shows by <strong>40%</strong></div>
+</div>
+
+<!-- How it works -->
+<div class="section">
+  <div class="section-label">How it works</div>
+  <div class="section-title">Effortless booking, from first ring to confirmation</div>
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">Step 01</div>
+      <h3>Call comes in</h3>
+      <p>Alex answers with a calm, professional tone — matching the luxury feel your brand has worked to build. No hold music, no voicemail box.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">Step 02</div>
+      <h3>AI books the appointment</h3>
+      <p>Alex guides callers through your service menu, finds availability, and confirms the booking — including add-ons like aromatherapy or hot stone upgrades.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">Step 03</div>
+      <h3>You get notified</h3>
+      <p>A text summary hits your phone after every call. New bookings, reschedules, and cancellations all in one place — no phone tag required.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Features -->
+<div class="section" style="padding-top:0">
+  <div class="section-label">Features</div>
+  <div class="section-title">Built for the spa experience</div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🧘</div>
+      <h4>Service-aware booking</h4>
+      <p>Books massages, facials, body wraps, and specialty treatments — with correct durations for each.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🌙</div>
+      <h4>After-hours capture</h4>
+      <p>81% of your callers ring outside business hours. Alex captures every one of them and converts them to bookings.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📩</div>
+      <h4>Automated follow-ups</h4>
+      <p>Post-visit texts thank guests and invite them to rebook — keeping your calendar full automatically.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔕</div>
+      <h4>No-show protection</h4>
+      <p>Reminder texts go out 24 hours before each appointment, with optional deposit enforcement via SMS.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⭐</div>
+      <h4>Review generation</h4>
+      <p>Happy clients get a gentle text asking for a Google review — growing your reputation on autopilot.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎙️</div>
+      <h4>Custom AI voice</h4>
+      <p>On Pro, choose a voice and personality that matches your brand's tone perfectly.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Testimonial -->
+<div class="testimonial-section">
+  <div class="stars">★★★★★</div>
+  <div class="testimonial-quote">We used to lose weekend bookings because no one answered after 6pm. RingDesk captures them all now. Revenue is up 23% in two months.</div>
+  <div class="testimonial-author"><strong>Sofia</strong> — Serenity Spa, Austin</div>
+</div>
+
+<!-- Pricing callout -->
+<div class="section">
+  <div class="pricing-callout">
+    <h3>Starts at $49/mo</h3>
+    <p>One captured weekend booking pays for the whole month. Start your free trial today.</p>
+    <a href="/pricing" class="pricing-cta">See all plans →</a>
+    <div class="pricing-note">14-day free trial · No credit card required</div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="container">
+  <a href="/" class="footer-logo">Ring<span>Desk</span></a>
+  <div class="footer-links">
+    <a href="/pricing">Pricing</a>
+    <a href="/signup">Sign up</a>
+    <a href="/dashboard">Dashboard</a>
+  </div>
+</footer>
+</body>
+</html>

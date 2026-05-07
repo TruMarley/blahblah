@@ -3,473 +3,193 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RingDesk — Choose Your Plan</title>
-  <meta property="og:title" content="RingDesk Pricing — Plans Starting at $49/mo">
-  <meta property="og:description" content="Starter, Pro, and Growth plans for barbershops and salons. 14-day free trial, no credit card required. Annual billing saves 2 months.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://ringdesk.ai/pricing">
-  <meta property="og:image" content="https://ringdesk.ai/og-image.jpg">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="RingDesk Pricing — Plans from $49/mo">
-  <meta name="twitter:description" content="14-day free trial. Unlimited calls. Appointment booking + SMS. Cancel anytime.">
+  <title>Pricing — RingDesk</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #080808; --surface: #111; --surface2: #161616;
-      --border: #1e1e1e; --border2: #2a2a2a;
-      --text: #e8e8e8; --muted: #666; --muted2: #444;
-      --accent: #7c3aed; --accent-light: #a78bfa;
-      --green: #22c55e; --orange: #f97316; --red: #f87171;
+      --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e;
+      --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399;
+      --yellow: #fbbf24; --red: #f87171;
     }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg); color: var(--text); min-height: 100vh;
-      display: flex; flex-direction: column; align-items: center;
-      padding: 2rem 1rem 4rem;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-    /* ── Header ── */
-    .top-bar {
-      width: 100%; max-width: 1100px;
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 3rem;
-    }
-    .logo { font-size: 1.3rem; font-weight: 800; color: #fff; text-decoration: none; }
-    .logo span { color: var(--accent-light); }
-    .back-link { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
-    .back-link:hover { color: var(--text); }
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; border-bottom: 1px solid var(--border); background: rgba(8,8,8,.96); position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.25rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.signup-btn { background: var(--accent); color: #fff; font-size: .82rem; font-weight: 700; padding: .42rem 1rem; border-radius: 8px; text-decoration: none; }
 
-    /* ── Page title ── */
-    .page-title { text-align: center; margin-bottom: 2.5rem; }
-    .page-title h1 { font-size: 2.2rem; font-weight: 900; letter-spacing: -0.04em; color: #fff; margin-bottom: 0.5rem; }
-    .page-title p { color: var(--muted); font-size: 1rem; }
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
 
-    /* ── Billing toggle ── */
-    .billing-toggle {
-      display: flex; align-items: center; gap: 1rem; justify-content: center;
-      margin-bottom: 2.5rem;
-    }
-    .toggle-label { font-size: 0.9rem; color: var(--muted); }
-    .toggle-label.active { color: var(--text); font-weight: 600; }
-    .toggle-wrap {
-      width: 52px; height: 28px; background: var(--surface2); border-radius: 14px;
-      border: 1px solid var(--border2); cursor: pointer; position: relative;
-      transition: background 0.2s;
-    }
-    .toggle-wrap.on { background: var(--accent); }
-    .toggle-knob {
-      position: absolute; top: 3px; left: 3px;
-      width: 20px; height: 20px; background: #fff; border-radius: 50%;
-      transition: transform 0.2s;
-    }
-    .toggle-wrap.on .toggle-knob { transform: translateX(24px); }
-    .save-badge {
-      background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3);
-      color: var(--green); font-size: 0.7rem; font-weight: 700; padding: 3px 8px;
-      border-radius: 20px; text-transform: uppercase; letter-spacing: 0.06em;
-    }
+    /* Stat bar */
+    .stat-bar { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; padding: 2rem 1.5rem 1rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: .5rem 1.25rem; font-size: .82rem; color: var(--muted); }
+    .stat-pill strong { color: var(--text); }
 
-    /* ── Plan cards ── */
-    .plans {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 1.5rem; width: 100%; max-width: 1100px; margin-bottom: 3rem;
-    }
-    .plan-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 16px; padding: 2rem; position: relative;
-      cursor: pointer; transition: border-color 0.2s, transform 0.15s;
-    }
-    .plan-card:hover { border-color: var(--border2); transform: translateY(-2px); }
-    .plan-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-    .plan-card.popular { border-color: var(--accent-light); }
-    .popular-badge {
-      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-      background: var(--accent); color: #fff; font-size: 0.7rem; font-weight: 700;
-      padding: 3px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.08em;
-      white-space: nowrap;
-    }
-    .plan-name { font-size: 1rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; }
-    .plan-price { display: flex; align-items: baseline; gap: 4px; margin-bottom: 0.25rem; }
-    .plan-price .dollar { font-size: 1.5rem; font-weight: 700; color: #fff; margin-top: 0.3rem; }
-    .plan-price .amount { font-size: 3rem; font-weight: 900; color: #fff; line-height: 1; letter-spacing: -0.04em; }
-    .plan-price .period { color: var(--muted); font-size: 0.85rem; }
-    .plan-desc { color: var(--muted); font-size: 0.8rem; margin-bottom: 1.5rem; }
-    .plan-features { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
-    .plan-features li { font-size: 0.85rem; color: #bbb; display: flex; align-items: flex-start; gap: 8px; }
-    .plan-features li::before { content: "✓"; color: var(--green); font-weight: 700; flex-shrink: 0; }
-    .plan-features li.na { color: var(--muted2); }
-    .plan-features li.na::before { content: "—"; color: var(--muted2); }
-    .select-indicator {
-      margin-top: 1.5rem; width: 100%; height: 3px; border-radius: 2px;
-      background: var(--border); transition: background 0.2s;
-    }
-    .plan-card.selected .select-indicator { background: var(--accent); }
-    .plan-card.popular .select-indicator { background: var(--accent-light); }
+    /* Hero */
+    .hero { text-align: center; padding: 3rem 1.5rem 2.5rem; }
+    .hero h1 { font-size: 2.6rem; font-weight: 900; letter-spacing: -.04em; color: #fff; margin-bottom: .75rem; line-height: 1.1; }
+    .hero p { color: var(--muted); font-size: 1rem; max-width: 520px; margin: 0 auto; }
 
-    /* ── Checkout form ── */
-    .checkout-wrap {
-      width: 100%; max-width: 520px;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 20px; padding: 2.5rem; position: relative;
-    }
-    .checkout-title {
-      font-size: 1.2rem; font-weight: 700; color: #fff;
-      margin-bottom: 0.5rem;
-    }
-    .checkout-subtitle { color: var(--muted); font-size: 0.85rem; margin-bottom: 2rem; }
+    /* Plans */
+    .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; padding: 2rem 1.5rem 3rem; max-width: 1080px; margin: 0 auto; }
+    @media (max-width: 760px) { .plans { grid-template-columns: 1fr; } }
 
-    .selected-plan-summary {
-      background: var(--surface2); border: 1px solid var(--border2);
-      border-radius: 10px; padding: 1rem 1.25rem;
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 2rem;
-    }
-    .sps-left .plan-n { font-weight: 600; color: #fff; font-size: 0.9rem; }
-    .sps-left .plan-d { color: var(--muted); font-size: 0.75rem; margin-top: 2px; }
-    .sps-right { font-size: 1.4rem; font-weight: 800; color: var(--accent-light); }
-    .sps-right span { font-size: 0.75rem; color: var(--muted); font-weight: 400; }
+    .plan-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; position: relative; display: flex; flex-direction: column; }
+    .plan-card.popular { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 40px rgba(167,139,250,.08); }
 
-    .form-group { margin-bottom: 1.25rem; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
-    input {
-      width: 100%; background: var(--surface2); border: 1px solid var(--border2);
-      border-radius: 8px; padding: 12px 14px; color: var(--text);
-      font-size: 0.95rem; font-family: inherit; outline: none;
-      transition: border-color 0.2s;
-    }
-    input:focus { border-color: var(--accent); }
-    input::placeholder { color: var(--muted2); }
+    .popular-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; font-size: .7rem; font-weight: 800; padding: 3px 14px; border-radius: 99px; text-transform: uppercase; letter-spacing: .08em; white-space: nowrap; }
 
-    /* Card field styling */
-    .card-field-wrap {
-      display: flex; align-items: center; gap: 10px;
-      background: var(--surface2); border: 1px solid var(--border2);
-      border-radius: 8px; padding: 12px 14px;
-      transition: border-color 0.2s;
-    }
-    .card-field-wrap:focus-within { border-color: var(--accent); }
-    .card-icon { font-size: 1.4rem; opacity: 0.7; }
-    .card-field-wrap input {
-      background: transparent; border: none; padding: 0;
-      flex: 1; font-size: 0.95rem; color: var(--text);
-    }
-    .card-field-wrap input:focus { border-color: transparent; }
+    .plan-name { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: .75rem; }
+    .plan-card.popular .plan-name { color: var(--accent); }
 
-    .form-divider {
-      border: none; border-top: 1px solid var(--border);
-      margin: 1.5rem 0;
-    }
+    .plan-price { display: flex; align-items: baseline; gap: 2px; margin-bottom: .25rem; }
+    .plan-price .dollar { font-size: 1.4rem; font-weight: 700; color: #fff; margin-top: .3rem; }
+    .plan-price .amount { font-size: 3.2rem; font-weight: 900; color: #fff; letter-spacing: -.04em; line-height: 1; }
+    .plan-price .period { color: var(--muted); font-size: .85rem; margin-left: 2px; }
+    .plan-desc { font-size: .8rem; color: var(--muted); margin-bottom: 1.5rem; }
 
-    /* Guarantee badge */
-    .guarantee-badge {
-      display: flex; align-items: center; gap: 10px;
-      background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2);
-      border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1.5rem;
-    }
-    .guarantee-badge .gb-icon { font-size: 1.5rem; }
-    .guarantee-badge .gb-text .gb-title { font-size: 0.85rem; font-weight: 700; color: var(--green); }
-    .guarantee-badge .gb-text .gb-sub { font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
+    .plan-features { list-style: none; display: flex; flex-direction: column; gap: .55rem; flex: 1; margin-bottom: 1.75rem; }
+    .plan-features li { font-size: .85rem; color: #ccc; display: flex; align-items: flex-start; gap: 8px; }
+    .plan-features li::before { content: "✓"; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
 
-    /* Submit button */
-    .btn-pay {
-      width: 100%; background: var(--accent); color: #fff;
-      border: none; border-radius: 10px; padding: 16px;
-      font-size: 1rem; font-weight: 700; cursor: pointer;
-      transition: background 0.2s, transform 0.15s;
-      box-shadow: 0 0 40px rgba(124,58,237,0.3);
-      position: relative; overflow: hidden;
-    }
-    .btn-pay:hover { background: #6d28d9; transform: translateY(-1px); }
-    .btn-pay:active { transform: translateY(0); }
-    .btn-pay.loading { opacity: 0.7; cursor: not-allowed; }
+    .plan-cta { display: block; text-align: center; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: .88rem; font-weight: 700; padding: .75rem 1rem; border-radius: 10px; text-decoration: none; transition: border-color .15s, background .15s; }
+    .plan-cta:hover { border-color: var(--accent); background: rgba(167,139,250,.08); }
+    .plan-card.popular .plan-cta { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .plan-card.popular .plan-cta:hover { background: #9b70f0; border-color: #9b70f0; }
 
-    .trust-line {
-      display: flex; align-items: center; justify-content: center;
-      gap: 1rem; margin-top: 1rem;
-      font-size: 0.72rem; color: var(--muted);
-    }
-    .trust-line span { display: flex; align-items: center; gap: 4px; }
-
-    /* Success state */
-    .success-overlay {
-      display: none; position: absolute; inset: 0;
-      background: var(--surface); border-radius: 20px;
-      align-items: center; justify-content: center; flex-direction: column;
-      text-align: center; padding: 3rem;
-    }
-    .success-overlay.show { display: flex; }
-    .success-icon { font-size: 4rem; margin-bottom: 1rem; }
-    .success-overlay h2 { font-size: 1.5rem; font-weight: 800; color: #fff; margin-bottom: 0.75rem; }
-    .success-overlay p { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
-    .btn-go {
-      background: var(--green); color: #000; padding: 14px 32px;
-      border-radius: 10px; font-weight: 700; font-size: 1rem;
-      text-decoration: none; display: inline-block;
-    }
-
-    @media (max-width: 900px) {
-      .plans { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 600px) {
-      .form-row { grid-template-columns: 1fr; }
-    }
+    /* FAQ */
+    .faq-section { max-width: 680px; margin: 0 auto; padding: 1rem 1.5rem 5rem; }
+    .faq-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; color: #fff; text-align: center; margin-bottom: 2rem; }
+    .faq-list { display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .faq-item { background: var(--surface); }
+    .faq-q { width: 100%; background: none; border: none; color: var(--text); font-family: inherit; font-size: .9rem; font-weight: 700; padding: 1.1rem 1.25rem; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+    .faq-q:hover { background: var(--surface2); }
+    .faq-icon { color: var(--muted); font-size: 1.1rem; flex-shrink: 0; transition: transform .2s; }
+    .faq-item.open .faq-icon { transform: rotate(45deg); }
+    .faq-a { display: none; padding: 0 1.25rem 1.1rem; font-size: .85rem; color: var(--muted); line-height: 1.65; }
+    .faq-item.open .faq-a { display: block; }
+    .faq-item + .faq-item { border-top: 1px solid var(--border); }
   </style>
 </head>
 <body>
-
-<div class="top-bar">
+<nav>
   <a href="/" class="logo">Ring<span>Desk</span></a>
-  <a href="/" class="back-link">← Back to RingDesk</a>
+  <a href="/signup" class="signup-btn">Start free trial</a>
+</nav>
+
+<div class="hero">
+  <h1>Simple, transparent pricing</h1>
+  <p>14-day free trial on any plan. No credit card required. Cancel anytime.</p>
 </div>
 
-<div class="page-title">
-  <h1>Simple, transparent pricing.</h1>
-  <p>No setup fees. No contracts. Cancel anytime.</p>
+<div class="stat-bar">
+  <div class="stat-pill"><strong>30%</strong> of salon calls go unanswered</div>
+  <div class="stat-pill">Avg salon loses <strong>$18,000/yr</strong> to missed bookings</div>
+  <div class="stat-pill"><strong>81%</strong> of clients call outside business hours</div>
 </div>
 
-<!-- Billing toggle -->
-<div class="billing-toggle">
-  <span class="toggle-label active" id="lbl-monthly">Monthly</span>
-  <div class="toggle-wrap" id="billing-toggle" onclick="toggleBilling()">
-    <div class="toggle-knob"></div>
-  </div>
-  <span class="toggle-label" id="lbl-annual">Annual</span>
-  <span class="save-badge">Save 17%</span>
-</div>
-
-<!-- Plan cards -->
 <div class="plans">
-  <div class="plan-card" id="plan-starter" onclick="selectPlan('starter')">
+  <!-- Starter -->
+  <div class="plan-card">
     <div class="plan-name">Starter</div>
     <div class="plan-price">
       <span class="dollar">$</span>
-      <span class="amount" id="price-starter">49</span>
+      <span class="amount">49</span>
       <span class="period">/mo</span>
     </div>
-    <div class="plan-desc">Perfect for solo operators</div>
+    <div class="plan-desc">Perfect for shops just getting started with AI.</div>
     <ul class="plan-features">
-      <li>AI answers calls 24/7</li>
-      <li>Appointment booking</li>
-      <li>SMS confirmation</li>
-      <li>Up to 200 calls/month</li>
-      <li>Basic dashboard</li>
-      <li class="na">Spanish language</li>
-      <li class="na">Live transfer</li>
-      <li class="na">Analytics</li>
+      <li>100 AI-handled calls/mo</li>
+      <li>Appointment booking + SMS confirmations</li>
+      <li>24/7 availability</li>
+      <li>Basic analytics dashboard</li>
+      <li>Email support</li>
     </ul>
-    <div class="select-indicator"></div>
+    <a href="/signup" class="plan-cta">Start free trial</a>
   </div>
 
-  <div class="plan-card popular selected" id="plan-pro" onclick="selectPlan('pro')">
+  <!-- Growth -->
+  <div class="plan-card popular">
     <div class="popular-badge">Most Popular</div>
-    <div class="plan-name">Pro</div>
-    <div class="plan-price">
-      <span class="dollar">$</span>
-      <span class="amount" id="price-pro">99</span>
-      <span class="period">/mo</span>
-    </div>
-    <div class="plan-desc">For established shops ready to scale</div>
-    <ul class="plan-features">
-      <li>AI answers calls 24/7</li>
-      <li>Appointment booking</li>
-      <li>SMS confirmation + reminders</li>
-      <li>Unlimited calls</li>
-      <li>Full dashboard + analytics</li>
-      <li>Spanish language</li>
-      <li>Live transfer to owner</li>
-      <li>Google Calendar sync</li>
-    </ul>
-    <div class="select-indicator"></div>
-  </div>
-
-  <div class="plan-card" id="plan-growth" onclick="selectPlan('growth')">
     <div class="plan-name">Growth</div>
     <div class="plan-price">
       <span class="dollar">$</span>
-      <span class="amount" id="price-growth">199</span>
+      <span class="amount">99</span>
       <span class="period">/mo</span>
     </div>
-    <div class="plan-desc">Multi-location + white-glove setup</div>
+    <div class="plan-desc">For growing shops that need more calls and automation.</div>
     <ul class="plan-features">
-      <li>Everything in Pro</li>
-      <li>Up to 3 locations</li>
-      <li>Custom AI voice cloning</li>
-      <li>Priority support (2h response)</li>
-      <li>Dedicated onboarding call</li>
-      <li>Custom integrations</li>
-      <li>Monthly strategy review</li>
-      <li>Early access to new features</li>
+      <li>300 AI-handled calls/mo</li>
+      <li>Everything in Starter</li>
+      <li>Two-way SMS conversations</li>
+      <li>Waitlist auto-fill</li>
+      <li>Call transcripts + recordings</li>
+      <li>No-show fee SMS enforcement</li>
+      <li>Google Review auto-request after visits</li>
+      <li>Priority support</li>
     </ul>
-    <div class="select-indicator"></div>
+    <a href="/signup" class="plan-cta">Start free trial</a>
+  </div>
+
+  <!-- Pro -->
+  <div class="plan-card">
+    <div class="plan-name">Pro</div>
+    <div class="plan-price">
+      <span class="dollar">$</span>
+      <span class="amount">199</span>
+      <span class="period">/mo</span>
+    </div>
+    <div class="plan-desc">For high-volume locations that need full-service AI.</div>
+    <ul class="plan-features">
+      <li>Unlimited calls</li>
+      <li>Everything in Growth</li>
+      <li>Spanish language support</li>
+      <li>Warm call transfer to staff</li>
+      <li>Custom AI voice &amp; personality</li>
+      <li>Vagaro / Square / Mindbody integration</li>
+      <li>White-glove onboarding</li>
+      <li>Dedicated account manager</li>
+    </ul>
+    <a href="/signup" class="plan-cta">Start free trial</a>
   </div>
 </div>
 
-<!-- Checkout form -->
-<div class="checkout-wrap">
-  <div class="success-overlay" id="success-overlay">
-    <div class="success-icon">🎉</div>
-    <h2>You're all set!</h2>
-    <p>Your AI receptionist is being activated. You'll get a setup email in the next 2 minutes.</p>
-    <a href="/dashboard" class="btn-go">Go to Dashboard →</a>
+<!-- FAQ -->
+<div class="faq-section">
+  <div class="faq-title">Frequently asked questions</div>
+  <div class="faq-list">
+    <div class="faq-item">
+      <button class="faq-q">Can I keep my existing phone number? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Yes, we forward your existing number to RingDesk. Your clients dial the same number they always have — no change on their end.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q">How long does setup take? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Under 5 minutes with our guided wizard. Just enter your business info, pick your hours, and you're live.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q">What if the AI can't handle a call? <span class="faq-icon">+</span></button>
+      <div class="faq-a">On Pro, AI does a warm transfer to your staff so the caller never knows they spoke to a bot. On all plans, it takes a message and texts you immediately so you can call back.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q">Does it work with my booking software? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Pro plan integrates directly with Vagaro, Square, and Mindbody. All plans work standalone with RingDesk's own appointment management.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q">Is there a free trial? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Yes — 14-day free trial on any plan. No credit card required. You can upgrade, downgrade, or cancel at any time.</div>
+    </div>
   </div>
-
-  <div class="checkout-title">Complete your setup</div>
-  <div class="checkout-subtitle">14-day free trial — you won't be charged today</div>
-
-  <div class="selected-plan-summary" id="plan-summary">
-    <div class="sps-left">
-      <div class="plan-n" id="sum-name">Pro Plan</div>
-      <div class="plan-d" id="sum-desc">Unlimited calls · SMS reminders · Spanish</div>
-    </div>
-    <div class="sps-right">$<span id="sum-price">99</span><span>/mo</span></div>
-  </div>
-
-  <form id="checkout-form" onsubmit="handleCheckout(event)">
-    <div class="form-row">
-      <div class="form-group">
-        <label>First Name</label>
-        <input type="text" placeholder="Marcus" required>
-      </div>
-      <div class="form-group">
-        <label>Last Name</label>
-        <input type="text" placeholder="Johnson" required>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>Email</label>
-      <input type="email" placeholder="marcus@cutsfades.com" required>
-    </div>
-
-    <div class="form-group">
-      <label>Business Name</label>
-      <input type="text" placeholder="Cuts & Fades Barbershop" required>
-    </div>
-
-    <hr class="form-divider">
-
-    <div class="form-group">
-      <label>Card Number</label>
-      <div class="card-field-wrap">
-        <span class="card-icon">💳</span>
-        <input type="text" placeholder="1234 5678 9012 3456" maxlength="19"
-               oninput="formatCard(this)" required>
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label>Expiry</label>
-        <input type="text" placeholder="MM / YY" maxlength="7"
-               oninput="formatExpiry(this)" required>
-      </div>
-      <div class="form-group">
-        <label>CVC</label>
-        <input type="text" placeholder="•••" maxlength="4" required>
-      </div>
-    </div>
-
-    <div class="guarantee-badge">
-      <div class="gb-icon">🛡️</div>
-      <div class="gb-text">
-        <div class="gb-title">30-Day Money-Back Guarantee</div>
-        <div class="gb-sub">Not happy for any reason? Full refund, no questions asked.</div>
-      </div>
-    </div>
-
-    <button type="submit" class="btn-pay" id="pay-btn">
-      Start 14-Day Free Trial →
-    </button>
-
-    <div class="trust-line">
-      <span>🔒 256-bit SSL</span>
-      <span>✓ Cancel anytime</span>
-      <span>✓ No setup fees</span>
-    </div>
-  </form>
 </div>
 
 <script>
-  let currentPlan = 'pro';
-  let isAnnual = false;
-
-  const prices = {
-    monthly: { starter: 49, pro: 99, growth: 199 },
-    annual:  { starter: 41, pro: 82, growth: 165 },
-  };
-
-  const planDetails = {
-    starter: { name: 'Starter Plan', desc: 'Up to 200 calls/month · SMS confirmation' },
-    pro:     { name: 'Pro Plan', desc: 'Unlimited calls · SMS reminders · Spanish' },
-    growth:  { name: 'Growth Plan', desc: 'Up to 3 locations · Custom voice · Priority support' },
-  };
-
-  function selectPlan(plan) {
-    document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
-    document.getElementById(`plan-${plan}`).classList.add('selected');
-    currentPlan = plan;
-    updateSummary();
-  }
-
-  function toggleBilling() {
-    isAnnual = !isAnnual;
-    const toggle = document.getElementById('billing-toggle');
-    toggle.classList.toggle('on', isAnnual);
-    document.getElementById('lbl-monthly').classList.toggle('active', !isAnnual);
-    document.getElementById('lbl-annual').classList.toggle('active', isAnnual);
-    updatePrices();
-    updateSummary();
-  }
-
-  function updatePrices() {
-    const tier = isAnnual ? 'annual' : 'monthly';
-    ['starter', 'pro', 'growth'].forEach(p => {
-      document.getElementById(`price-${p}`).textContent = prices[tier][p];
+  document.querySelectorAll('.faq-q').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.faq-item');
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+      if (!isOpen) item.classList.add('open');
     });
-  }
-
-  function updateSummary() {
-    const tier = isAnnual ? 'annual' : 'monthly';
-    document.getElementById('sum-name').textContent = planDetails[currentPlan].name + (isAnnual ? ' (Annual)' : '');
-    document.getElementById('sum-desc').textContent = planDetails[currentPlan].desc;
-    document.getElementById('sum-price').textContent = prices[tier][currentPlan];
-  }
-
-  function formatCard(input) {
-    let v = input.value.replace(/\D/g, '').substring(0, 16);
-    input.value = v.replace(/(\d{4})(?=\d)/g, '$1 ');
-  }
-
-  function formatExpiry(input) {
-    let v = input.value.replace(/\D/g, '').substring(0, 4);
-    if (v.length >= 2) v = v.substring(0,2) + ' / ' + v.substring(2);
-    input.value = v;
-  }
-
-  async function handleCheckout(e) {
-    e.preventDefault();
-    const btn = document.getElementById('pay-btn');
-    btn.textContent = 'Processing...';
-    btn.classList.add('loading');
-    btn.disabled = true;
-
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: currentPlan, billing: isAnnual ? 'annual' : 'monthly' }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        document.getElementById('success-overlay').classList.add('show');
-      }
-    } catch (err) {
-      btn.textContent = 'Start 14-Day Free Trial →';
-      btn.classList.remove('loading');
-      btn.disabled = false;
-    }
-  }
+  });
 </script>
 </body>
 </html>

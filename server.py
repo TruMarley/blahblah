@@ -38301,6 +38301,27 @@ async def serve_settings_page(slug: str):
     from fastapi import HTTPException
     raise HTTPException(status_code=404)
 
+@app.get("/barbershop")
+async def get_barbershop():
+    return FileResponse("barbershop.html")
+
+@app.get("/nail-salon")
+async def get_nail_salon():
+    return FileResponse("nail_salon.html")
+
+@app.get("/spa")
+async def get_spa():
+    return FileResponse("spa.html")
+
+@app.post("/api/onboarding/complete")
+async def api_onboarding_complete(request: Request):
+    import json as _json
+    data = await request.json()
+    data["completed_at"] = datetime.now().isoformat()
+    with open("onboarding_data.json", "a") as f:
+        f.write(_json.dumps(data) + "\n")
+    return JSONResponse({"ok": True})
+
 async def reminder_job():
     """
     Background job: runs every hour.
