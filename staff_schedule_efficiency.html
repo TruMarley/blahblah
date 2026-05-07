@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Schedule Efficiency — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .55rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th:not(:first-child) { text-align: center; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .75rem 1rem; font-size: .82rem; text-align: center; }
+    tbody td:first-child { text-align: left; font-weight: 800; }
+    .chip { display: inline-block; font-size: .68rem; font-weight: 800; padding: .15rem .5rem; border-radius: 99px; }
+    .chip-over  { background: rgba(251,191,36,.1);  color: var(--yellow); border: 1px solid rgba(251,191,36,.25); }
+    .chip-under { background: rgba(52,211,153,.12); color: var(--green);  border: 1px solid rgba(52,211,153,.25); }
+    .chip-exact { background: rgba(167,139,250,.12);color: var(--accent); border: 1px solid rgba(167,139,250,.25); }
+    .chip-ot    { background: rgba(248,113,113,.12);color: var(--red);    border: 1px solid rgba(248,113,113,.25); }
+    .eff-wrap { display: flex; align-items: center; gap: .5rem; justify-content: center; }
+    .eff-track { width: 72px; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+    .eff-fill  { height: 100%; border-radius: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Schedule Efficiency</div>
+  <p class="page-sub">How closely each team member's actual hours match their scheduled shifts this week.</p>
+  <div class="card">
+    <div class="card-title">Schedule vs Actual Hours</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Staff</th>
+          <th>Scheduled</th>
+          <th>Actual</th>
+          <th>Delta</th>
+          <th>Overtime</th>
+          <th>Efficiency</th>
+        </tr>
+      </thead>
+      <tbody id="eff-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  function effColor(pct) {
+    if (pct >= 95 && pct <= 105) return '#34d399';
+    if (pct > 105) return '#fbbf24';
+    return '#f87171';
+  }
+
+  async function load() {
+    const r = await fetch('/api/analytics/staff-schedule-efficiency');
+    const d = await r.json();
+    document.getElementById('eff-tbody').innerHTML = (d.staff||[]).map(s => {
+      const delta = s.delta_hours;
+      const chipClass = delta > 1 ? 'chip-over' : delta < -1 ? 'chip-under' : 'chip-exact';
+      const deltaLabel = delta > 0 ? `+${delta}h` : delta < 0 ? `${delta}h` : '±0';
+      const color = effColor(s.efficiency_pct);
+      return `<tr>
+        <td>${esc(s.name)}</td>
+        <td style="color:var(--muted)">${s.scheduled_hours}h</td>
+        <td style="font-weight:800">${s.actual_hours}h</td>
+        <td><span class="chip ${chipClass}">${deltaLabel}</span></td>
+        <td>${s.overtime ? '<span class="chip chip-ot">OT</span>' : '<span style="color:var(--muted);font-size:.75rem">—</span>'}</td>
+        <td>
+          <div class="eff-wrap">
+            <div class="eff-track"><div class="eff-fill" style="width:${Math.min(s.efficiency_pct,100)}%;background:${color}"></div></div>
+            <span style="font-size:.75rem;font-weight:800;color:${color}">${s.efficiency_pct}%</span>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

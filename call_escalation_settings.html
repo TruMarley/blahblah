@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Escalation — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select, input[type=number], input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus, input:focus { border-color: var(--accent); }
+    input[type=number] { width: 90px; }
+    input[type=text] { width: 180px; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .79rem; padding: .5rem .72rem; outline: none; resize: vertical; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .trigger-wrap { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .5rem; }
+    .trigger-chip { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.25); border-radius: 6px; padding: .15rem .55rem; font-size: .75rem; color: var(--red); font-family: monospace; }
+    .note { background: rgba(167,139,250,.07); border: 1px solid rgba(167,139,250,.2); border-radius: 8px; padding: .65rem .9rem; font-size: .75rem; color: var(--accent); margin-bottom: 1rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Escalation</div>
+  <p class="page-sub">Define when your AI transfers callers to a human. Configure transfer numbers, hold behavior, voicemail fallback, and owner notifications.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-esc" style="color:var(--red)">—</div>
+      <div class="stat-lbl">Escalations (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-daily" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Avg / Day</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-vm" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Voicemail Rate</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-response" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Avg Response (min)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Escalation Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Escalation</div><div class="row-sub">AI transfers calls matching trigger keywords</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Escalation Method</div></div>
+      <select id="method">
+        <option value="transfer">Transfer to Number</option>
+        <option value="voicemail">Voicemail Only</option>
+        <option value="callback">Offer Callback</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Transfer Number</div></div>
+      <input type="text" id="transfer-number" placeholder="+15550001234">
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Explains Transfer</div><div class="row-sub">AI tells caller they're being transferred</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-explains"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Hold Music</div><div class="row-sub">Play music while transferring</div></div>
+      <label class="toggle"><input type="checkbox" id="hold-music"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Hold Time (sec)</div></div>
+      <input type="number" id="max-hold" min="30" max="600">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Fallback to Voicemail</div><div class="row-sub">If hold exceeds max, go to voicemail</div></div>
+      <label class="toggle"><input type="checkbox" id="fallback-vm"><span class="slider"></span></label>
+    </div>
+    <div style="margin-top:.65rem">
+      <div class="row-sub" style="margin-bottom:.4rem">Escalation Triggers</div>
+      <div class="trigger-wrap" id="triggers"></div>
+    </div>
+    <div class="note" style="margin-top:.85rem">Hold message: "<span id="hold-msg-preview">—</span>"</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Voicemail & Notifications</div>
+    <div class="row-sub" style="margin-bottom:.6rem">Voicemail Greeting</div>
+    <textarea id="voicemail-greeting" rows="3"></textarea>
+    <div class="row" style="margin-top:1rem">
+      <div><div class="row-label">Notify Owner on Escalation</div><div class="row-sub">Send push/email when a call is escalated</div></div>
+      <label class="toggle"><input type="checkbox" id="notify-owner"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">SMS Owner on Escalation</div><div class="row-sub">Text owner with caller details</div></div>
+      <label class="toggle"><input type="checkbox" id="sms-owner"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Log Escalation Reason</div><div class="row-sub">Record which trigger caused the escalation</div></div>
+      <label class="toggle"><input type="checkbox" id="log-reason"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Escalation Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+
+  async function load() {
+    data = await fetch('/api/settings/call-escalation-cfg').then(r => r.json());
+    document.getElementById('h-esc').textContent = data.escalations_30d;
+    document.getElementById('h-daily').textContent = data.avg_escalations_per_day.toFixed(1);
+    document.getElementById('h-vm').textContent = data.voicemail_left_pct.toFixed(1) + '%';
+    document.getElementById('h-response').textContent = data.owner_response_avg_min;
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('method').value = data.escalation_method;
+    document.getElementById('transfer-number').value = data.transfer_number;
+    document.getElementById('ai-explains').checked = data.ai_explains_transfer;
+    document.getElementById('hold-music').checked = data.hold_music_enabled;
+    document.getElementById('max-hold').value = data.max_hold_seconds;
+    document.getElementById('fallback-vm').checked = data.fallback_to_voicemail;
+    document.getElementById('voicemail-greeting').value = data.voicemail_greeting;
+    document.getElementById('notify-owner').checked = data.notify_owner_on_escalation;
+    document.getElementById('sms-owner').checked = data.escalation_sms_to_owner;
+    document.getElementById('log-reason').checked = data.log_escalation_reason;
+    document.getElementById('hold-msg-preview').textContent = data.hold_message;
+    const tw = document.getElementById('triggers');
+    (data.escalation_triggers||[]).forEach(k => {
+      const chip = document.createElement('div');
+      chip.className = 'trigger-chip';
+      chip.textContent = k;
+      tw.appendChild(chip);
+    });
+  }
+
+  async function save() {
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      escalation_method: document.getElementById('method').value,
+      transfer_number: document.getElementById('transfer-number').value,
+      ai_explains_transfer: document.getElementById('ai-explains').checked,
+      hold_music_enabled: document.getElementById('hold-music').checked,
+      max_hold_seconds: parseInt(document.getElementById('max-hold').value)||120,
+      fallback_to_voicemail: document.getElementById('fallback-vm').checked,
+      voicemail_greeting: document.getElementById('voicemail-greeting').value,
+      notify_owner_on_escalation: document.getElementById('notify-owner').checked,
+      escalation_sms_to_owner: document.getElementById('sms-owner').checked,
+      log_escalation_reason: document.getElementById('log-reason').checked,
+    };
+    await fetch('/api/settings/call-escalation-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

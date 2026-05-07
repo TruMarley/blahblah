@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notes — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-top: .2rem; }
+    .new-btn { background: var(--accent); color: #fff; border: none; font-size: .85rem; font-weight: 700; padding: .55rem 1.1rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+    .new-btn:hover { opacity: .85; }
+    .compose-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 2rem; display: none; }
+    .compose-wrap.open { display: block; }
+    .compose-title-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); font-size: 1rem; font-weight: 700; padding: .4rem 0; margin-bottom: .75rem; outline: none; font-family: inherit; }
+    .compose-title-input::placeholder { color: var(--muted); }
+    .compose-body-input { width: 100%; background: transparent; border: none; color: var(--text); font-size: .85rem; line-height: 1.6; resize: vertical; min-height: 80px; outline: none; font-family: inherit; }
+    .compose-body-input::placeholder { color: var(--muted); }
+    .compose-actions { display: flex; gap: .75rem; margin-top: 1rem; justify-content: flex-end; }
+    .cancel-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: .8rem; font-weight: 700; padding: .45rem .9rem; border-radius: 8px; cursor: pointer; font-family: inherit; }
+    .save-btn { background: var(--accent); color: #fff; border: none; font-size: .8rem; font-weight: 700; padding: .45rem .9rem; border-radius: 8px; cursor: pointer; font-family: inherit; }
+    .section-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .09em; margin-bottom: 1rem; }
+    .notes-masonry { columns: 3; column-gap: 1rem; }
+    @media (max-width: 800px) { .notes-masonry { columns: 2; } }
+    @media (max-width: 500px) { .notes-masonry { columns: 1; } }
+    .note-card { break-inside: avoid; border-radius: 12px; padding: 1.1rem 1.1rem 1rem; margin-bottom: 1rem; position: relative; transition: transform .15s, box-shadow .15s; border: 1px solid transparent; }
+    .note-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+    .note-card.pinned { border-color: rgba(167,139,250,.3); }
+    .note-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; margin-bottom: .5rem; }
+    .note-title { font-size: .9rem; font-weight: 800; line-height: 1.3; flex: 1; }
+    .note-actions { display: flex; gap: .3rem; opacity: 0; transition: opacity .15s; flex-shrink: 0; }
+    .note-card:hover .note-actions { opacity: 1; }
+    .na-btn { background: rgba(255,255,255,.08); border: none; color: var(--muted); width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: .75rem; display: flex; align-items: center; justify-content: center; transition: background .1s, color .1s; }
+    .na-btn:hover { background: rgba(255,255,255,.15); color: var(--text); }
+    .na-btn.pin-active { color: var(--accent); }
+    .note-body { font-size: .8rem; line-height: 1.65; color: rgba(232,232,232,.75); white-space: pre-wrap; word-break: break-word; }
+    .note-footer { display: flex; align-items: center; justify-content: space-between; margin-top: .75rem; }
+    .note-date { font-size: .65rem; color: rgba(255,255,255,.3); }
+    .pin-badge { font-size: .62rem; font-weight: 700; color: var(--accent); background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.2); padding: .1rem .4rem; border-radius: 99px; }
+    .empty-state { text-align: center; color: var(--muted); padding: 4rem 2rem; font-size: .9rem; }
+    .PASTEL0 { background: #1a1a2e; }
+    .PASTEL1 { background: #1a2420; }
+    .PASTEL2 { background: #1e1a2e; }
+    .PASTEL3 { background: #2a1e1e; }
+    .PASTEL4 { background: #1a2230; }
+    .PASTEL5 { background: #221e1a; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="header-row">
+    <div>
+      <div class="page-title">Notes</div>
+      <div class="page-sub">Quick notes, reminders, and ideas for your shop.</div>
+    </div>
+    <button class="new-btn" onclick="openCompose()">+ New Note</button>
+  </div>
+
+  <div class="compose-wrap" id="compose">
+    <input class="compose-title-input" id="note-title" placeholder="Title (optional)">
+    <textarea class="compose-body-input" id="note-body" placeholder="What's on your mind?"></textarea>
+    <div class="compose-actions">
+      <button class="cancel-btn" onclick="closeCompose()">Cancel</button>
+      <button class="save-btn" onclick="saveNote()">Save Note</button>
+    </div>
+  </div>
+
+  <div id="pinned-section" style="display:none">
+    <div class="section-label">📌 Pinned</div>
+    <div class="notes-masonry" id="pinned-grid"></div>
+  </div>
+
+  <div id="all-section">
+    <div class="section-label">All Notes</div>
+    <div class="notes-masonry" id="all-grid"></div>
+  </div>
+</div>
+
+<script>
+  const PASTELS = ['PASTEL0','PASTEL1','PASTEL2','PASTEL3','PASTEL4','PASTEL5'];
+  let notes = [];
+
+  function openCompose() {
+    document.getElementById('compose').classList.add('open');
+    document.getElementById('note-title').focus();
+  }
+  function closeCompose() {
+    document.getElementById('compose').classList.remove('open');
+    document.getElementById('note-title').value = '';
+    document.getElementById('note-body').value = '';
+  }
+
+  async function saveNote() {
+    const title = document.getElementById('note-title').value.trim();
+    const body = document.getElementById('note-body').value.trim();
+    if (!body && !title) return;
+    await fetch('/api/notes', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({title, body}) });
+    closeCompose();
+    load();
+  }
+
+  async function deleteNote(id) {
+    await fetch(`/api/notes/${id}`, { method: 'DELETE' });
+    load();
+  }
+
+  async function pinNote(id) {
+    await fetch(`/api/notes/${id}/pin`, { method: 'PUT' });
+    load();
+  }
+
+  async function load() {
+    const r = await fetch('/api/notes');
+    const d = await r.json();
+    notes = d.notes || [];
+    render();
+  }
+
+  function render() {
+    const pinned = notes.filter(n => n.pinned);
+    const rest = notes.filter(n => !n.pinned);
+
+    const pinnedSec = document.getElementById('pinned-section');
+    const pinnedGrid = document.getElementById('pinned-grid');
+    if (pinned.length) {
+      pinnedSec.style.display = '';
+      pinnedGrid.innerHTML = pinned.map(noteCard).join('');
+    } else {
+      pinnedSec.style.display = 'none';
+    }
+
+    const allGrid = document.getElementById('all-grid');
+    if (!rest.length && !pinned.length) {
+      allGrid.innerHTML = '<div class="empty-state">No notes yet. Click "+ New Note" to start.</div>';
+    } else if (!rest.length) {
+      allGrid.innerHTML = '<div style="color:var(--muted);font-size:.8rem;margin-bottom:1rem">All notes are pinned.</div>';
+    } else {
+      allGrid.innerHTML = rest.map(noteCard).join('');
+    }
+  }
+
+  function noteCard(n, i) {
+    const cls = PASTELS[n.color_index !== undefined ? n.color_index : i % PASTELS.length];
+    const dateStr = n.created_at ? relTime(n.created_at) : '';
+    return `<div class="note-card ${cls}${n.pinned ? ' pinned' : ''}" data-id="${esc(n.id)}">
+      <div class="note-header">
+        ${n.title ? `<div class="note-title">${esc(n.title)}</div>` : '<div></div>'}
+        <div class="note-actions">
+          <button class="na-btn${n.pinned ? ' pin-active' : ''}" onclick="pinNote('${esc(n.id)}')" title="${n.pinned ? 'Unpin' : 'Pin'}">📌</button>
+          <button class="na-btn" onclick="deleteNote('${esc(n.id)}')" title="Delete">✕</button>
+        </div>
+      </div>
+      ${n.body ? `<div class="note-body">${esc(n.body)}</div>` : ''}
+      <div class="note-footer">
+        <div class="note-date">${dateStr}</div>
+        ${n.pinned ? '<span class="pin-badge">Pinned</span>' : ''}
+      </div>
+    </div>`;
+  }
+
+  function relTime(iso) {
+    const diff = Math.floor((new Date() - new Date(iso)) / 60000);
+    if (diff < 1) return 'just now';
+    if (diff < 60) return diff + 'm ago';
+    if (diff < 1440) return Math.floor(diff/60) + 'h ago';
+    return Math.floor(diff/1440) + 'd ago';
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeCompose();
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      if (document.getElementById('compose').classList.contains('open')) saveNote();
+    }
+  });
+
+  load();
+</script>
+</body>
+</html>

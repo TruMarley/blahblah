@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Response Time — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .heroes { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem; }
+    .hero-label { font-size: .63rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; }
+    .hero-value { font-size: 1.55rem; font-weight: 900; letter-spacing: -.03em; }
+    .hero-sub { font-size: .68rem; color: var(--muted); margin-top: .15rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .trend-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .35rem; }
+    .trend-label { font-size: .72rem; color: var(--muted); width: 42px; text-align: right; flex-shrink: 0; }
+    .trend-bar-bg { flex: 1; background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+    .trend-bar-fill { height: 100%; border-radius: 4px; }
+    .trend-val { font-size: .7rem; width: 50px; text-align: right; flex-shrink: 0; }
+    .speed-pct-row { display: flex; gap: .75rem; margin-bottom: 1rem; }
+    .speed-pill { flex: 1; background: var(--surface2); border-radius: 10px; padding: .7rem .9rem; text-align: center; }
+    .speed-val { font-size: 1.2rem; font-weight: 900; }
+    .speed-lbl { font-size: .65rem; color: var(--muted); margin-top: .1rem; }
+    .hour-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: .3rem; }
+    .hour-cell { background: var(--surface2); border-radius: 6px; padding: .35rem .2rem; text-align: center; }
+    .hour-lbl { font-size: .58rem; color: var(--muted); }
+    .hour-val { font-size: .72rem; font-weight: 700; margin-top: .12rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    th { text-align: left; font-size: .67rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding-bottom: .6rem; border-bottom: 1px solid var(--border); }
+    td { padding: .5rem 0; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    td.num { font-weight: 700; }
+    td.green { color: var(--green); }
+    td.yellow { color: var(--yellow); }
+    .insight { background: rgba(52,211,153,.07); border: 1px solid rgba(52,211,153,.18); border-radius: 10px; padding: .85rem 1.1rem; margin-top: 1rem; font-size: .8rem; color: var(--green); }
+    @media (max-width: 600px) { .heroes { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Response Time</div>
+  <p class="page-sub">How fast the AI responds to callers. Sub-500ms responses feel instant; over 1 second is noticeable. Track trends and peak-hour slowdowns.</p>
+
+  <div class="heroes">
+    <div class="hero">
+      <div class="hero-label">Avg Response</div>
+      <div class="hero-value" id="h-avg" style="color:var(--accent)">—</div>
+      <div class="hero-sub">this month</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">P95 Response</div>
+      <div class="hero-value" id="h-p95" style="color:var(--yellow)">—</div>
+      <div class="hero-sub">95th percentile</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Fastest</div>
+      <div class="hero-value" id="h-fast" style="color:var(--green)">—</div>
+      <div class="hero-sub">best recorded</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Calls Analyzed</div>
+      <div class="hero-value" id="h-calls">—</div>
+      <div class="hero-sub">this month</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Speed Distribution</div>
+    <div class="speed-pct-row">
+      <div class="speed-pill">
+        <div class="speed-val" id="pct-fast" style="color:var(--green)">—</div>
+        <div class="speed-lbl">Under 500ms</div>
+      </div>
+      <div class="speed-pill">
+        <div class="speed-val" id="pct-slow" style="color:var(--red)">—</div>
+        <div class="speed-lbl">Over 1 second</div>
+      </div>
+    </div>
+    <div class="insight" id="insight-box" style="display:none"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Avg Response Trend</div>
+    <div id="trend-chart"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Response by Hour</div>
+    <div class="hour-grid" id="hour-grid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Detail</div>
+    <table>
+      <thead><tr><th>Month</th><th>Avg (ms)</th><th>P95 (ms)</th><th>Calls</th></tr></thead>
+      <tbody id="monthly-table"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  function msLabel(ms) { return ms >= 1000 ? (ms/1000).toFixed(2) + 's' : ms + 'ms'; }
+
+  async function load() {
+    const d = await fetch('/api/analytics/response-time-stats').then(r => r.json());
+    document.getElementById('h-avg').textContent = msLabel(d.avg_response_ms);
+    document.getElementById('h-p95').textContent = msLabel(d.p95_response_ms);
+    document.getElementById('h-fast').textContent = msLabel(d.fastest_response_ms);
+    document.getElementById('h-calls').textContent = d.calls_analyzed_30d.toLocaleString();
+    document.getElementById('pct-fast').textContent = d.pct_under_500ms.toFixed(1) + '%';
+    document.getElementById('pct-slow').textContent = d.pct_over_1s.toFixed(1) + '%';
+
+    const ib = document.getElementById('insight-box');
+    ib.style.display = 'block';
+    const avg = d.avg_response_ms;
+    ib.textContent = avg < 400 ? `Excellent — ${avg}ms average feels instant to callers. ${d.pct_under_500ms}% of calls responded in under 500ms.`
+      : avg < 600 ? `Good — ${avg}ms average is imperceptible to most callers. Monitor P95 (${msLabel(d.p95_response_ms)}) for outliers.`
+      : `${avg}ms average is approaching perceptible. Check for peak-hour slowdowns below — consider scaling infrastructure if P95 exceeds 2s.`;
+
+    const maxAvg = Math.max(...d.monthly.map(m => m.avg_response_ms));
+    const chart = document.getElementById('trend-chart');
+    d.monthly.forEach(m => {
+      const pct = maxAvg > 0 ? (m.avg_response_ms / maxAvg * 100) : 0;
+      const color = m.avg_response_ms < 500 ? 'var(--green)' : m.avg_response_ms < 800 ? 'var(--yellow)' : 'var(--red)';
+      const row = document.createElement('div');
+      row.className = 'trend-row';
+      row.innerHTML = `<div class="trend-label">${m.month}</div><div class="trend-bar-bg"><div class="trend-bar-fill" style="width:${pct}%;background:${color}"></div></div><div class="trend-val" style="color:${color}">${msLabel(m.avg_response_ms)}</div>`;
+      chart.appendChild(row);
+    });
+
+    const maxHour = Math.max(...d.by_hour.map(h => h.avg_ms));
+    const grid = document.getElementById('hour-grid');
+    d.by_hour.forEach(h => {
+      const intensity = maxHour > 0 ? h.avg_ms / maxHour : 0;
+      const color = h.avg_ms < 500 ? `rgba(52,211,153,${0.1 + intensity * 0.5})` : h.avg_ms < 800 ? `rgba(251,191,36,${0.1 + intensity * 0.4})` : `rgba(248,113,113,${0.1 + intensity * 0.4})`;
+      const cell = document.createElement('div');
+      cell.className = 'hour-cell';
+      cell.style.background = color;
+      cell.innerHTML = `<div class="hour-lbl">${h.hour}</div><div class="hour-val">${msLabel(h.avg_ms)}</div>`;
+      grid.appendChild(cell);
+    });
+
+    const tbody = document.getElementById('monthly-table');
+    d.monthly.forEach(m => {
+      const avgClass = m.avg_response_ms < 500 ? 'green' : 'yellow';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${m.month}</td><td class="num ${avgClass}">${m.avg_response_ms}</td><td class="num">${m.p95_response_ms}</td><td class="num">${m.calls_analyzed}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  load();
+</script>
+</body>
+</html>

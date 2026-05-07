@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Birthday Clients — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .7rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .85rem 1.25rem; font-size: .82rem; vertical-align: middle; }
+    .name-cell { font-weight: 800; font-size: .88rem; }
+    .phone-cell { font-size: .78rem; color: var(--muted); }
+    .countdown-chip { display: inline-block; font-size: .72rem; font-weight: 900; padding: .2rem .55rem; border-radius: 99px; white-space: nowrap; }
+    .chip-today  { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .chip-soon   { background: rgba(167,139,250,.12); color: var(--accent); border: 1px solid rgba(167,139,250,.25); }
+    .chip-later  { background: rgba(102,102,102,.08); color: var(--muted); border: 1px solid var(--border); }
+    .visit-cell { font-size: .75rem; color: var(--muted); }
+    .sms-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-size: .75rem; font-weight: 700; padding: .35rem .8rem; border-radius: 7px; cursor: pointer; font-family: inherit; transition: all .15s; white-space: nowrap; }
+    .sms-btn:hover { color: var(--text); border-color: #3e3e3e; }
+    .sms-btn.sent { background: rgba(52,211,153,.08); color: var(--green); border-color: rgba(52,211,153,.2); cursor: default; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">🎂 Birthday Clients</div>
+  <p class="page-sub">Clients with birthdays in the next 30 days. Send a personal touch.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Client</th>
+        <th>Phone</th>
+        <th>Birthday</th>
+        <th>Last Visit</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  let clients = [];
+
+  async function load() {
+    const r = await fetch('/api/clients/birthday-soon');
+    const d = await r.json();
+    clients = d.clients || [];
+    render();
+  }
+
+  function render() {
+    document.getElementById('tbody').innerHTML = clients.map(c => {
+      const days = c.days_until;
+      let chipCls = days === 0 ? 'chip-today' : days <= 7 ? 'chip-soon' : 'chip-later';
+      let chipTxt = days === 0 ? '🎉 Today!' : `in ${days} day${days !== 1 ? 's' : ''}`;
+      const lastVisit = c.last_visit_days_ago <= 30 ? `${c.last_visit_days_ago}d ago` : c.last_visit_days_ago <= 90 ? `${Math.round(c.last_visit_days_ago/7)}w ago` : `${Math.round(c.last_visit_days_ago/30)}mo ago`;
+      const sent = c._sent;
+      return `<tr>
+        <td class="name-cell">${esc(c.client_name)}</td>
+        <td class="phone-cell">${esc(c.phone)}</td>
+        <td><span class="countdown-chip ${chipCls}">${chipTxt}</span> <span style="color:var(--muted);font-size:.72rem">${c.birthday}</span></td>
+        <td class="visit-cell">${lastVisit}</td>
+        <td><button class="sms-btn${sent ? ' sent' : ''}" id="btn-${c.id}" onclick="sendSMS('${esc(c.id)}')">${sent ? '✓ Sent' : '🎂 Send SMS'}</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function sendSMS(id) {
+    const btn = document.getElementById('btn-' + id);
+    if (btn) { btn.textContent = 'Sending...'; btn.disabled = true; }
+    await fetch(`/api/clients/${id}/send-birthday-sms`, { method: 'POST' });
+    const c = clients.find(c => c.id === id);
+    if (c) c._sent = true;
+    render();
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

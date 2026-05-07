@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Accepted Payments — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Accepted Payments</div>
+  <p class="page-sub">Configure which payment methods your salon accepts. The AI accurately informs callers of your payment options when asked, preventing surprises at checkout.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-txns" style="color:var(--accent)">—</div><div class="stat-lbl">Transactions (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-digital" style="color:var(--green)">—</div><div class="stat-lbl">Digital Payment %</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Payment Methods</div>
+    <div class="row">
+      <div><div class="row-label">Cash</div></div>
+      <label class="toggle"><input type="checkbox" id="cash"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Credit / Debit Card</div></div>
+      <label class="toggle"><input type="checkbox" id="card"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Contactless (Tap to Pay)</div></div>
+      <label class="toggle"><input type="checkbox" id="contactless"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Apple Pay</div></div>
+      <label class="toggle"><input type="checkbox" id="apple-pay"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Google Pay</div></div>
+      <label class="toggle"><input type="checkbox" id="google-pay"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Venmo</div></div>
+      <label class="toggle"><input type="checkbox" id="venmo"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Zelle</div></div>
+      <label class="toggle"><input type="checkbox" id="zelle"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Gift Cards</div></div>
+      <label class="toggle"><input type="checkbox" id="gift-cards"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Processing Fee (%)</div><div class="row-sub">Applied to card transactions</div></div>
+      <input type="number" id="proc-fee" min="0" max="10" step="0.1">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Preferred Method</div></div>
+      <select id="preferred">
+        <option value="card">Card</option>
+        <option value="cash">Cash</option>
+        <option value="contactless">Contactless</option>
+        <option value="any">Any</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI States Payment Methods</div><div class="row-sub">AI tells callers what you accept</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-states"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Payment Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/accepted-payments-cfg').then(r => r.json());
+    document.getElementById('h-txns').textContent = data.transactions_30d.toLocaleString();
+    document.getElementById('h-digital').textContent = data.digital_payment_pct.toFixed(1) + '%';
+    document.getElementById('cash').checked = data.accept_cash;
+    document.getElementById('card').checked = data.accept_card;
+    document.getElementById('contactless').checked = data.accept_contactless;
+    document.getElementById('apple-pay').checked = data.accept_apple_pay;
+    document.getElementById('google-pay').checked = data.accept_google_pay;
+    document.getElementById('venmo').checked = data.accept_venmo;
+    document.getElementById('zelle').checked = data.accept_zelle;
+    document.getElementById('gift-cards').checked = data.accept_gift_cards;
+    document.getElementById('proc-fee').value = data.processing_fee_pct;
+    document.getElementById('preferred').value = data.preferred_method;
+    document.getElementById('ai-states').checked = data.ai_states_payment_methods;
+  }
+  async function save() {
+    const payload = { ...data,
+      accept_cash: document.getElementById('cash').checked,
+      accept_card: document.getElementById('card').checked,
+      accept_contactless: document.getElementById('contactless').checked,
+      accept_apple_pay: document.getElementById('apple-pay').checked,
+      accept_google_pay: document.getElementById('google-pay').checked,
+      accept_venmo: document.getElementById('venmo').checked,
+      accept_zelle: document.getElementById('zelle').checked,
+      accept_gift_cards: document.getElementById('gift-cards').checked,
+      processing_fee_pct: parseFloat(document.getElementById('proc-fee').value) || 2.9,
+      preferred_method: document.getElementById('preferred').value,
+      ai_states_payment_methods: document.getElementById('ai-states').checked,
+    };
+    await fetch('/api/settings/accepted-payments-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

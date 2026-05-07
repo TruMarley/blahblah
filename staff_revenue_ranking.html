@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Revenue Ranking — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .rank-list { display: flex; flex-direction: column; gap: .75rem; }
+    .rank-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; display: grid; grid-template-columns: 2rem 1fr auto; align-items: center; gap: .75rem; }
+    .rank-row.top { border-color: rgba(167,139,250,.35); }
+    .rank-num { font-size: 1.1rem; font-weight: 900; color: var(--muted); text-align: center; }
+    .rank-row.top .rank-num { color: var(--accent); }
+    .staff-name { font-size: .92rem; font-weight: 800; margin-bottom: .2rem; }
+    .bar-row { display: flex; align-items: center; gap: .5rem; margin-top: .3rem; }
+    .bar-bg { flex: 1; height: 5px; background: var(--border); border-radius: 3px; }
+    .bar-fill { height: 5px; border-radius: 3px; transition: width .4s; }
+    .staff-meta { font-size: .7rem; color: var(--muted); }
+    .revenue-val { font-size: 1.1rem; font-weight: 900; color: var(--green); text-align: right; }
+    .avg-ticket { font-size: .72rem; color: var(--muted); text-align: right; margin-top: .15rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Revenue Ranking</div>
+  <p class="page-sub">Which team members are generating the most revenue — ranked by total monthly earnings for the shop.</p>
+  <div class="card">
+    <div class="card-title">Revenue Leaderboard</div>
+    <div class="rank-list" id="rank-list"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['rgba(167,139,250,.9)','rgba(167,139,250,.7)','rgba(167,139,250,.5)','rgba(167,139,250,.35)','rgba(167,139,250,.2)'];
+  async function load() {
+    const r = await fetch('/api/analytics/staff-revenue-ranking');
+    const d = await r.json();
+    const staff = d.staff || [];
+    const maxRev = staff[0]?.revenue || 1;
+    const list = document.getElementById('rank-list');
+    staff.forEach((s,i)=>{
+      const pct = s.revenue / maxRev * 100;
+      list.innerHTML += `
+        <div class="rank-row ${i===0?'top':''}">
+          <div class="rank-num">${s.rank}</div>
+          <div>
+            <div class="staff-name">${esc(s.name)}</div>
+            <div class="bar-row">
+              <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${COLORS[i]}"></div></div>
+              <span class="staff-meta">${s.appointments} appts</span>
+            </div>
+          </div>
+          <div>
+            <div class="revenue-val">$${s.revenue.toLocaleString()}</div>
+            <div class="avg-ticket">avg $${s.avg_ticket}/appt</div>
+          </div>
+        </div>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

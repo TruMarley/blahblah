@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Weekly Report — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    @media print {
+      body { background: #fff; color: #111; }
+      nav, .print-btn { display: none; }
+      .main { padding: 1rem; }
+    }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .header-row { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2.5rem; gap: 1rem; flex-wrap: wrap; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .week-sub { font-size: .88rem; color: var(--accent); font-weight: 700; margin-top: .2rem; }
+    .nav-actions { display: flex; gap: .6rem; align-items: center; }
+    .week-nav-btn { background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: .8rem; font-weight: 700; padding: .45rem .85rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .week-nav-btn:hover { color: var(--text); }
+    .print-btn { background: var(--accent); color: #fff; border: none; font-size: .85rem; font-weight: 700; padding: .5rem 1rem; border-radius: 8px; cursor: pointer; font-family: inherit; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; }
+    .metric-label { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; }
+    .metric-value { font-size: 1.9rem; font-weight: 900; letter-spacing: -.04em; line-height: 1; }
+    .metric-value.green { color: var(--green); }
+    .metric-value.accent { color: var(--accent); }
+    .metric-sub { font-size: .68rem; color: var(--muted); margin-top: .25rem; }
+    .delta { font-size: .72rem; font-weight: 700; }
+    .delta.up { color: var(--green); }
+    .delta.down { color: var(--red); }
+    .highlights-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem; }
+    @media (max-width: 600px) { .highlights-row { grid-template-columns: 1fr; } }
+    .highlight-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+    .hl-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
+    .hl-value { font-size: 1.1rem; font-weight: 900; }
+    .hl-icon { font-size: 1.5rem; margin-bottom: .5rem; }
+    .summary-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+    .summary-text { font-size: .88rem; line-height: 1.7; color: var(--muted); }
+    .summary-text strong { color: var(--text); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="header-row">
+    <div>
+      <div class="page-title">Weekly Report</div>
+      <div class="week-sub" id="week-sub">Week —</div>
+    </div>
+    <div class="nav-actions">
+      <button class="week-nav-btn" onclick="prevWeek()">← Prev</button>
+      <button class="week-nav-btn" onclick="nextWeek()">Next →</button>
+      <button class="print-btn" onclick="window.print()">⬇ PDF</button>
+    </div>
+  </div>
+
+  <div class="metrics-grid" id="metrics-grid"></div>
+
+  <div class="highlights-row" id="highlights-row"></div>
+
+  <div class="summary-box"><div class="summary-text" id="summary-text">Loading...</div></div>
+</div>
+<script>
+  let weekOffset = 0;
+
+  function currentWeekStr(offset) {
+    const now = new Date();
+    now.setDate(now.getDate() + offset * 7);
+    const jan1 = new Date(now.getFullYear(), 0, 1);
+    const weekNum = Math.ceil(((now - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+    return `${now.getFullYear()}-W${String(weekNum).padStart(2,'0')}`;
+  }
+
+  function weekLabel(wStr) {
+    const [year, w] = wStr.split('-W');
+    const jan1 = new Date(parseInt(year), 0, 1);
+    const weekStart = new Date(jan1.getTime() + (parseInt(w) - 1) * 7 * 86400000);
+    const weekEnd = new Date(weekStart.getTime() + 6 * 86400000);
+    return `${weekStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${weekEnd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+  }
+
+  function prevWeek() { weekOffset--; load(); }
+  function nextWeek() { weekOffset++; load(); }
+
+  async function load() {
+    const week = currentWeekStr(weekOffset);
+    const r = await fetch(`/api/reports/weekly?week=${week}`);
+    const d = await r.json();
+    document.getElementById('week-sub').textContent = weekLabel(week);
+
+    document.getElementById('metrics-grid').innerHTML = [
+      {label:'Revenue', value:'$'+d.revenue.toLocaleString(), cls:'green', sub: d.revenue_delta ? (d.revenue_delta>0?'+':'')+d.revenue_delta+'% vs last week' : ''},
+      {label:'Appointments', value:d.appointments, cls:'accent', sub:`${d.no_shows} no-shows`},
+      {label:'New Clients', value:d.new_clients, cls:'', sub:'this week'},
+      {label:'Avg Ticket', value:'$'+d.avg_ticket, cls:'', sub:'per service'},
+      {label:'Calls Handled', value:d.calls_handled, cls:'', sub:'by AI'},
+      {label:'No-Shows', value:d.no_shows, cls:'', sub:'missed appts'},
+    ].map(m => `<div class="metric-card">
+      <div class="metric-label">${m.label}</div>
+      <div class="metric-value ${m.cls}">${m.value}</div>
+      ${m.sub ? `<div class="metric-sub">${esc(m.sub)}</div>` : ''}
+    </div>`).join('');
+
+    document.getElementById('highlights-row').innerHTML = `
+      <div class="highlight-card">
+        <div class="hl-icon">✂️</div>
+        <div class="hl-label">Top Service</div>
+        <div class="hl-value">${esc(d.top_service || '—')}</div>
+      </div>
+      <div class="highlight-card">
+        <div class="hl-icon">👤</div>
+        <div class="hl-label">Top Staff Member</div>
+        <div class="hl-value">${esc(d.top_staff || '—')}</div>
+      </div>
+    `;
+
+    document.getElementById('summary-text').innerHTML = `
+      This week your shop completed <strong>${d.appointments} appointments</strong> generating <strong>$${d.revenue.toLocaleString()} in revenue</strong>${d.revenue_delta ? ` (${d.revenue_delta > 0 ? '+' : ''}${d.revenue_delta}% vs last week)` : ''}.
+      Your AI handled <strong>${d.calls_handled} inbound calls</strong>.
+      <strong>${d.new_clients} new clients</strong> visited for the first time.
+      <strong>${esc(d.top_staff)}</strong> was the top performer and <strong>${esc(d.top_service)}</strong> was the most booked service.
+      ${d.no_shows ? `There were <strong>${d.no_shows} no-shows</strong> this week — consider enabling 2-hour SMS reminders to reduce these.` : 'No no-shows recorded — excellent week!'}
+      ${esc(d.busiest_day)} was your busiest day.
+    `;
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

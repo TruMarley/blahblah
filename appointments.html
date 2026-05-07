@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Appointments — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #161616;
+      --border: #1e1e1e; --text: #e8e8e8; --muted: #666;
+      --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24;
+      --red: #f87171; --blue: #60a5fa;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* Nav */
+    nav { background: rgba(8,8,8,0.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; height: 58px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.15rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a { color: var(--muted); font-size: 0.82rem; text-decoration: none; }
+    nav a:hover { color: var(--text); }
+    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+
+    /* Layout */
+    .shell { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem; }
+    .page-title { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.03em; }
+    .page-title span { color: var(--muted); font-size: 1rem; font-weight: 400; margin-left: 0.5rem; }
+
+    /* Stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.75rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; }
+    .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.4rem; }
+    .stat-val { font-size: 1.8rem; font-weight: 900; letter-spacing: -0.04em; color: #fff; }
+    .stat-val.accent { color: var(--accent); }
+    .stat-val.green { color: var(--green); }
+
+    /* Filters bar */
+    .filters { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    input, select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 0.82rem; padding: 0.45rem 0.75rem; border-radius: 7px; outline: none; }
+    input::placeholder { color: var(--muted); }
+    input:focus, select:focus { border-color: var(--accent); }
+    input[type="date"] { color-scheme: dark; }
+    .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem; border-radius: 7px; font-size: 0.82rem; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s; text-decoration: none; }
+    .btn:hover { opacity: 0.82; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-ghost { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+    .btn-green { background: var(--green); color: #000; }
+    .btn-sm { padding: 0.3rem 0.65rem; font-size: 0.75rem; }
+
+    /* Table */
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    thead { background: var(--surface2); }
+    th { padding: 0.75rem 1rem; text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); font-weight: 700; white-space: nowrap; }
+    td { padding: 0.7rem 1rem; border-top: 1px solid var(--border); vertical-align: middle; }
+    tr:hover td { background: var(--surface2); }
+    .empty-row td { text-align: center; color: var(--muted); padding: 2rem; }
+
+    /* Pills / badges */
+    .pill { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.7rem; font-weight: 700; text-transform: capitalize; }
+    .pill.confirmed { background: rgba(52,211,153,.15); color: var(--green); }
+    .pill.cancelled { background: rgba(248,113,113,.15); color: var(--red); }
+    .pill.pending   { background: rgba(251,191,36,.15);  color: var(--yellow); }
+    .pill.completed { background: rgba(96,165,250,.15);  color: var(--blue); }
+    .date-badge { font-size: 0.78rem; font-weight: 700; }
+    .date-badge.today { color: var(--accent); }
+
+    /* Action row */
+    .action-row { display: flex; gap: 0.5rem; align-items: center; }
+
+    /* Add form modal */
+    .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; align-items: center; justify-content: center; }
+    .modal-bg.open { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.75rem; width: 100%; max-width: 480px; }
+    .modal h2 { font-size: 1.1rem; font-weight: 800; margin-bottom: 1.25rem; }
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-bottom: 0.3rem; }
+    .field input, .field select { width: 100%; }
+    .modal-footer { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.25rem; }
+
+    /* Pagination */
+    .pagination { display: flex; align-items: center; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; font-size: 0.8rem; color: var(--muted); }
+    .page-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 0.3rem 0.65rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+    .page-btn:disabled { opacity: 0.35; cursor: default; }
+    .page-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--green); color: #000; padding: 0.75rem 1.25rem; border-radius: 9px; font-weight: 700; font-size: 0.82rem; opacity: 0; transform: translateY(10px); transition: all .25s; z-index: 999; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <div class="nav-links">
+    <a href="/dashboard">Dashboard</a>
+    <a href="/appointments" style="color:var(--text)">Appointments</a>
+    <a href="/admin">Admin</a>
+  </div>
+</nav>
+
+<div class="shell">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Appointments <span id="total-count"></span></div>
+    </div>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+      <a id="csv-link" href="/api/export/appointments.csv" class="btn btn-ghost">
+        ↓ Export CSV
+      </a>
+      <button class="btn btn-primary" onclick="openModal()">+ New Appointment</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Today</div>
+      <div class="stat-val accent" id="s-today">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">This Week</div>
+      <div class="stat-val" id="s-week">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">All Time</div>
+      <div class="stat-val green" id="s-total">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Pending Callbacks</div>
+      <div class="stat-val" id="s-callbacks">—</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <input type="search" id="search" placeholder="Search name, phone, service…" style="min-width:200px" oninput="applyFilters()">
+    <select id="status-filter" onchange="applyFilters()">
+      <option value="">All statuses</option>
+      <option value="confirmed">Confirmed</option>
+      <option value="completed">Completed</option>
+      <option value="cancelled">Cancelled</option>
+      <option value="pending">Pending</option>
+    </select>
+    <input type="date" id="from-date" onchange="applyFilters()" title="From date">
+    <input type="date" id="to-date" onchange="applyFilters()" title="To date">
+    <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Clear</button>
+    <div style="margin-left:auto;color:var(--muted);font-size:.78rem" id="showing-label"></div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Service</th>
+          <th>Barber</th>
+          <th>Status</th>
+          <th>SMS</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="appt-tbody">
+        <tr class="empty-row"><td colspan="10">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination">
+    <button class="page-btn" id="prev-btn" onclick="prevPage()" disabled>‹ Prev</button>
+    <span id="page-info">Page 1</span>
+    <button class="page-btn" id="next-btn" onclick="nextPage()">Next ›</button>
+  </div>
+</div>
+
+<!-- New Appointment Modal -->
+<div class="modal-bg" id="modal">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>New Appointment</h2>
+    <div class="field"><label>Name *</label><input id="m-name" placeholder="Jane Smith"></div>
+    <div class="field"><label>Phone *</label><input id="m-phone" placeholder="555-867-5309" type="tel"></div>
+    <div class="field"><label>Service *</label>
+      <select id="m-service">
+        <option value="">Select service…</option>
+        <option>Haircut</option>
+        <option>Fade</option>
+        <option>Beard Trim</option>
+        <option>Full Color</option>
+        <option>Highlights</option>
+        <option>Manicure</option>
+        <option>Pedicure</option>
+        <option>Gel Nails</option>
+        <option>Waxing</option>
+        <option>Facial</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+      <div class="field"><label>Date *</label><input id="m-date" type="date"></div>
+      <div class="field"><label>Time *</label><input id="m-time" type="time"></div>
+    </div>
+    <div class="field"><label>Barber / Stylist</label><input id="m-barber" placeholder="Optional"></div>
+    <div class="field"><label>Notes</label><input id="m-notes" placeholder="Optional"></div>
+    <div id="m-error" style="color:var(--red);font-size:.8rem;margin-top:.5rem;display:none"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAppt()">Book Appointment</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const PAGE_SIZE = 25;
+  let allAppts = [];
+  let filtered = [];
+  let currentPage = 1;
+  const today = new Date().toISOString().slice(0, 10);
+
+  async function loadStats() {
+    const r = await fetch('/api/stats');
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('s-today').textContent = d.today ?? '—';
+    document.getElementById('s-week').textContent = d.week ?? '—';
+    document.getElementById('s-total').textContent = d.total_booked ?? '—';
+    document.getElementById('s-callbacks').textContent = d.callbacks_pending ?? '—';
+  }
+
+  async function loadAppts() {
+    const r = await fetch('/api/appointments');
+    if (!r.ok) { document.getElementById('appt-tbody').innerHTML = '<tr class="empty-row"><td colspan="10">Error loading appointments</td></tr>'; return; }
+    const d = await r.json();
+    allAppts = d.appointments || [];
+    document.getElementById('total-count').textContent = `(${allAppts.length})`;
+    applyFilters();
+  }
+
+  function applyFilters() {
+    const q = document.getElementById('search').value.toLowerCase();
+    const status = document.getElementById('status-filter').value;
+    const from = document.getElementById('from-date').value;
+    const to = document.getElementById('to-date').value;
+
+    filtered = allAppts.filter(a => {
+      if (q && !`${a.name} ${a.phone} ${a.service} ${a.staff||''}`.toLowerCase().includes(q)) return false;
+      if (status && a.status !== status) return false;
+      if (from && a.date < from) return false;
+      if (to && a.date > to) return false;
+      return true;
+    });
+
+    currentPage = 1;
+    updateCSVLink();
+    render();
+  }
+
+  function updateCSVLink() {
+    const status = document.getElementById('status-filter').value;
+    const from = document.getElementById('from-date').value;
+    const to = document.getElementById('to-date').value;
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (from) params.set('from_date', from);
+    if (to) params.set('to_date', to);
+    const qs = params.toString();
+    document.getElementById('csv-link').href = '/api/export/appointments.csv' + (qs ? '?' + qs : '');
+  }
+
+  function clearFilters() {
+    document.getElementById('search').value = '';
+    document.getElementById('status-filter').value = '';
+    document.getElementById('from-date').value = '';
+    document.getElementById('to-date').value = '';
+    applyFilters();
+  }
+
+  function render() {
+    const tbody = document.getElementById('appt-tbody');
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const page = filtered.slice(start, start + PAGE_SIZE);
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+
+    document.getElementById('page-info').textContent = `Page ${currentPage} / ${totalPages}`;
+    document.getElementById('prev-btn').disabled = currentPage <= 1;
+    document.getElementById('next-btn').disabled = currentPage >= totalPages;
+    document.getElementById('showing-label').textContent =
+      filtered.length ? `Showing ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} of ${filtered.length}` : 'No results';
+
+    if (!page.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="10">No appointments found</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = page.map(a => {
+      const isToday = a.date === today;
+      const dateBadge = `<span class="date-badge ${isToday ? 'today' : ''}">${isToday ? 'Today' : a.date}</span>`;
+      const smsIcon = a.sms_sent ? '✓' : '–';
+      const staff = a.staff || '—';
+      const pill = `<span class="pill ${a.status}">${a.status}</span>`;
+      return `<tr>
+        <td style="color:var(--muted)">#${a.id}</td>
+        <td>${dateBadge}</td>
+        <td>${a.time}</td>
+        <td style="font-weight:600">${esc(a.name)}</td>
+        <td style="font-family:monospace;font-size:.78rem">${a.phone}</td>
+        <td>${esc(a.service)}</td>
+        <td style="color:var(--muted)">${esc(staff)}</td>
+        <td>${pill}</td>
+        <td style="color:${a.sms_sent ? 'var(--green)' : 'var(--muted)'};font-size:.78rem">${smsIcon}</td>
+        <td>
+          <div class="action-row">
+            <button class="btn btn-ghost btn-sm" onclick="cancelAppt(${a.id})" title="Cancel">✕</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function cancelAppt(id) {
+    if (!confirm('Mark this appointment as cancelled?')) return;
+    const r = await fetch(`/api/appointments/${id}/cancel`, { method: 'POST' });
+    if (r.ok) { showToast('Appointment cancelled'); await loadAppts(); }
+    else showToast('Error cancelling', true);
+  }
+
+  function prevPage() { if (currentPage > 1) { currentPage--; render(); } }
+  function nextPage() { const tp = Math.ceil(filtered.length / PAGE_SIZE); if (currentPage < tp) { currentPage++; render(); } }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function openModal() {
+    document.getElementById('m-date').value = today;
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+    document.getElementById('m-error').style.display = 'none';
+  }
+  document.getElementById('modal').addEventListener('click', closeModal);
+
+  async function submitAppt() {
+    const errEl = document.getElementById('m-error');
+    errEl.style.display = 'none';
+    const body = {
+      name: document.getElementById('m-name').value.trim(),
+      phone: document.getElementById('m-phone').value.trim(),
+      service: document.getElementById('m-service').value,
+      date: document.getElementById('m-date').value,
+      time: document.getElementById('m-time').value,
+      barber: document.getElementById('m-barber').value.trim(),
+      notes: document.getElementById('m-notes').value.trim(),
+    };
+    if (!body.name || !body.phone || !body.service || !body.date || !body.time) {
+      errEl.textContent = 'Please fill in all required fields.';
+      errEl.style.display = 'block';
+      return;
+    }
+    const r = await fetch('/api/book-appointment', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (d.ok) {
+      closeModal();
+      showToast(`Booked! Appointment #${d.appointment_id}`);
+      await loadAppts();
+    } else {
+      errEl.textContent = d.error || 'Booking failed.';
+      errEl.style.display = 'block';
+    }
+  }
+
+  function showToast(msg, error = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = error ? 'var(--red)' : 'var(--green)';
+    t.style.color = error ? '#fff' : '#000';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // Init
+  loadStats();
+  loadAppts();
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Auto-Reply Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .field-group { margin-bottom: .9rem; }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; display: block; }
+    .field-sub { font-size: .68rem; color: var(--muted); margin-top: .18rem; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .48rem .7rem; font-family: inherit; width: 100%; outline: none; }
+    .f-textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .48rem .7rem; font-family: inherit; width: 100%; outline: none; resize: vertical; min-height: 80px; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: .7rem 0; border-bottom: 1px solid var(--border); }
+    .toggle-row:last-of-type { border-bottom: none; }
+    .toggle-label { font-size: .88rem; font-weight: 700; }
+    .toggle-sub { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+    .toggle { position: relative; width: 38px; height: 21px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #222; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .slider:before { content: ''; position: absolute; width: 15px; height: 15px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: rgba(167,139,250,.3); }
+    input:checked + .slider:before { transform: translateX(17px); background: var(--accent); }
+    .inline-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-bottom: .9rem; }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.4rem; border-radius: 9px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; width: 100%; margin-top: 1rem; }
+    .save-btn:hover { background: rgba(167,139,250,.2); }
+    .saved-msg { font-size: .75rem; color: var(--green); font-weight: 700; text-align: center; margin-top: .5rem; min-height: 1.2em; }
+    .char-count { font-size: .65rem; color: var(--muted); text-align: right; margin-top: .2rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Auto-Reply Settings</div>
+  <p class="page-sub">Automatically reply to SMS messages from clients — keep them informed even when your shop is closed.</p>
+  <div class="card">
+    <div class="card-title">Auto-Reply Behavior</div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Enable Auto-Reply</div><div class="toggle-sub">Send automatic SMS replies to incoming messages</div></div>
+      <label class="toggle"><input type="checkbox" id="f-enabled"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">After Hours Only</div><div class="toggle-sub">Only auto-reply outside of business hours</div></div>
+      <label class="toggle"><input type="checkbox" id="f-afterhours"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Include Booking Link</div><div class="toggle-sub">Append your online booking link to the reply</div></div>
+      <label class="toggle"><input type="checkbox" id="f-link"><span class="slider"></span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Message Settings</div>
+    <div class="inline-2">
+      <div class="field-group">
+        <label class="field-label">Reply Delay (seconds)</label>
+        <input class="f-input" type="number" id="f-delay" min="0" max="60" placeholder="5">
+        <div class="field-sub">Pause before sending auto-reply</div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Max Replies / Number / Day</label>
+        <input class="f-input" type="number" id="f-maxrep" min="1" max="10" placeholder="1">
+        <div class="field-sub">Prevent spam to repeat texters</div>
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">SMS Template</label>
+      <textarea class="f-textarea" id="f-template" oninput="updateCount()"></textarea>
+      <div class="char-count" id="char-count">0 / 160 chars</div>
+      <div class="field-sub">Use {shop_name}, {link} as placeholders</div>
+    </div>
+    <div class="field-group" id="link-group" style="display:none">
+      <label class="field-label">Booking Link URL</label>
+      <input class="f-input" type="url" id="f-bookinglink" placeholder="https://...">
+    </div>
+    <button class="save-btn" onclick="save()">Save Auto-Reply Settings</button>
+    <div class="saved-msg" id="saved-msg"></div>
+  </div>
+</div>
+<script>
+  let data = {};
+  function updateCount() {
+    const t = document.getElementById('f-template').value;
+    document.getElementById('char-count').textContent = `${t.length} / 160 chars`;
+  }
+  document.getElementById('f-link').addEventListener('change', function() {
+    document.getElementById('link-group').style.display = this.checked ? 'block' : 'none';
+  });
+  async function load() {
+    const r = await fetch('/api/auto-reply-settings');
+    data = await r.json();
+    document.getElementById('f-enabled').checked = !!data.enabled;
+    document.getElementById('f-afterhours').checked = !!data.after_hours_only;
+    document.getElementById('f-link').checked = !!data.include_booking_link;
+    document.getElementById('link-group').style.display = data.include_booking_link ? 'block' : 'none';
+    document.getElementById('f-delay').value = data.reply_delay_seconds ?? 5;
+    document.getElementById('f-maxrep').value = data.max_replies_per_number_per_day ?? 1;
+    document.getElementById('f-template').value = data.sms_template || '';
+    document.getElementById('f-bookinglink').value = data.booking_link || '';
+    updateCount();
+  }
+  async function save() {
+    data.enabled = document.getElementById('f-enabled').checked;
+    data.after_hours_only = document.getElementById('f-afterhours').checked;
+    data.include_booking_link = document.getElementById('f-link').checked;
+    data.reply_delay_seconds = parseInt(document.getElementById('f-delay').value) || 5;
+    data.max_replies_per_number_per_day = parseInt(document.getElementById('f-maxrep').value) || 1;
+    data.sms_template = document.getElementById('f-template').value.trim();
+    data.booking_link = document.getElementById('f-bookinglink').value.trim();
+    await fetch('/api/auto-reply-settings', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const msg = document.getElementById('saved-msg');
+    msg.textContent = '✓ Saved';
+    setTimeout(() => { msg.textContent = ''; }, 2000);
+  }
+  load();
+</script>
+</body>
+</html>

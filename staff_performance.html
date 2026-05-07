@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Performance — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; --gold: #f59e0b; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .7rem 1.1rem; border-bottom: 1px solid var(--border); text-align: left; cursor: pointer; user-select: none; white-space: nowrap; transition: color .1s; }
+    thead th:hover { color: var(--text); }
+    thead th.sorted { color: var(--accent); }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .85rem 1.1rem; font-size: .83rem; vertical-align: middle; }
+    .rank-cell { width: 48px; font-size: .9rem; font-weight: 900; color: var(--muted); }
+    .name-cell { font-weight: 800; }
+    .num-cell { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Performance</div>
+  <p class="page-sub">Leaderboard ranked by revenue. Click any column header to re-sort.</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr id="thead-row">
+          <th class="rank-cell">#</th>
+          <th data-key="staff_name">Staff</th>
+          <th data-key="appointments_completed">Appts</th>
+          <th data-key="revenue_generated">Revenue</th>
+          <th data-key="avg_service_time_min">Avg Time</th>
+          <th data-key="rebooking_rate_pct">Rebook %</th>
+          <th data-key="tips_collected">Tips</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  let allStaff = [];
+  let sortKey = 'revenue_generated';
+  let sortAsc = false;
+  const MEDALS = ['🥇','🥈','🥉'];
+
+  document.getElementById('thead-row').querySelectorAll('th[data-key]').forEach(th => {
+    th.style.cursor = 'pointer';
+    th.addEventListener('click', () => {
+      const k = th.dataset.key;
+      if (sortKey === k) sortAsc = !sortAsc;
+      else { sortKey = k; sortAsc = k === 'staff_name'; }
+      render();
+    });
+  });
+
+  async function load() {
+    const r = await fetch('/api/staff/performance');
+    const d = await r.json();
+    allStaff = d.staff || [];
+    render();
+  }
+
+  function render() {
+    let data = [...allStaff];
+    data.sort((a, b) => {
+      const va = a[sortKey], vb = b[sortKey];
+      if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+      return sortAsc ? va - vb : vb - va;
+    });
+    document.querySelectorAll('th[data-key]').forEach(th => {
+      th.classList.toggle('sorted', th.dataset.key === sortKey);
+      th.textContent = th.dataset.key.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).replace('Pct','%') + (th.dataset.key === sortKey ? (sortAsc ? ' ↑' : ' ↓') : '');
+      th.dataset.key = th.dataset.key; // keep attribute
+    });
+    document.getElementById('tbody').innerHTML = data.map((s, i) => {
+      const medal = i < 3 ? MEDALS[i] : '#' + (i+1);
+      return `<tr>
+        <td class="rank-cell">${medal}</td>
+        <td class="name-cell">${esc(s.staff_name)}</td>
+        <td class="num-cell">${s.appointments_completed}</td>
+        <td class="num-cell" style="color:var(--green)">$${Math.round(s.revenue_generated||0).toLocaleString()}</td>
+        <td class="num-cell">${s.avg_service_time_min}m</td>
+        <td class="num-cell" style="color:var(--accent)">${s.rebooking_rate_pct}%</td>
+        <td class="num-cell" style="color:var(--gold)">$${Math.round(s.tips_collected||0).toLocaleString()}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

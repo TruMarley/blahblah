@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk — Referral Leaderboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #161616;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --gold: #fbbf24; --silver: #9ca3af; --bronze: #d97706;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    nav {
+      background: rgba(8,8,8,0.95); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 60px;
+    }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent-light); }
+    nav a.back { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
+
+    .hero {
+      padding: 4rem 2rem 3rem; text-align: center;
+      background: radial-gradient(ellipse 60% 35% at 50% -5%, rgba(251,191,36,0.08) 0%, transparent 65%);
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.25);
+      color: var(--gold); font-size: 0.72rem; font-weight: 700;
+      padding: 5px 14px; border-radius: 20px; margin-bottom: 1.25rem;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .hero h1 { font-size: 2.2rem; font-weight: 900; color: #fff; letter-spacing: -0.04em; margin-bottom: 0.75rem; }
+    .hero p { color: var(--muted); font-size: 0.9rem; }
+
+    /* Countdown */
+    .countdown-bar {
+      display: flex; align-items: center; justify-content: center; gap: 0.75rem;
+      margin-top: 1.25rem;
+    }
+    .countdown-chip {
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 10px; padding: 0.6rem 1.25rem;
+      font-size: 0.85rem; font-weight: 700; color: var(--gold);
+    }
+    .countdown-label { font-size: 0.8rem; color: var(--muted); }
+
+    .main { max-width: 780px; margin: 0 auto; padding: 0 2rem 5rem; }
+
+    /* Top 3 podium */
+    .podium { display: flex; align-items: flex-end; justify-content: center; gap: 1rem; margin-bottom: 2.5rem; }
+    .podium-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.5rem 1.25rem; text-align: center; flex: 1; max-width: 200px;
+    }
+    .podium-card.first { border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.04); padding-bottom: 2rem; }
+    .podium-card.second { border-color: rgba(156,163,175,0.3); }
+    .podium-card.third { border-color: rgba(217,119,6,0.3); }
+    .podium-medal { font-size: 2rem; margin-bottom: 0.5rem; }
+    .podium-rank { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.35rem; }
+    .podium-rank.gold { color: var(--gold); }
+    .podium-rank.silver { color: var(--silver); }
+    .podium-rank.bronze { color: var(--bronze); }
+    .podium-name { font-size: 0.9rem; font-weight: 800; color: #fff; margin-bottom: 0.2rem; }
+    .podium-city { font-size: 0.72rem; color: var(--muted); margin-bottom: 0.75rem; }
+    .podium-refs { font-size: 1.4rem; font-weight: 900; color: #fff; }
+    .podium-refs-label { font-size: 0.65rem; color: var(--muted); }
+    .podium-earnings { font-size: 0.8rem; font-weight: 700; color: var(--green); margin-top: 0.4rem; }
+
+    /* Table */
+    .lb-table {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden; margin-bottom: 1.5rem;
+    }
+    .lb-header {
+      display: grid; grid-template-columns: 48px 1fr 100px 120px;
+      padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .lb-header span { font-size: 0.65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .lb-row {
+      display: grid; grid-template-columns: 48px 1fr 100px 120px;
+      padding: 0.9rem 1.25rem; border-bottom: 1px solid var(--border);
+      align-items: center; transition: background 0.15s;
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-row:hover { background: var(--surface2); }
+    .rank-num { font-size: 0.85rem; font-weight: 800; color: var(--muted); }
+    .shop-info .shop-name { font-size: 0.88rem; font-weight: 700; color: #fff; }
+    .shop-info .shop-city { font-size: 0.72rem; color: var(--muted); }
+    .refs-count { font-size: 0.95rem; font-weight: 800; color: #fff; }
+    .earnings-val { font-size: 0.88rem; font-weight: 700; color: var(--green); }
+
+    /* Your rank card */
+    .your-rank-card {
+      background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.25);
+      border-radius: 14px; padding: 1.25rem 1.5rem;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+    }
+    .your-rank-left { }
+    .your-rank-label { font-size: 0.7rem; font-weight: 700; color: var(--accent-light); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.35rem; }
+    .your-rank-val { font-size: 1.1rem; font-weight: 900; color: #fff; }
+    .your-rank-sub { font-size: 0.78rem; color: var(--muted); margin-top: 0.2rem; }
+    .your-rank-cta {
+      background: var(--accent); color: #fff; padding: 10px 20px;
+      border-radius: 8px; font-size: 0.85rem; font-weight: 700;
+      text-decoration: none; white-space: nowrap;
+    }
+    .your-rank-cta:hover { background: #6d28d9; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/" class="back">← Back to RingDesk</a>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge">🏆 Monthly Leaderboard</div>
+  <h1>Top Referrers This Month</h1>
+  <p>Every active paying referral earns you $20/mo — forever.</p>
+  <div class="countdown-bar">
+    <div class="countdown-chip" id="countdown-days">-- days</div>
+    <div class="countdown-label">until leaderboard resets</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Podium top 3 -->
+  <div class="podium">
+    <div class="podium-card second">
+      <div class="podium-medal">🥈</div>
+      <div class="podium-rank silver">#2 Silver</div>
+      <div class="podium-name">Fresh Fadez</div>
+      <div class="podium-city">Atlanta, GA</div>
+      <div class="podium-refs">31</div>
+      <div class="podium-refs-label">referrals</div>
+      <div class="podium-earnings">$620/mo</div>
+    </div>
+    <div class="podium-card first">
+      <div class="podium-medal">🥇</div>
+      <div class="podium-rank gold">#1 Champion</div>
+      <div class="podium-name">Kings of Kutz</div>
+      <div class="podium-city">Houston, TX</div>
+      <div class="podium-refs">47</div>
+      <div class="podium-refs-label">referrals</div>
+      <div class="podium-earnings">$940/mo</div>
+    </div>
+    <div class="podium-card third">
+      <div class="podium-medal">🥉</div>
+      <div class="podium-rank bronze">#3 Bronze</div>
+      <div class="podium-name">The Cut Room</div>
+      <div class="podium-city">Dallas, TX</div>
+      <div class="podium-refs">28</div>
+      <div class="podium-refs-label">referrals</div>
+      <div class="podium-earnings">$560/mo</div>
+    </div>
+  </div>
+
+  <!-- Full table -->
+  <div class="lb-table">
+    <div class="lb-header">
+      <span>Rank</span>
+      <span>Shop</span>
+      <span>Referrals</span>
+      <span>Monthly Earn</span>
+    </div>
+    <div class="lb-row">
+      <span class="rank-num">#4</span>
+      <div class="shop-info"><div class="shop-name">Prestige Cuts</div><div class="shop-city">Bronx, NY</div></div>
+      <span class="refs-count">22</span>
+      <span class="earnings-val">$440/mo</span>
+    </div>
+    <div class="lb-row">
+      <span class="rank-num">#5</span>
+      <div class="shop-info"><div class="shop-name">Crown & Blade</div><div class="shop-city">Miami, FL</div></div>
+      <span class="refs-count">19</span>
+      <span class="earnings-val">$380/mo</span>
+    </div>
+    <div class="lb-row">
+      <span class="rank-num">#6</span>
+      <div class="shop-info"><div class="shop-name">La Barbería Reyes</div><div class="shop-city">Chicago, IL</div></div>
+      <span class="refs-count">17</span>
+      <span class="earnings-val">$340/mo</span>
+    </div>
+    <div class="lb-row">
+      <span class="rank-num">#7</span>
+      <div class="shop-info"><div class="shop-name">Main Event Barbershop</div><div class="shop-city">Los Angeles, CA</div></div>
+      <span class="refs-count">14</span>
+      <span class="earnings-val">$280/mo</span>
+    </div>
+    <div class="lb-row">
+      <span class="rank-num">#8</span>
+      <div class="shop-info"><div class="shop-name">Sharp & Clean</div><div class="shop-city">Philadelphia, PA</div></div>
+      <span class="refs-count">12</span>
+      <span class="earnings-val">$240/mo</span>
+    </div>
+    <div class="lb-row">
+      <span class="rank-num">#9</span>
+      <div class="shop-info"><div class="shop-name">VIP Cuts & Styles</div><div class="shop-city">Charlotte, NC</div></div>
+      <span class="refs-count">9</span>
+      <span class="earnings-val">$180/mo</span>
+    </div>
+    <div class="lb-row">
+      <span class="rank-num">#10</span>
+      <div class="shop-info"><div class="shop-name">Fade Masters Studio</div><div class="shop-city">Phoenix, AZ</div></div>
+      <span class="refs-count">7</span>
+      <span class="earnings-val">$140/mo</span>
+    </div>
+  </div>
+
+  <!-- Your rank -->
+  <div class="your-rank-card">
+    <div class="your-rank-left">
+      <div class="your-rank-label">Your Rank This Month</div>
+      <div class="your-rank-val">#47 — 2 referrals — $40/mo</div>
+      <div class="your-rank-sub">Refer 5 more shops to break into the top 20 and earn $140/mo+</div>
+    </div>
+    <a href="/referral" class="your-rank-cta">Get My Link →</a>
+  </div>
+
+</div>
+
+<script>
+  // Countdown to end of month
+  function updateCountdown() {
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const diffMs = endOfMonth - now;
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    const el = document.getElementById('countdown-days');
+    if (el) el.textContent = diffDays + (diffDays === 1 ? ' day' : ' days');
+  }
+  updateCountdown();
+  setInterval(updateCountdown, 60000);
+</script>
+</body>
+</html>

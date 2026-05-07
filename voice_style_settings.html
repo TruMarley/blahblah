@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice Style — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select, input[type=range], input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus, input[type=text]:focus { border-color: var(--accent); }
+    input[type=range] { padding: 0; width: 120px; accent-color: var(--accent); background: none; border: none; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .79rem; padding: .5rem .72rem; outline: none; resize: vertical; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .voice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom: .5rem; }
+    .voice-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .75rem; cursor: pointer; transition: border-color .15s; }
+    .voice-card.selected { border-color: var(--accent); background: rgba(167,139,250,.08); }
+    .voice-card-name { font-size: .85rem; font-weight: 700; }
+    .voice-card-meta { font-size: .68rem; color: var(--muted); margin-top: .15rem; }
+    .tone-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-bottom: .5rem; }
+    .tone-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: .5rem .75rem; font-size: .78rem; font-weight: 600; color: var(--muted); cursor: pointer; text-align: center; transition: all .15s; }
+    .tone-btn.selected { border-color: var(--accent); color: var(--accent); background: rgba(167,139,250,.1); }
+    .field-wrap { margin-bottom: .9rem; }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .28rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .speed-val { font-size: .78rem; color: var(--accent); margin-left: .5rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Voice Style</div>
+  <p class="page-sub">Customize how your AI receptionist sounds and speaks. Pick a voice, set the tone, and control the greeting — it's the first impression every caller gets.</p>
+
+  <div class="card">
+    <div class="card-title">Voice Selection</div>
+    <div class="voice-grid" id="voice-grid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Tone &amp; Personality</div>
+    <div class="row" style="margin-bottom:.75rem">
+      <div class="row-label">Tone</div>
+    </div>
+    <div class="tone-grid" id="tone-grid"></div>
+    <div class="row" style="margin-top:.5rem">
+      <div><div class="row-label">Formality</div></div>
+      <select id="formality">
+        <option value="casual">Casual</option>
+        <option value="neutral">Neutral</option>
+        <option value="formal">Formal</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Speaking Speed</div></div>
+      <div style="display:flex;align-items:center">
+        <input type="range" id="speed" min="0.7" max="1.3" step="0.05">
+        <span class="speed-val" id="speed-val">1.0×</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Behavior</div>
+    <div class="row">
+      <div><div class="row-label">Use Client's First Name</div><div class="row-sub">Address returning callers by name</div></div>
+      <label class="toggle"><input type="checkbox" id="use-name"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Confirm Details Verbally</div><div class="row-sub">Repeats booking info before hanging up</div></div>
+      <label class="toggle"><input type="checkbox" id="confirm-verbal"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use Filler Words</div><div class="row-sub">e.g. "Sure!", "Of course!" — sounds more human</div></div>
+      <label class="toggle"><input type="checkbox" id="use-fillers"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Greeting</div>
+    <div class="row">
+      <div><div class="row-label">Greeting Style</div></div>
+      <select id="greeting-style">
+        <option value="full">Full greeting with business name</option>
+        <option value="short">Short — just "Hello, how can I help?"</option>
+        <option value="custom">Custom greeting</option>
+      </select>
+    </div>
+    <div class="field-wrap" style="margin-top:.85rem">
+      <div class="field-label">Custom Greeting</div>
+      <textarea id="custom-greeting" rows="2"></textarea>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Sign-Off Phrase</div></div>
+      <input type="text" id="sign-off" style="width:160px">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Language</div>
+    <div class="row">
+      <div><div class="row-label">Primary Language</div></div>
+      <select id="language">
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="es">Spanish</option>
+        <option value="fr">French</option>
+        <option value="pt-BR">Portuguese (BR)</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Multilingual Mode</div><div class="row-sub">AI detects and responds in caller's language</div></div>
+      <label class="toggle"><input type="checkbox" id="multilingual"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Secondary Language</div></div>
+      <select id="secondary-lang">
+        <option value="es">Spanish</option>
+        <option value="fr">French</option>
+        <option value="zh">Chinese (Mandarin)</option>
+        <option value="pt-BR">Portuguese (BR)</option>
+        <option value="ko">Korean</option>
+      </select>
+    </div>
+    <button class="save-btn" onclick="save()">Save Voice Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  let selectedVoice = '';
+  let selectedTone = '';
+
+  async function load() {
+    data = await fetch('/api/settings/voice-style-cfg').then(r => r.json());
+    selectedVoice = data.voice_name;
+    selectedTone = data.tone;
+
+    // Voice grid
+    const vg = document.getElementById('voice-grid');
+    (data.available_voices || []).forEach(v => {
+      const card = document.createElement('div');
+      card.className = 'voice-card' + (v.name === selectedVoice ? ' selected' : '');
+      card.innerHTML = `<div class="voice-card-name">${v.name}</div><div class="voice-card-meta">${v.gender} · ${v.accent}</div>`;
+      card.addEventListener('click', () => {
+        selectedVoice = v.name;
+        vg.querySelectorAll('.voice-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+      });
+      vg.appendChild(card);
+    });
+
+    // Tone grid
+    const tg = document.getElementById('tone-grid');
+    const toneLabels = {'warm_professional':'Warm & Professional','friendly_casual':'Friendly & Casual','formal':'Formal','upbeat_energetic':'Upbeat & Energetic'};
+    (data.tone_options || []).forEach(t => {
+      const btn = document.createElement('div');
+      btn.className = 'tone-btn' + (t === selectedTone ? ' selected' : '');
+      btn.textContent = toneLabels[t] || t;
+      btn.addEventListener('click', () => {
+        selectedTone = t;
+        tg.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+      tg.appendChild(btn);
+    });
+
+    document.getElementById('formality').value = data.formality;
+    const speedEl = document.getElementById('speed');
+    speedEl.value = data.voice_speed;
+    document.getElementById('speed-val').textContent = data.voice_speed.toFixed(2) + '×';
+    speedEl.addEventListener('input', () => { document.getElementById('speed-val').textContent = parseFloat(speedEl.value).toFixed(2) + '×'; });
+
+    document.getElementById('use-name').checked = data.use_client_first_name;
+    document.getElementById('confirm-verbal').checked = data.confirm_details_verbally;
+    document.getElementById('use-fillers').checked = data.use_filler_words;
+    document.getElementById('greeting-style').value = data.greeting_style;
+    document.getElementById('custom-greeting').value = data.custom_greeting || '';
+    document.getElementById('sign-off').value = data.sign_off_phrase || '';
+    document.getElementById('language').value = data.language;
+    document.getElementById('multilingual').checked = data.multilingual_enabled;
+    document.getElementById('secondary-lang').value = data.secondary_language;
+  }
+
+  async function save() {
+    const payload = {
+      ...data,
+      voice_name: selectedVoice,
+      tone: selectedTone,
+      formality: document.getElementById('formality').value,
+      voice_speed: parseFloat(document.getElementById('speed').value),
+      use_client_first_name: document.getElementById('use-name').checked,
+      confirm_details_verbally: document.getElementById('confirm-verbal').checked,
+      use_filler_words: document.getElementById('use-fillers').checked,
+      greeting_style: document.getElementById('greeting-style').value,
+      custom_greeting: document.getElementById('custom-greeting').value,
+      sign_off_phrase: document.getElementById('sign-off').value,
+      language: document.getElementById('language').value,
+      multilingual_enabled: document.getElementById('multilingual').checked,
+      secondary_language: document.getElementById('secondary-lang').value,
+    };
+    await fetch('/api/settings/voice-style-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

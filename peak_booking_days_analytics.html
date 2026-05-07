@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>High-Demand Days — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.4rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .dow-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: .4rem; }
+    .dow-card { background: var(--surface2); border-radius: 8px; padding: .5rem .3rem; text-align: center; }
+    .dow-name { font-size: .6rem; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-bottom: .3rem; }
+    .dow-val { font-size: .9rem; font-weight: 900; }
+    .dow-idx { font-size: .6rem; color: var(--muted); margin-top: .1rem; }
+    .peak-table { width: 100%; border-collapse: collapse; }
+    .peak-table th { font-size: .68rem; color: var(--muted); font-weight: 700; text-align: left; padding: .35rem .5rem; border-bottom: 1px solid var(--border); }
+    .peak-table td { font-size: .8rem; padding: .5rem .5rem; border-bottom: 1px solid #1a1a1a; }
+    .peak-table tr:last-child td { border-bottom: none; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">High-Demand Days</div>
+  <p class="page-sub">Identify which days of the week and months of the year drive the most bookings and revenue — so you can staff up, run promotions on slow days, and plan capacity ahead of peak periods.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Busiest Day of Week</div>
+      <div class="hero-val" id="h-busiest" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Quietest Day of Week</div>
+      <div class="hero-val" id="h-quietest" style="color:var(--muted)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Demand Index by Day of Week</div>
+    <div class="dow-grid" id="dow-grid"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Peak Days by Month</div>
+    <table class="peak-table">
+      <thead><tr><th>Month</th><th>Peak Date</th><th>Bookings</th><th>Revenue</th></tr></thead>
+      <tbody id="peak-body"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  function demandColor(idx) {
+    if (idx >= 1.4) return 'var(--red)';
+    if (idx >= 1.1) return 'var(--accent)';
+    if (idx >= 0.9) return 'var(--green)';
+    return 'var(--muted)';
+  }
+  async function load() {
+    const d = await fetch('/api/analytics/high-demand-days').then(r => r.json());
+    document.getElementById('h-busiest').textContent = d.busiest_day_of_week || '—';
+    document.getElementById('h-quietest').textContent = d.quietest_day_of_week || '—';
+
+    const dg = document.getElementById('dow-grid');
+    (d.by_day_of_week||[]).forEach(day=>{
+      const color = demandColor(day.demand_index);
+      dg.innerHTML+=`<div class="dow-card">
+        <div class="dow-name">${esc(day.day)}</div>
+        <div class="dow-val" style="color:${color}">${day.avg_bookings}</div>
+        <div class="dow-idx">${day.demand_index}x</div>
+      </div>`;
+    });
+
+    const tbody = document.getElementById('peak-body');
+    (d.peak_days||[]).forEach(p=>{
+      tbody.innerHTML+=`<tr>
+        <td style="font-weight:700">${esc(p.month)}</td>
+        <td>Day ${p.peak_date}</td>
+        <td style="color:var(--accent);font-weight:700">${p.bookings}</td>
+        <td style="color:var(--yellow)">$${p.revenue.toLocaleString()}</td>
+      </tr>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Help &amp; FAQ — RingDesk</title>
+  <meta name="description" content="Answers to the most common questions about RingDesk AI receptionist for barbershops and salons.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    nav a.back:hover { color: var(--text); }
+    .hero { text-align: center; padding: 4rem 2rem 2.5rem; }
+    .hero-tag { display: inline-block; background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.2); color: var(--accent); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; padding: .3rem .8rem; border-radius: 99px; margin-bottom: 1.25rem; }
+    .hero h1 { font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 900; letter-spacing: -.04em; margin-bottom: .6rem; line-height: 1.1; }
+    .hero p { font-size: .9rem; color: var(--muted); max-width: 440px; margin: 0 auto; }
+    .faq { max-width: 700px; margin: 3rem auto 4rem; padding: 0 2rem; display: flex; flex-direction: column; gap: .6rem; }
+    .item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color .2s; }
+    .item.open { border-color: rgba(167,139,250,.3); }
+    .q { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.1rem 1.35rem; cursor: pointer; user-select: none; }
+    .q-text { font-size: .92rem; font-weight: 700; }
+    .chevron { width: 20px; height: 20px; flex-shrink: 0; color: var(--muted); transition: transform .25s; }
+    .item.open .chevron { transform: rotate(180deg); color: var(--accent); }
+    .a-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .25s ease; }
+    .item.open .a-wrap { grid-template-rows: 1fr; }
+    .a-inner { overflow: hidden; }
+    .a { padding: .9rem 1.35rem 1.2rem; font-size: .86rem; color: var(--muted); line-height: 1.8; border-top: 1px solid var(--border); }
+    .a strong { color: var(--text); }
+    .a a { color: var(--accent); text-decoration: none; }
+    .a a:hover { text-decoration: underline; }
+    .cta { text-align: center; padding: 0 2rem 6rem; }
+    .cta p { font-size: .85rem; color: var(--muted); margin-bottom: 1.25rem; }
+    .btn { display: inline-block; background: var(--accent); color: #fff; font-size: .9rem; font-weight: 700; padding: .8rem 2.2rem; border-radius: 12px; text-decoration: none; transition: opacity .15s; margin: 0 .4rem; }
+    .btn:hover { opacity: .85; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/" class="back">← Back to home</a>
+</nav>
+<div class="hero">
+  <div class="hero-tag">Help &amp; FAQ</div>
+  <h1>Got questions?<br>We have answers.</h1>
+  <p>Everything you need to know about setting up and using RingDesk.</p>
+</div>
+<div class="faq" id="faq">
+  <div class="item"><div class="q"><span class="q-text">How long does setup take?</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="a-wrap"><div class="a-inner"><div class="a"><strong>About 15 minutes.</strong> You enter your shop name, hours, and services. Then forward your phone number to the RingDesk number we give you — that's it. Most owners are live before their next appointment. No technical knowledge needed.</div></div></div></div>
+  <div class="item"><div class="q"><span class="q-text">Does RingDesk replace my phone number?</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="a-wrap"><div class="a-inner"><div class="a"><strong>No — your number stays yours.</strong> RingDesk works via call forwarding. You keep your existing number and forward it to RingDesk when you're busy. Turn forwarding on or off any time from your phone settings. If you cancel, your number works exactly as before.</div></div></div></div>
+  <div class="item"><div class="q"><span class="q-text">What happens if the AI can't answer a question?</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="a-wrap"><div class="a-inner"><div class="a">If a caller asks something outside the AI's knowledge, it politely says: <em>"Let me have the owner reach out to you directly."</em> It logs the caller's number and reason in your dashboard as a <strong>pending callback</strong>. Nothing falls through the cracks.</div></div></div></div>
+  <div class="item"><div class="q"><span class="q-text">Can clients book with a specific barber?</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="a-wrap"><div class="a-inner"><div class="a"><strong>Yes, if you configure it.</strong> In your settings, add barbers or stylists by name. When a client says "I want to book with Marcus," the AI recognizes the name and books with that person's schedule. If unavailable, it offers the next available slot.</div></div></div></div>
+  <div class="item"><div class="q"><span class="q-text">Does it work for nail salons and spas too?</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="a-wrap"><div class="a-inner"><div class="a"><strong>Yes — any appointment-based shop.</strong> RingDesk works for barbershops, salons, nail studios, lash studios, spas, and threading bars. The AI understands service names for each type. You define the service list; the AI learns it automatically.</div></div></div></div>
+  <div class="item"><div class="q"><span class="q-text">What languages does the AI speak?</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="a-wrap"><div class="a-inner"><div class="a"><strong>English and Spanish out of the box</strong> — the AI detects the caller's language automatically and responds in kind. No setup, no extra cost. Portuguese, Vietnamese, Korean, and Mandarin are in development and will be added to all plans at no charge.</div></div></div></div>
+  <div class="item"><div class="q"><span class="q-text">Is there a setup fee?</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="a-wrap"><div class="a-inner"><div class="a"><strong>No setup fee, ever.</strong> You pay the monthly plan rate and nothing else. No onboarding fee, no porting fee, no hardware required. If you need help, our support team will walk you through it on a 15-minute screen share — also free.</div></div></div></div>
+  <div class="item"><div class="q"><span class="q-text">Can I cancel anytime?</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="a-wrap"><div class="a-inner"><div class="a"><strong>Yes — no contracts, no commitment.</strong> Cancel from your dashboard any time before your next billing date and you won't be charged again. Your data is available for export for 30 days after cancellation, then deleted per our <a href="/privacy">privacy policy</a>.</div></div></div></div>
+  <div class="item"><div class="q"><span class="q-text">How do I get my money back if it doesn't work?</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="a-wrap"><div class="a-inner"><div class="a"><strong>14-day money-back guarantee, no questions asked.</strong> If you're not satisfied within 14 days of your first payment, email <a href="mailto:support@ringdesk.ai">support@ringdesk.ai</a> and we'll refund 100% of your first month.</div></div></div></div>
+  <div class="item"><div class="q"><span class="q-text">Does it integrate with my existing booking software?</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="a-wrap"><div class="a-inner"><div class="a"><strong>Google Calendar sync is on the roadmap for Q3 2026</strong>, followed by Square Appointments. Right now, RingDesk maintains its own appointment calendar you can view in the dashboard and export to CSV. <a href="mailto:support@ringdesk.ai">Let us know</a> which integration you need — we prioritize by demand.</div></div></div></div>
+</div>
+<div class="cta">
+  <p>Still have questions? We're real humans.</p>
+  <a href="mailto:support@ringdesk.ai" class="btn btn-ghost">Email support</a>
+  <a href="/#signup" class="btn">Start free trial</a>
+</div>
+<script>
+  const items = document.querySelectorAll('.item');
+  items.forEach(item => {
+    item.querySelector('.q').addEventListener('click', () => {
+      const isOpen = item.classList.contains('open');
+      items.forEach(i => i.classList.remove('open'));
+      if (!isOpen) item.classList.add('open');
+    });
+  });
+</script>
+</body>
+</html>

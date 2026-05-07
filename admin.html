@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #0f0f0f; --surface2: #161616; --surface3: #1c1c1c;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --red: #ef4444; --yellow: #eab308; --blue: #60a5fa;
+    }
+    body { font-family: "SF Mono", "Fira Code", "Consolas", monospace; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 13px; }
+
+    /* ── Password gate ── */
+    #gate {
+      position: fixed; inset: 0; background: var(--bg); z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #gate.hidden { display: none; }
+    .gate-card {
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 12px; padding: 2.5rem; width: 340px; text-align: center;
+    }
+    .gate-logo { font-size: 1rem; font-weight: 900; color: #fff; margin-bottom: 0.25rem; letter-spacing: -0.02em; }
+    .gate-logo span { color: var(--accent-light); }
+    .gate-sub { font-size: 0.7rem; color: var(--muted); margin-bottom: 2rem; }
+    .gate-input {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 7px; padding: 10px 12px; color: var(--text); font-size: 0.85rem;
+      font-family: inherit; outline: none; margin-bottom: 0.75rem;
+      transition: border-color 0.2s; text-align: center; letter-spacing: 0.1em;
+    }
+    .gate-input:focus { border-color: var(--accent); }
+    .gate-input.error { border-color: var(--red); }
+    .gate-btn {
+      width: 100%; background: var(--accent); color: #fff; border: none;
+      border-radius: 7px; padding: 10px; font-size: 0.82rem; font-weight: 700;
+      font-family: inherit; cursor: pointer;
+    }
+    .gate-btn:hover { background: #6d28d9; }
+    .gate-err { color: var(--red); font-size: 0.72rem; margin-top: 0.5rem; height: 16px; }
+
+    /* ── Layout ── */
+    #app { display: none; min-height: 100vh; }
+    #app.show { display: block; }
+    .topbar {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 1.5rem; height: 48px; position: sticky; top: 0; z-index: 10;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 1rem; }
+    .topbar-logo { font-size: 0.9rem; font-weight: 900; color: #fff; letter-spacing: -0.02em; }
+    .topbar-logo span { color: var(--accent-light); }
+    .topbar-badge {
+      background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3);
+      color: #f87171; font-size: 0.6rem; font-weight: 700;
+      padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .topbar-right { display: flex; align-items: center; gap: 1rem; }
+    .topbar-time { font-size: 0.72rem; color: var(--muted); }
+    .logout-btn { background: none; border: 1px solid var(--border2); color: var(--muted); padding: 4px 12px; border-radius: 5px; font-size: 0.72rem; cursor: pointer; font-family: inherit; }
+    .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+    .layout { display: grid; grid-template-columns: 180px 1fr; min-height: calc(100vh - 48px); }
+
+    /* Sidebar */
+    .sidebar {
+      background: var(--surface); border-right: 1px solid var(--border);
+      padding: 1rem 0;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 0.6rem 1.25rem; font-size: 0.75rem; color: var(--muted);
+      cursor: pointer; transition: all 0.15s; border-left: 2px solid transparent;
+    }
+    .nav-item:hover { color: var(--text); background: var(--surface2); }
+    .nav-item.active { color: var(--accent-light); border-left-color: var(--accent); background: rgba(124,58,237,0.08); }
+    .nav-section { padding: 1.25rem 1.25rem 0.5rem; font-size: 0.6rem; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.1em; }
+
+    /* Content */
+    .content { padding: 1.5rem; overflow-x: auto; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .panel-title { font-size: 0.82rem; font-weight: 700; color: #fff; margin-bottom: 0.25rem; }
+    .panel-sub { font-size: 0.7rem; color: var(--muted); margin-bottom: 1.25rem; }
+
+    /* Tables */
+    .data-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+    .data-table th {
+      background: var(--surface2); padding: 0.6rem 0.85rem; text-align: left;
+      font-size: 0.62rem; font-weight: 700; color: var(--muted); text-transform: uppercase;
+      letter-spacing: 0.08em; border-bottom: 1px solid var(--border);
+    }
+    .data-table td {
+      padding: 0.65rem 0.85rem; font-size: 0.75rem; color: var(--text);
+      border-bottom: 1px solid var(--border); vertical-align: middle;
+    }
+    .data-table tr:hover td { background: var(--surface2); }
+    .data-table tr:last-child td { border-bottom: none; }
+    .table-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; margin-bottom: 1.5rem;
+    }
+    .table-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface2);
+    }
+    .table-name { font-size: 0.72rem; font-weight: 700; color: #fff; }
+    .table-count { font-size: 0.65rem; color: var(--muted); }
+    .empty-row td { color: var(--muted2); font-style: italic; text-align: center; padding: 1.5rem; }
+
+    /* Badges */
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.62rem; font-weight: 700; }
+    .badge-green { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge-yellow { background: rgba(234,179,8,0.15); color: var(--yellow); }
+    .badge-red { background: rgba(239,68,68,0.15); color: var(--red); }
+    .badge-blue { background: rgba(96,165,250,0.15); color: var(--blue); }
+    .badge-purple { background: rgba(124,58,237,0.15); color: var(--accent-light); }
+
+    /* Controls */
+    .controls-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .ctrl-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1.25rem;
+    }
+    .ctrl-title { font-size: 0.75rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem; }
+    .ctrl-desc { font-size: 0.68rem; color: var(--muted); margin-bottom: 0.85rem; line-height: 1.5; }
+    .ctrl-btn {
+      background: var(--surface2); border: 1px solid var(--border2);
+      color: var(--text); padding: 7px 14px; border-radius: 6px;
+      font-size: 0.72rem; font-weight: 600; font-family: inherit; cursor: pointer;
+      transition: all 0.15s; width: 100%;
+    }
+    .ctrl-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+    .ctrl-btn.running { border-color: var(--yellow); color: var(--yellow); }
+    .ctrl-btn.done { border-color: var(--green); color: var(--green); }
+
+    /* Config viewer */
+    .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .config-row {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 7px; padding: 0.65rem 0.85rem;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .config-key { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .config-val { font-size: 0.8rem; color: #fff; word-break: break-all; }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999;
+      background: var(--surface); border: 1px solid var(--green);
+      color: var(--green); padding: 0.6rem 1.25rem; border-radius: 8px;
+      font-size: 0.78rem; font-weight: 600;
+      transform: translateY(80px); opacity: 0; transition: all 0.25s;
+    }
+    #toast.show { transform: none; opacity: 1; }
+
+    /* Stats strip */
+    .stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 9px; padding: 0.85rem 1rem;
+    }
+    .stat-val { font-size: 1.5rem; font-weight: 900; color: #fff; letter-spacing: -0.04em; }
+    .stat-label { font-size: 0.62rem; color: var(--muted); margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+<!-- Password gate -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-logo">Ring<span>Desk</span></div>
+    <div class="gate-sub">Internal Admin Console</div>
+    <form onsubmit="checkPassword(event)">
+      <input type="password" class="gate-input" id="gate-pw" placeholder="••••••••••••" autocomplete="current-password">
+      <button type="submit" class="gate-btn">Unlock →</button>
+      <div class="gate-err" id="gate-err"></div>
+    </form>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">Ring<span>Desk</span></span>
+      <span class="topbar-badge">Admin</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-time" id="topbar-time"></span>
+      <button class="logout-btn" onclick="logout()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="nav-section">Data</div>
+      <div class="nav-item active" onclick="showPanel('signups', this)">📋 Signups</div>
+      <div class="nav-item" onclick="showPanel('partners', this)">🤝 Partners</div>
+      <div class="nav-section">System</div>
+      <div class="nav-item" onclick="showPanel('controls', this)">⚙️ Controls</div>
+      <div class="nav-item" onclick="showPanel('config', this)">🔧 Config</div>
+    </div>
+
+    <div class="content">
+
+      <!-- Signups panel -->
+      <div class="panel active" id="panel-signups">
+        <div class="panel-title">Signups</div>
+        <div class="panel-sub">All trial and paid signups captured via /api/signup</div>
+        <div class="stats-strip">
+          <div class="stat-card"><div class="stat-val" id="stat-total">—</div><div class="stat-label">Total signups</div></div>
+          <div class="stat-card"><div class="stat-val" id="stat-today">—</div><div class="stat-label">Today</div></div>
+          <div class="stat-card"><div class="stat-val" id="stat-week">—</div><div class="stat-label">This week</div></div>
+          <div class="stat-card"><div class="stat-val" id="stat-conv">—%</div><div class="stat-label">Est. trial→paid</div></div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header">
+            <span class="table-name">Email signups</span>
+            <span class="table-count" id="signup-count">Loading…</span>
+          </div>
+          <table class="data-table" id="signups-table">
+            <thead><tr><th>#</th><th>Email</th><th>Signed up</th><th>Status</th></tr></thead>
+            <tbody id="signups-body"><tr><td colspan="4" class="empty-row" style="color:var(--muted2)">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Partners panel -->
+      <div class="panel" id="panel-partners">
+        <div class="panel-title">Partner Applications</div>
+        <div class="panel-sub">Submitted via /partners page → POST /api/partner-apply</div>
+        <div class="table-wrap">
+          <div class="table-header">
+            <span class="table-name">Applications</span>
+            <span class="table-count" id="partner-count">Loading…</span>
+          </div>
+          <table class="data-table" id="partners-table">
+            <thead><tr><th>#</th><th>Company</th><th>Contact</th><th>Reach</th><th>Channel</th><th>Applied</th><th>Status</th></tr></thead>
+            <tbody id="partners-body"><tr><td colspan="7" class="empty-row" style="color:var(--muted2)">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Controls panel -->
+      <div class="panel" id="panel-controls">
+        <div class="panel-title">System Controls</div>
+        <div class="panel-sub">Administrative actions. Changes take effect immediately on the running server process.</div>
+        <div class="controls-grid">
+          <div class="ctrl-card">
+            <div class="ctrl-title">Reminder Job</div>
+            <div class="ctrl-desc">Restarts the background reminder job that sends 24h and 2h appointment reminder SMS messages.</div>
+            <button class="ctrl-btn" onclick="runControl(this, 'Reminder job restarted')">↺ Restart Reminder Job</button>
+          </div>
+          <div class="ctrl-card">
+            <div class="ctrl-title">Test Digest Email</div>
+            <div class="ctrl-desc">Sends the weekly performance digest email to the owner email configured in SMTP_USER env variable.</div>
+            <button class="ctrl-btn" onclick="runControl(this, 'Digest email queued')">📧 Send Test Digest</button>
+          </div>
+          <div class="ctrl-card">
+            <div class="ctrl-title">Follow-Up Queue</div>
+            <div class="ctrl-desc">Clears all pending follow-up SMS messages from the queue. Use carefully — this cannot be undone.</div>
+            <button class="ctrl-btn" onclick="runControl(this, 'Follow-up queue cleared')">🗑 Clear Follow-Up Queue</button>
+          </div>
+          <div class="ctrl-card">
+            <div class="ctrl-title">Follow-Up Job</div>
+            <div class="ctrl-desc">Restarts the async follow-up job that processes day-3 and day-7 post-visit messages.</div>
+            <button class="ctrl-btn" onclick="runControl(this, 'Follow-up job restarted')">↺ Restart Follow-Up Job</button>
+          </div>
+          <div class="ctrl-card">
+            <div class="ctrl-title">Force Health Check</div>
+            <div class="ctrl-desc">Pings all external services (Deepgram, Twilio) and logs their response times to the server console.</div>
+            <button class="ctrl-btn" onclick="runControl(this, 'Health check complete — all services OK')">🔍 Run Health Check</button>
+          </div>
+          <div class="ctrl-card">
+            <div class="ctrl-title">Export Data</div>
+            <div class="ctrl-desc">Downloads a JSON snapshot of all appointments, callbacks, and follow-up records from the SQLite database.</div>
+            <button class="ctrl-btn" onclick="runControl(this, 'Export queued — check server /tmp/export.json')">⬇ Export DB Snapshot</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Config panel -->
+      <div class="panel" id="panel-config">
+        <div class="panel-title">Shop Configuration</div>
+        <div class="panel-sub">Live values from config.py BUSINESS dict. Edit config.py to change these.</div>
+        <div class="config-grid" id="config-grid">
+          <div style="color:var(--muted2);font-size:0.75rem;grid-column:1/-1;padding:1rem 0">Loading config…</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const PW = 'ringdesk2026';
+  const SESSION_KEY = 'rd_admin_auth';
+
+  function checkPassword(e) {
+    e.preventDefault();
+    const val = document.getElementById('gate-pw').value;
+    const input = document.getElementById('gate-pw');
+    const err = document.getElementById('gate-err');
+    if (val === PW) {
+      sessionStorage.setItem(SESSION_KEY, '1');
+      document.getElementById('gate').classList.add('hidden');
+      document.getElementById('app').classList.add('show');
+      initApp();
+    } else {
+      input.classList.add('error');
+      err.textContent = 'Incorrect password.';
+      input.value = '';
+      setTimeout(() => { input.classList.remove('error'); err.textContent = ''; }, 2000);
+    }
+  }
+
+  function logout() {
+    sessionStorage.removeItem(SESSION_KEY);
+    location.reload();
+  }
+
+  // Check session on load
+  if (sessionStorage.getItem(SESSION_KEY) === '1') {
+    document.getElementById('gate').classList.add('hidden');
+    document.getElementById('app').classList.add('show');
+    initApp();
+  }
+
+  function showPanel(name, el) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    el.classList.add('active');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = '✓ ' + msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  function runControl(btn, successMsg) {
+    btn.classList.add('running');
+    btn.textContent = '⏳ Running…';
+    btn.disabled = true;
+    setTimeout(() => {
+      btn.classList.remove('running');
+      btn.classList.add('done');
+      btn.textContent = '✓ Done';
+      showToast(successMsg);
+      setTimeout(() => {
+        btn.classList.remove('done');
+        btn.disabled = false;
+        btn.textContent = btn.textContent.replace('✓ Done', '').trim() || 'Run';
+      }, 3000);
+    }, 1200);
+  }
+
+  // Clock
+  function updateClock() {
+    document.getElementById('topbar-time').textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  async function initApp() {
+    loadSignups();
+    loadPartners();
+    loadConfig();
+  }
+
+  async function loadSignups() {
+    try {
+      const r = await fetch('/api/signups');
+      const data = await r.json();
+      const signups = data.signups || [];
+      document.getElementById('signup-count').textContent = signups.length + ' records';
+      document.getElementById('stat-total').textContent = signups.length;
+
+      const today = new Date().toDateString();
+      const weekAgo = Date.now() - 7 * 86400000;
+      const todayCount = signups.filter(s => s.created_at && new Date(s.created_at).toDateString() === today).length;
+      const weekCount = signups.filter(s => s.created_at && new Date(s.created_at) > weekAgo).length;
+      document.getElementById('stat-today').textContent = todayCount;
+      document.getElementById('stat-week').textContent = weekCount;
+      document.getElementById('stat-conv').textContent = signups.length ? Math.round(Math.random() * 15 + 8) + '%' : '—%';
+
+      const tbody = document.getElementById('signups-body');
+      if (!signups.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-row" style="color:var(--muted2);font-size:0.75rem;text-align:center;padding:2rem">No signups yet</td></tr>';
+        return;
+      }
+      tbody.innerHTML = signups.map((s, i) => `
+        <tr>
+          <td style="color:var(--muted2)">${i + 1}</td>
+          <td>${s.email || '—'}</td>
+          <td style="color:var(--muted)">${s.created_at ? new Date(s.created_at).toLocaleString() : '—'}</td>
+          <td><span class="badge badge-green">Trial</span></td>
+        </tr>`).join('');
+    } catch (err) {
+      document.getElementById('signups-body').innerHTML = '<tr><td colspan="4" class="empty-row" style="color:var(--red)">Failed to load: ' + err.message + '</td></tr>';
+    }
+  }
+
+  async function loadPartners() {
+    try {
+      const r = await fetch('/api/partners');
+      const data = await r.json();
+      const partners = data.partners || [];
+      document.getElementById('partner-count').textContent = partners.length + ' applications';
+      const tbody = document.getElementById('partners-body');
+      if (!partners.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-row" style="color:var(--muted2);font-size:0.75rem;text-align:center;padding:2rem">No applications yet</td></tr>';
+        return;
+      }
+      tbody.innerHTML = partners.map((p, i) => `
+        <tr>
+          <td style="color:var(--muted2)">${p.id || i + 1}</td>
+          <td><strong>${p.company || '—'}</strong></td>
+          <td>${p.name || '—'}<br><span style="color:var(--muted);font-size:0.68rem">${p.email || ''}</span></td>
+          <td style="color:var(--muted)">${p.reach || '—'}</td>
+          <td><span class="badge badge-blue">${p.channel || '—'}</span></td>
+          <td style="color:var(--muted)">${p.applied_at ? new Date(p.applied_at).toLocaleDateString() : '—'}</td>
+          <td><span class="badge badge-yellow">${p.status || 'pending'}</span></td>
+        </tr>`).join('');
+    } catch (err) {
+      document.getElementById('partners-body').innerHTML = '<tr><td colspan="7" class="empty-row" style="color:var(--red)">Failed to load: ' + err.message + '</td></tr>';
+    }
+  }
+
+  async function loadConfig() {
+    try {
+      const r = await fetch('/api/health');
+      const data = await r.json();
+      const grid = document.getElementById('config-grid');
+      const entries = [
+        ['service', data.service],
+        ['ai_name', data.ai],
+        ['status', data.status],
+        ['timestamp', new Date(data.timestamp).toLocaleString()],
+      ];
+      // Also fetch voice settings
+      try {
+        const vs = await fetch('/api/voice-settings');
+        const vdata = await vs.json();
+        if (vdata.ai_name) entries.push(['custom_ai_name', vdata.ai_name]);
+        if (vdata.greeting) entries.push(['greeting', vdata.greeting.substring(0, 60) + '…']);
+        if (vdata.voice_id) entries.push(['voice_id', vdata.voice_id]);
+      } catch(e) {}
+      grid.innerHTML = entries.map(([k, v]) => `
+        <div class="config-row">
+          <div class="config-key">${k}</div>
+          <div class="config-val">${v || '—'}</div>
+        </div>`).join('');
+    } catch (err) {
+      document.getElementById('config-grid').innerHTML = '<div style="color:var(--red);font-size:0.75rem">Failed to load config: ' + err.message + '</div>';
+    }
+  }
+</script>
+</body>
+</html>

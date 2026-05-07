@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Survey Results — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .45rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .hero-sub { font-size: .72rem; color: var(--muted); margin-top: .3rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    /* NPS gauge */
+    .gauge-wrap { display: flex; flex-direction: column; align-items: center; padding: .5rem 0 1rem; }
+    .gauge-svg { overflow: visible; }
+    .gauge-score { font-size: 2.4rem; font-weight: 900; fill: #fff; text-anchor: middle; dominant-baseline: middle; }
+    .gauge-label { font-size: .68rem; fill: var(--muted); text-anchor: middle; }
+    .nps-legend { display: flex; gap: 1.5rem; margin-top: .75rem; }
+    .nps-leg-item { display: flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--muted); }
+    .nps-dot { width: 8px; height: 8px; border-radius: 50%; }
+    /* stars */
+    .stars-wrap { display: flex; align-items: center; gap: .4rem; margin-top: .4rem; }
+    .star { font-size: 1.4rem; }
+    /* response list */
+    .response-list { display: flex; flex-direction: column; gap: .75rem; }
+    .response-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; }
+    .resp-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; }
+    .resp-name { font-size: .83rem; font-weight: 800; }
+    .resp-meta { font-size: .72rem; color: var(--muted); }
+    .resp-comment { font-size: .8rem; color: var(--muted); line-height: 1.5; }
+    .rating-badge { display: inline-flex; align-items: center; gap: .25rem; font-size: .72rem; font-weight: 800; padding: .15rem .5rem; border-radius: 99px; }
+    .rb-5 { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .rb-4 { background: rgba(167,139,250,.12); color: var(--accent); border: 1px solid rgba(167,139,250,.25); }
+    .rb-3 { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.25); }
+    .rb-low { background: rgba(248,113,113,.12); color: var(--red); border: 1px solid rgba(248,113,113,.25); }
+    .type-badge { font-size: .65rem; font-weight: 700; padding: .1rem .45rem; border-radius: 99px; background: rgba(255,255,255,.05); color: var(--muted); border: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Survey Results</div>
+  <p class="page-sub">Client satisfaction scores, NPS, and feedback submitted after appointments.</p>
+
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">NPS Score</div>
+      <div class="hero-val" id="h-nps" style="color:var(--green)">—</div>
+      <div class="hero-sub">Net Promoter Score</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Rating</div>
+      <div class="hero-val" id="h-rating" style="color:var(--accent)">—</div>
+      <div id="h-stars" class="stars-wrap" style="justify-content:center"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">NPS Breakdown</div>
+    <div class="gauge-wrap">
+      <svg class="gauge-svg" width="260" height="140" viewBox="0 0 260 140">
+        <!-- background arc -->
+        <path d="M 30 130 A 100 100 0 0 1 230 130" fill="none" stroke="#1e1e1e" stroke-width="18" stroke-linecap="round"/>
+        <!-- detractors (red) -->
+        <path id="arc-det" fill="none" stroke="#f87171" stroke-width="18" stroke-linecap="round"/>
+        <!-- passives (yellow) -->
+        <path id="arc-pas" fill="none" stroke="#fbbf24" stroke-width="18" stroke-linecap="round"/>
+        <!-- promoters (green) -->
+        <path id="arc-pro" fill="none" stroke="#34d399" stroke-width="18" stroke-linecap="round"/>
+        <text class="gauge-score" id="gauge-score" x="130" y="108">—</text>
+        <text class="gauge-label" x="130" y="128">NPS</text>
+      </svg>
+      <div class="nps-legend">
+        <div class="nps-leg-item"><div class="nps-dot" style="background:#f87171"></div><span id="det-pct">0%</span> Detractors</div>
+        <div class="nps-leg-item"><div class="nps-dot" style="background:#fbbf24"></div><span id="pas-pct">0%</span> Passives</div>
+        <div class="nps-leg-item"><div class="nps-dot" style="background:#34d399"></div><span id="pro-pct">0%</span> Promoters</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Client Responses</div>
+    <div class="response-list" id="resp-list"></div>
+  </div>
+</div>
+<script>
+  function polarToXY(cx, cy, r, angleDeg) {
+    const rad = (angleDeg - 180) * Math.PI / 180;
+    return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+  }
+  function arcPath(cx, cy, r, startDeg, endDeg) {
+    if (Math.abs(endDeg - startDeg) < 0.01) return '';
+    const [sx, sy] = polarToXY(cx, cy, r, startDeg);
+    const [ex, ey] = polarToXY(cx, cy, r, endDeg);
+    const large = (endDeg - startDeg) > 180 ? 1 : 0;
+    return `M ${sx} ${sy} A ${r} ${r} 0 ${large} 1 ${ex} ${ey}`;
+  }
+
+  function renderGauge(detPct, pasPct, proPct) {
+    const total = 180;
+    const det = total * detPct / 100;
+    const pas = total * pasPct / 100;
+    const pro = total * proPct / 100;
+    document.getElementById('arc-det').setAttribute('d', arcPath(130, 130, 100, 0, det));
+    document.getElementById('arc-pas').setAttribute('d', arcPath(130, 130, 100, det, det + pas));
+    document.getElementById('arc-pro').setAttribute('d', arcPath(130, 130, 100, det + pas, det + pas + pro));
+  }
+
+  function ratingBadgeClass(r) {
+    if (r >= 5) return 'rb-5';
+    if (r === 4) return 'rb-4';
+    if (r === 3) return 'rb-3';
+    return 'rb-low';
+  }
+
+  function stars(avg) {
+    let s = '';
+    for (let i = 1; i <= 5; i++) {
+      s += `<span class="star" style="color:${i <= Math.round(avg) ? '#fbbf24' : '#333'}">★</span>`;
+    }
+    return s;
+  }
+
+  async function load() {
+    const r = await fetch('/api/survey-results');
+    const d = await r.json();
+    document.getElementById('h-nps').textContent = d.nps_score;
+    document.getElementById('h-rating').textContent = d.avg_rating.toFixed(1);
+    document.getElementById('h-stars').innerHTML = stars(d.avg_rating);
+    document.getElementById('gauge-score').textContent = d.nps_score;
+
+    const det = d.detractor_pct || 15;
+    const pas = d.passive_pct || 25;
+    const pro = d.promoter_pct || 60;
+    document.getElementById('det-pct').textContent = det + '%';
+    document.getElementById('pas-pct').textContent = pas + '%';
+    document.getElementById('pro-pct').textContent = pro + '%';
+    renderGauge(det, pas, pro);
+
+    document.getElementById('resp-list').innerHTML = (d.responses || []).map(resp => `
+      <div class="response-item">
+        <div class="resp-top">
+          <span class="resp-name">${esc(resp.client_name)}</span>
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <span class="type-badge">${esc(resp.type)}</span>
+            <span class="rating-badge ${ratingBadgeClass(resp.rating)}">★ ${resp.rating}</span>
+            <span class="resp-meta">${esc(resp.date)}</span>
+          </div>
+        </div>
+        <div class="resp-comment">${esc(resp.comment)}</div>
+      </div>`).join('');
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

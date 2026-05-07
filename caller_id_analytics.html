@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Caller ID Analytics — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1.2rem; margin-bottom: 1rem; }
+    .leg-item { display: flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--muted); }
+    .leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Caller ID Analytics</div>
+  <p class="page-sub">Track who's calling — new leads, returning clients, and unknown numbers. Monitor growth in first-time callers week over week.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">New Callers %</div>
+      <div class="hero-val" id="h-new" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Returning %</div>
+      <div class="hero-val" id="h-ret" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total Calls (7d)</div>
+      <div class="hero-val" id="h-total" style="color:var(--text)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Daily Caller Breakdown</div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div> New</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--accent)"></div> Returning</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#333"></div> Unknown</div>
+    </div>
+    <svg id="chart" viewBox="0 0 660 220" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/caller-id-analytics').then(r => r.json());
+    const days = d.days || [];
+    if (!days.length) return;
+
+    const totals = days.map(day => (day.new_callers || 0) + (day.returning_callers || 0) + (day.unknown_callers || 0));
+    const grandTotal = totals.reduce((a,b) => a+b, 0);
+    const totalNew = days.reduce((s,d) => s + (d.new_callers || 0), 0);
+    const totalRet = days.reduce((s,d) => s + (d.returning_callers || 0), 0);
+    const newPct = grandTotal ? Math.round(totalNew / grandTotal * 100) : 0;
+    const retPct = grandTotal ? Math.round(totalRet / grandTotal * 100) : 0;
+
+    document.getElementById('h-new').textContent = newPct + '%';
+    document.getElementById('h-ret').textContent = retPct + '%';
+    document.getElementById('h-total').textContent = grandTotal.toLocaleString();
+
+    const W = 660, H = 220, padL = 36, padR = 12, padT = 16, padB = 40;
+    const chartW = W - padL - padR, chartH = H - padT - padB;
+    const maxVal = Math.max(...totals, 1);
+    const barW = Math.floor(chartW / days.length * 0.6);
+    const gap = chartW / days.length;
+
+    let bars = '';
+    days.forEach((day, i) => {
+      const x = padL + i * gap + (gap - barW) / 2;
+      const newH = (day.new_callers / maxVal) * chartH;
+      const retH = (day.returning_callers / maxVal) * chartH;
+      const unkH = (day.unknown_callers / maxVal) * chartH;
+      const y3 = padT + chartH - unkH;
+      const y2 = y3 - retH;
+      const y1 = y2 - newH;
+
+      if (unkH > 0) bars += `<rect x="${x}" y="${y3}" width="${barW}" height="${unkH}" fill="#333" rx="2"/>`;
+      if (retH > 0) bars += `<rect x="${x}" y="${y2}" width="${barW}" height="${retH}" fill="rgba(167,139,250,.75)" rx="2"/>`;
+      if (newH > 0) bars += `<rect x="${x}" y="${y1}" width="${barW}" height="${newH}" fill="rgba(52,211,153,.8)" rx="2"/>`;
+
+      bars += `<text x="${x + barW/2}" y="${padT + chartH + 16}" text-anchor="middle" fill="#555" font-size="9">${esc(day.label || day.date || '')}</text>`;
+    });
+
+    // y-axis ticks
+    let yAxis = '';
+    for (let t = 0; t <= 4; t++) {
+      const yv = Math.round(maxVal * t / 4);
+      const yp = padT + chartH - (t / 4) * chartH;
+      yAxis += `<line x1="${padL}" x2="${W - padR}" y1="${yp}" y2="${yp}" stroke="#1e1e1e" stroke-width="1"/>`;
+      yAxis += `<text x="${padL - 5}" y="${yp + 4}" text-anchor="end" fill="#444" font-size="8">${yv}</text>`;
+    }
+
+    document.getElementById('chart').innerHTML = yAxis + bars;
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

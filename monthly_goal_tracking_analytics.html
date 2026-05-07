@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monthly Goals — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .days-badge { display: inline-block; background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); border-radius: 6px; font-size: .75rem; font-weight: 700; padding: .2rem .65rem; margin-bottom: 1.5rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .goal-block { margin-bottom: 1.4rem; }
+    .goal-block:last-child { margin-bottom: 0; }
+    .goal-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .45rem; }
+    .goal-name { font-size: .82rem; font-weight: 700; }
+    .goal-nums { font-size: .75rem; color: var(--muted); }
+    .goal-track { background: var(--surface2); border-radius: 6px; height: 14px; overflow: hidden; }
+    .goal-fill { height: 100%; border-radius: 6px; transition: width .4s; }
+    .goal-pct { font-size: .72rem; font-weight: 700; margin-top: .3rem; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Monthly Goals</div>
+  <p class="page-sub">Track progress toward your revenue, booking, and new client acquisition goals for this month. Falling behind early gives time to course-correct with targeted campaigns.</p>
+  <div id="days-badge" class="days-badge"></div>
+  <div class="card">
+    <div class="card-title">Goal Progress</div>
+    <div class="goal-block">
+      <div class="goal-header"><div class="goal-name">Revenue</div><div class="goal-nums" id="rev-nums">—</div></div>
+      <div class="goal-track"><div class="goal-fill" id="rev-fill"></div></div>
+      <div class="goal-pct" id="rev-pct"></div>
+    </div>
+    <div class="goal-block">
+      <div class="goal-header"><div class="goal-name">Bookings</div><div class="goal-nums" id="book-nums">—</div></div>
+      <div class="goal-track"><div class="goal-fill" id="book-fill"></div></div>
+      <div class="goal-pct" id="book-pct"></div>
+    </div>
+    <div class="goal-block">
+      <div class="goal-header"><div class="goal-name">New Clients</div><div class="goal-nums" id="new-nums">—</div></div>
+      <div class="goal-track"><div class="goal-fill" id="new-fill"></div></div>
+      <div class="goal-pct" id="new-pct"></div>
+    </div>
+  </div>
+</div>
+<script>
+  function goalColor(pct) { return pct >= 90 ? 'var(--green)' : pct >= 65 ? 'var(--yellow)' : 'var(--red)'; }
+  async function load() {
+    const d = await fetch('/api/analytics/monthly-goal-tracking-stats').then(r => r.json());
+    document.getElementById('days-badge').textContent = d.days_remaining + ' days remaining this month';
+    const goals = [
+      { name: 'rev', actual: '$' + d.revenue_actual.toLocaleString(), goal: '$' + d.revenue_goal.toLocaleString(), pct: d.revenue_pct },
+      { name: 'book', actual: d.bookings_actual, goal: d.bookings_goal, pct: d.bookings_pct },
+      { name: 'new', actual: d.new_clients_actual, goal: d.new_clients_goal, pct: d.new_clients_pct },
+    ];
+    goals.forEach(g => {
+      document.getElementById(g.name + '-nums').textContent = g.actual + ' / ' + g.goal;
+      const fill = Math.min(g.pct, 100);
+      const col = goalColor(g.pct);
+      document.getElementById(g.name + '-fill').style.cssText = 'width:' + fill + '%;background:' + col;
+      document.getElementById(g.name + '-pct').style.color = col;
+      document.getElementById(g.name + '-pct').textContent = g.pct.toFixed(1) + '% of goal';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

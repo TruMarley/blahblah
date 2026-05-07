@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Productivity — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .staff-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; margin-bottom: .5rem; }
+    .staff-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .6rem; }
+    .staff-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 900; color: #fff; flex-shrink: 0; }
+    .staff-name { font-size: .88rem; font-weight: 700; flex: 1; }
+    .staff-rating { font-size: .72rem; color: var(--yellow); font-weight: 700; }
+    .util-bar-wrap { background: var(--surface); border-radius: 4px; height: 6px; overflow: hidden; margin-bottom: .5rem; }
+    .util-bar { height: 100%; border-radius: 4px; }
+    .staff-meta { display: flex; gap: 1rem; }
+    .staff-stat { font-size: .68rem; color: var(--muted); }
+    .staff-stat span { color: var(--text); font-weight: 700; }
+    .monthly-row { display: flex; align-items: flex-end; gap: 3px; height: 80px; }
+    .monthly-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .m-bar { width: 100%; border-radius: 3px 3px 0 0; background: var(--accent); opacity: .7; }
+    .m-lbl { font-size: .55rem; color: var(--muted); margin-top: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Productivity</div>
+  <p class="page-sub">Monitor utilization, bookings, revenue, and no-show rates per staff member. Identify your top performers and spots where AI booking can fill more gaps.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-staff" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Total Staff</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-util" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Avg Utilization</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-top" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Top Performer</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-bk" style="color:var(--text)">—</div>
+      <div class="stat-lbl">Avg Bookings/Staff</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-rev" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Avg Revenue/Staff</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Staff Overview</div>
+    <div id="staff-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Total Bookings</div>
+    <div class="monthly-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  function fmt(v) { return v >= 1000 ? '$' + (v/1000).toFixed(1) + 'k' : '$' + v; }
+  async function load() {
+    const data = await fetch('/api/analytics/staff-productivity-stats').then(r => r.json());
+    document.getElementById('h-staff').textContent = data.total_staff;
+    document.getElementById('h-util').textContent = data.avg_utilization_pct.toFixed(1) + '%';
+    document.getElementById('h-top').textContent = data.top_performer.split(' ')[0];
+    document.getElementById('h-bk').textContent = data.avg_bookings_per_staff_30d.toFixed(0);
+    document.getElementById('h-rev').textContent = fmt(data.avg_revenue_per_staff_30d);
+
+    const list = document.getElementById('staff-list');
+    data.staff.forEach(s => {
+      const utilColor = s.utilization_pct >= 80 ? 'var(--green)' : s.utilization_pct >= 60 ? 'var(--yellow)' : 'var(--red)';
+      const initials = s.name.split(' ').map(x=>x[0]).join('');
+      const card = document.createElement('div');
+      card.className = 'staff-card';
+      card.innerHTML = `
+        <div class="staff-header">
+          <div class="staff-avatar">${initials}</div>
+          <div class="staff-name">${s.name}</div>
+          <div class="staff-rating">★ ${s.avg_rating}</div>
+          <div style="font-size:.75rem;font-weight:900;color:${utilColor}">${s.utilization_pct.toFixed(0)}%</div>
+        </div>
+        <div class="util-bar-wrap"><div class="util-bar" style="width:${s.utilization_pct}%;background:${utilColor}"></div></div>
+        <div class="staff-meta">
+          <div class="staff-stat">Bookings: <span>${s.bookings_30d}</span></div>
+          <div class="staff-stat">Revenue: <span>${fmt(s.revenue_30d)}</span></div>
+          <div class="staff-stat">No-shows: <span>${s.no_shows_30d}</span></div>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+
+    const maxB = Math.max(...(data.monthly||[]).map(m=>m.bookings),1);
+    const bars = document.getElementById('monthly-bars');
+    (data.monthly||[]).forEach(m => {
+      const h = Math.max((m.bookings/maxB*72).toFixed(0), 2);
+      bars.innerHTML += `
+        <div class="monthly-col">
+          <div class="m-bar" style="height:${h}px" title="${m.month}: ${m.bookings} bookings (${m.utilization_pct}% util)"></div>
+          <div class="m-lbl">${m.month.slice(0,3)}</div>
+        </div>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

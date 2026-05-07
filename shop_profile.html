@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shop Profile — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
+    .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1.25rem; }
+    .field { margin-bottom: 1rem; }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .field-input, .field-textarea, .field-select { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-size: .85rem; padding: .6rem .9rem; border-radius: 8px; font-family: inherit; outline: none; }
+    .field-textarea { resize: vertical; min-height: 80px; }
+    .field-input:focus, .field-textarea:focus { border-color: var(--accent); }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: .7rem; font-size: .88rem; font-weight: 800; cursor: pointer; font-family: inherit; margin-top: 1.25rem; }
+    .save-fb { text-align: center; font-size: .78rem; color: var(--green); margin-top: .5rem; min-height: 1.2em; }
+    /* Preview card */
+    .preview-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; position: sticky; top: 76px; }
+    .prev-header { background: linear-gradient(135deg, rgba(167,139,250,.15), rgba(52,211,153,.08)); border-radius: 10px; padding: 1.5rem; margin-bottom: 1rem; text-align: center; }
+    .prev-emoji { font-size: 2.5rem; margin-bottom: .5rem; }
+    .prev-name { font-size: 1.1rem; font-weight: 900; margin-bottom: .2rem; }
+    .prev-tagline { font-size: .78rem; color: var(--muted); }
+    .prev-row { display: flex; align-items: flex-start; gap: .6rem; padding: .5rem 0; border-bottom: 1px solid var(--border); font-size: .8rem; }
+    .prev-row:last-child { border-bottom: none; }
+    .prev-icon { width: 18px; flex-shrink: 0; text-align: center; font-size: .9rem; }
+    .prev-val { color: var(--muted); line-height: 1.5; }
+    .prev-val a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Shop Profile</div>
+  <p class="page-sub">Business information shown to callers and used by your AI receptionist.</p>
+  <div class="layout">
+    <div>
+      <div class="form-card" style="margin-bottom:1rem">
+        <div class="card-title">Business Info</div>
+        <div class="field"><div class="field-label">Shop Name</div><input class="field-input" id="f-name" oninput="syncPreview()"></div>
+        <div class="field"><div class="field-label">Owner Name</div><input class="field-input" id="f-owner" oninput="syncPreview()"></div>
+        <div class="field"><div class="field-label">Description</div><textarea class="field-textarea" id="f-desc" oninput="syncPreview()"></textarea></div>
+        <div class="field-row">
+          <div class="field"><div class="field-label">Founded Year</div><input class="field-input" id="f-year" type="number" oninput="syncPreview()"></div>
+          <div class="field"><div class="field-label">Timezone</div>
+            <select class="field-select" id="f-tz">
+              <option>America/New_York</option><option>America/Chicago</option><option>America/Denver</option><option>America/Los_Angeles</option><option>America/Phoenix</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="form-card">
+        <div class="card-title">Contact &amp; Links</div>
+        <div class="field"><div class="field-label">Phone</div><input class="field-input" id="f-phone" oninput="syncPreview()"></div>
+        <div class="field"><div class="field-label">Email</div><input class="field-input" id="f-email" type="email" oninput="syncPreview()"></div>
+        <div class="field"><div class="field-label">Address</div><input class="field-input" id="f-addr" oninput="syncPreview()"></div>
+        <div class="field"><div class="field-label">Website</div><input class="field-input" id="f-web" oninput="syncPreview()"></div>
+        <div class="field"><div class="field-label">Instagram</div><input class="field-input" id="f-ig" placeholder="@yourshop" oninput="syncPreview()"></div>
+        <div class="field"><div class="field-label">Google Maps URL</div><input class="field-input" id="f-maps" oninput="syncPreview()"></div>
+        <button class="save-btn" onclick="save()">Save Profile</button>
+        <div class="save-fb" id="save-fb"></div>
+      </div>
+    </div>
+    <div class="preview-card">
+      <div class="card-title">Caller Preview</div>
+      <div class="prev-header">
+        <div class="prev-emoji">💈</div>
+        <div class="prev-name" id="pv-name">Shop Name</div>
+        <div class="prev-tagline" id="pv-desc">Your shop description</div>
+      </div>
+      <div class="prev-row"><div class="prev-icon">📍</div><div class="prev-val" id="pv-addr">—</div></div>
+      <div class="prev-row"><div class="prev-icon">📞</div><div class="prev-val" id="pv-phone">—</div></div>
+      <div class="prev-row"><div class="prev-icon">✉️</div><div class="prev-val" id="pv-email">—</div></div>
+      <div class="prev-row"><div class="prev-icon">🌐</div><div class="prev-val" id="pv-web">—</div></div>
+      <div class="prev-row"><div class="prev-icon">📸</div><div class="prev-val" id="pv-ig">—</div></div>
+      <div class="prev-row"><div class="prev-icon">👤</div><div class="prev-val" id="pv-owner">—</div></div>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/shop-profile');
+    const d = await r.json();
+    document.getElementById('f-name').value = d.name || '';
+    document.getElementById('f-owner').value = d.owner_name || '';
+    document.getElementById('f-desc').value = d.description || '';
+    document.getElementById('f-year').value = d.founded_year || '';
+    document.getElementById('f-phone').value = d.phone || '';
+    document.getElementById('f-email').value = d.email || '';
+    document.getElementById('f-addr').value = d.address || '';
+    document.getElementById('f-web').value = d.website || '';
+    document.getElementById('f-ig').value = d.instagram || '';
+    document.getElementById('f-maps').value = d.google_maps_url || '';
+    syncPreview();
+  }
+  function syncPreview() {
+    const g = id => document.getElementById(id).value;
+    document.getElementById('pv-name').textContent = g('f-name') || 'Shop Name';
+    document.getElementById('pv-desc').textContent = g('f-desc') || 'Your shop description';
+    document.getElementById('pv-addr').textContent = g('f-addr') || '—';
+    document.getElementById('pv-phone').textContent = g('f-phone') || '—';
+    document.getElementById('pv-email').textContent = g('f-email') || '—';
+    document.getElementById('pv-web').textContent = g('f-web') || '—';
+    document.getElementById('pv-ig').textContent = g('f-ig') || '—';
+    document.getElementById('pv-owner').textContent = g('f-owner') ? 'Owner: ' + g('f-owner') : '—';
+  }
+  async function save() {
+    const p = { name:document.getElementById('f-name').value, owner_name:document.getElementById('f-owner').value, description:document.getElementById('f-desc').value, founded_year:parseInt(document.getElementById('f-year').value)||null, phone:document.getElementById('f-phone').value, email:document.getElementById('f-email').value, address:document.getElementById('f-addr').value, website:document.getElementById('f-web').value, instagram:document.getElementById('f-ig').value, google_maps_url:document.getElementById('f-maps').value, timezone:document.getElementById('f-tz').value };
+    await fetch('/api/shop-profile', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(p)});
+    const fb = document.getElementById('save-fb');
+    fb.textContent = 'Profile saved!';
+    setTimeout(() => fb.textContent = '', 2000);
+  }
+  load();
+</script>
+</body>
+</html>

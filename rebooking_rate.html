@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rebooking Rate — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .top-row { display: grid; grid-template-columns: 240px 1fr; gap: 1.25rem; margin-bottom: 1.25rem; align-items: start; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .donut-wrap { display: flex; flex-direction: column; align-items: center; gap: .75rem; }
+    .donut-center { text-align: center; }
+    .donut-pct { font-size: 2.2rem; font-weight: 900; color: var(--accent); }
+    .donut-sub { font-size: .72rem; color: var(--muted); }
+    .donut-legend { display: flex; gap: 1rem; font-size: .72rem; color: var(--muted); }
+    .dl-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: .3rem; }
+    /* Horizontal bars */
+    .hbar-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .7rem; }
+    .hbar-row:last-child { margin-bottom: 0; }
+    .hbar-label { font-size: .78rem; font-weight: 700; width: 140px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hbar-track { flex: 1; background: var(--surface2); border-radius: 5px; height: 18px; overflow: hidden; }
+    .hbar-fill { height: 100%; border-radius: 5px; background: var(--accent); opacity: .8; }
+    .hbar-val { font-size: .75rem; font-weight: 800; color: var(--accent); width: 38px; text-align: right; flex-shrink: 0; }
+    .meta-chip { display: inline-block; background: rgba(167,139,250,.08); border: 1px solid rgba(167,139,250,.2); color: var(--accent); font-size: .7rem; font-weight: 700; padding: .15rem .55rem; border-radius: 7px; margin-right: .4rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Rebooking Rate</div>
+  <p class="page-sub">Percentage of clients who rebook after each visit.</p>
+  <div id="meta-chips" style="margin-bottom:1.5rem"></div>
+  <div class="top-row">
+    <div class="card">
+      <div class="card-title">Overall Rate</div>
+      <div class="donut-wrap">
+        <svg id="donut" width="160" height="160" viewBox="0 0 160 160"></svg>
+        <div class="donut-center">
+          <div class="donut-pct" id="d-pct">—</div>
+          <div class="donut-sub">rebook after visit</div>
+        </div>
+        <div class="donut-legend">
+          <span><span class="dl-dot" style="background:var(--accent)"></span>Rebook</span>
+          <span><span class="dl-dot" style="background:#222"></span>Don't</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">By Service</div>
+      <div id="svc-bars"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">6-Month Trend</div>
+    <svg id="trend-svg" width="100%" style="display:block;overflow:visible"></svg>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/rebooking-rate');
+    const d = await r.json();
+
+    document.getElementById('meta-chips').innerHTML =
+      `<span class="meta-chip">Avg days to rebook: ${d.avg_days_to_rebook}d</span>`;
+
+    const rate = d.rebooking_rate_pct;
+    document.getElementById('d-pct').textContent = rate + '%';
+
+    // Donut SVG
+    const cx = 80, cy = 80, R = 60, stroke = 22;
+    const circ = 2 * Math.PI * R;
+    const filled = circ * (rate / 100);
+    document.getElementById('donut').innerHTML =
+      `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#222" stroke-width="${stroke}"/>
+       <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#a78bfa" stroke-width="${stroke}"
+         stroke-dasharray="${filled} ${circ - filled}" stroke-dashoffset="${circ * 0.25}" stroke-linecap="round"/>`;
+
+    // Service bars
+    const svcs = (d.by_service || []).sort((a,b) => b.rebook_rate_pct - a.rebook_rate_pct);
+    const maxS = Math.max(...svcs.map(s => s.rebook_rate_pct), 1);
+    document.getElementById('svc-bars').innerHTML = svcs.map(s => `
+      <div class="hbar-row">
+        <div class="hbar-label">${esc(s.service)}</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:${(s.rebook_rate_pct/maxS*100).toFixed(1)}%"></div></div>
+        <div class="hbar-val">${s.rebook_rate_pct}%</div>
+      </div>`).join('');
+
+    // Trend line SVG
+    const trend = d.trend || [];
+    const W = 800, H = 100, PL = 8, PR = 8, PT = 16, PB = 24;
+    const cW = W - PL - PR, cH = H - PT - PB;
+    const minR = Math.min(...trend.map(t => t.rate)) - 5;
+    const maxR = Math.max(...trend.map(t => t.rate)) + 5;
+    const pts = trend.map((t, i) => {
+      const x = PL + i * cW / (trend.length - 1);
+      const y = PT + cH - ((t.rate - minR) / (maxR - minR)) * cH;
+      return {x, y, label: t.month, rate: t.rate};
+    });
+    const linePath = `M${pts[0].x},${pts[0].y}` + pts.slice(1).map(p => ` L${p.x},${p.y}`).join('');
+    const areaPath = linePath + ` L${pts[pts.length-1].x},${H-PB} L${pts[0].x},${H-PB} Z`;
+    const dots = pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="4" fill="#a78bfa"/><text x="${p.x}" y="${p.y - 8}" text-anchor="middle" font-size="9" fill="#a78bfa">${p.rate}%</text><text x="${p.x}" y="${H - 4}" text-anchor="middle" font-size="9" fill="#555">${p.label}</text>`).join('');
+    const svg = document.getElementById('trend-svg');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('height', H);
+    svg.innerHTML = `<defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a78bfa" stop-opacity=".2"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/></linearGradient></defs>
+      <path d="${areaPath}" fill="url(#tg)"/>
+      <path d="${linePath}" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linejoin="round"/>
+      ${dots}`;
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

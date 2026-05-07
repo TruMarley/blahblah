@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Webhooks — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-top: .2rem; }
+    .test-btn { background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: .8rem; font-weight: 700; padding: .5rem 1rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .test-btn:hover { color: var(--text); border-color: #3e3e3e; }
+    .endpoint-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: .75rem; }
+    .ep-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; white-space: nowrap; }
+    .ep-url { font-family: "SF Mono", "Fira Code", monospace; font-size: .82rem; color: var(--accent); flex: 1; }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .71rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .7rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .8rem 1.25rem; font-size: .82rem; vertical-align: middle; }
+    .time-cell { color: var(--muted); font-size: .75rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .source-chip { font-size: .7rem; font-weight: 700; padding: .18rem .55rem; border-radius: 6px; background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.2); color: var(--accent); }
+    .event-cell { font-family: "SF Mono", "Fira Code", monospace; font-size: .75rem; color: var(--green); }
+    .data-cell { color: var(--muted); font-size: .75rem; font-family: "SF Mono", "Fira Code", monospace; }
+    .status-badge { display: inline-block; padding: .15rem .55rem; border-radius: 99px; font-size: .7rem; font-weight: 800; }
+    .s-received { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .s-failed { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+    .empty { text-align: center; color: var(--muted); padding: 3rem; font-size: .85rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="header-row">
+    <div>
+      <div class="page-title">Webhooks</div>
+      <div class="page-sub">Incoming events from connected integrations.</div>
+    </div>
+    <button class="test-btn" onclick="sendTest()">+ Send Test Event</button>
+  </div>
+
+  <div class="endpoint-box">
+    <span class="ep-label">Webhook URL</span>
+    <span class="ep-url">POST https://app.ringdesk.ai/api/integrations/webhook</span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Time</th><th>Source</th><th>Event</th><th>Data Preview</th><th>Status</th></tr></thead>
+      <tbody id="wh-body"><tr><td colspan="5" class="empty">No events yet. Click "Send Test Event" to send a sample.</td></tr></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/integrations/webhooks');
+    const d = await r.json();
+    const hooks = d.webhooks || [];
+    if (!hooks.length) { document.getElementById('wh-body').innerHTML = '<tr><td colspan="5" class="empty">No events yet. Click "Send Test Event" to send a sample.</td></tr>'; return; }
+    document.getElementById('wh-body').innerHTML = hooks.map(h => {
+      const preview = JSON.stringify(h.data || {}).slice(0, 60);
+      return `<tr>
+        <td class="time-cell">${relTime(h.timestamp)}</td>
+        <td><span class="source-chip">${esc(h.source)}</span></td>
+        <td class="event-cell">${esc(h.event)}</td>
+        <td class="data-cell">${esc(preview)}${preview.length >= 60 ? '…' : ''}</td>
+        <td><span class="status-badge s-${h.status}">${h.status}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function sendTest() {
+    const sources = ['square','vagaro','stripe','google-calendar'];
+    const events = ['appointment.created','payment.received','booking.canceled','review.posted'];
+    const source = sources[Math.floor(Math.random()*sources.length)];
+    const event = events[Math.floor(Math.random()*events.length)];
+    await fetch('/api/integrations/webhook', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({source, event, data:{test:true, id:'evt_' + Math.random().toString(36).slice(2,8), amount: source==='stripe'?6000:null}})});
+    load();
+  }
+
+  function relTime(iso) {
+    const diff = Math.floor((new Date() - new Date(iso)) / 60000);
+    if (diff < 1) return 'just now'; if (diff < 60) return diff + 'm ago';
+    if (diff < 1440) return Math.floor(diff/60) + 'h ago'; return Math.floor(diff/1440) + 'd ago';
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

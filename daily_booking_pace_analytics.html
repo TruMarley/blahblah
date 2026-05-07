@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Daily Booking Pace — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .pace-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .85rem; }
+    .pace-label { font-size: .8rem; color: var(--text); width: 110px; flex-shrink: 0; }
+    .pace-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 12px; overflow: hidden; }
+    .pace-fill { height: 100%; border-radius: 4px; }
+    .pace-pct { font-size: .78rem; font-weight: 700; width: 44px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Daily Booking Pace</div>
+  <p class="page-sub">How full is your schedule at different booking horizons? High same-day fill is healthy; very low 7-day-out fill signals weak advance demand and an opportunity to run promotions earlier.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-dof" style="color:var(--green)">—</div><div class="stat-lbl">Day-Of Fill</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-week" style="color:var(--muted)">—</div><div class="stat-lbl">Week-Prior Fill</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-lastmin" style="color:var(--yellow)">—</div><div class="stat-lbl">Last-Min Bookings</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-advance" style="color:var(--accent)">—</div><div class="stat-lbl">Avg Advance (days)</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Schedule Fill by Booking Window</div>
+    <div id="pace-list"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['var(--red)','var(--yellow)','var(--accent)','var(--green)'];
+  async function load() {
+    const d = await fetch('/api/analytics/daily-booking-pace-stats').then(r => r.json());
+    document.getElementById('h-dof').textContent = d.avg_fill_pct_day_of.toFixed(1) + '%';
+    document.getElementById('h-week').textContent = d.avg_fill_pct_week_prior.toFixed(1) + '%';
+    document.getElementById('h-lastmin').textContent = d.last_min_booking_pct.toFixed(1) + '%';
+    document.getElementById('h-advance').textContent = d.advance_booking_avg_days.toFixed(1) + 'd';
+    const pl = document.getElementById('pace-list');
+    d.slots.forEach((s, i) => {
+      pl.innerHTML += '<div class="pace-row"><div class="pace-label">' + s.window + '</div><div class="pace-track"><div class="pace-fill" style="width:' + s.fill_pct + '%;background:' + COLORS[i] + '"></div></div><div class="pace-pct" style="color:' + COLORS[i] + '">' + s.fill_pct.toFixed(1) + '%</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

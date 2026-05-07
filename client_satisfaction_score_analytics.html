@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Satisfaction Score — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .month-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; }
+    .month-label { font-size: .75rem; width: 40px; flex-shrink: 0; color: var(--muted); }
+    .month-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+    .month-fill { height: 100%; border-radius: 4px; }
+    .month-right { font-size: .75rem; font-weight: 700; width: 80px; text-align: right; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Satisfaction Score</div>
+  <p class="page-sub">Client satisfaction trend over 6 months alongside NPS. Declining scores are an early warning system — catching a trend early beats reacting to a review-bombing event.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-score" style="color:var(--yellow)">—</div><div class="stat-lbl">Current Score</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-change" style="color:var(--muted)">—</div><div class="stat-lbl">30d Change</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-resp" style="color:var(--accent)">—</div><div class="stat-lbl">Responses (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-nps" style="color:var(--green)">—</div><div class="stat-lbl">NPS</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">6-Month Trend</div>
+    <div id="month-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/client-satisfaction-score-stats').then(r => r.json());
+    document.getElementById('h-score').textContent = d.current_score.toFixed(2) + ' ★';
+    const change = d.score_change_30d;
+    const changeEl = document.getElementById('h-change');
+    changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(2);
+    changeEl.style.color = change >= 0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('h-resp').textContent = d.total_responses_30d;
+    document.getElementById('h-nps').textContent = d.nps;
+    const ml = document.getElementById('month-list');
+    const maxS = Math.max(...d.months.map(m => m.score));
+    d.months.forEach(m => {
+      const w = (m.score / maxS * 100).toFixed(1);
+      const color = m.score >= 4.5 ? 'var(--green)' : m.score >= 4.0 ? 'var(--yellow)' : 'var(--red)';
+      ml.innerHTML += '<div class="month-row"><div class="month-label">' + m.month + '</div><div class="month-track"><div class="month-fill" style="width:' + w + '%;background:' + color + '"></div></div><div class="month-right" style="color:' + color + '">' + m.score.toFixed(2) + ' · ' + m.responses + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loyalty Rewards — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .rewards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .85rem; }
+    .reward-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 11px; padding: 1rem 1.1rem; }
+    .reward-card.inactive { opacity: .48; }
+    .rw-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: .5rem; }
+    .rw-name { font-size: .88rem; font-weight: 900; flex: 1; }
+    .status-badge { font-size: .62rem; font-weight: 800; padding: .12rem .42rem; border-radius: 99px; flex-shrink: 0; }
+    .s-active   { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .s-inactive { background: rgba(255,255,255,.05); color: var(--muted); border: 1px solid var(--border); }
+    .rw-visits { font-size: .72rem; color: var(--muted); margin-bottom: .35rem; }
+    .rw-visits span { color: var(--yellow); font-weight: 800; }
+    .rw-value { font-size: .8rem; font-weight: 700; color: var(--accent); margin-bottom: .55rem; }
+    .rw-foot { display: flex; align-items: center; justify-content: space-between; }
+    .rw-redeemed { font-size: .7rem; color: var(--muted); }
+    .rw-actions { display: flex; gap: .3rem; }
+    .icon-btn { background: none; border: none; cursor: pointer; font-size: .82rem; padding: .18rem .32rem; border-radius: 4px; }
+    .icon-btn:hover { background: rgba(255,255,255,.07); }
+    .add-form { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+    .add-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .45rem .75rem; font-family: inherit; }
+    .add-input.name { flex: 1; min-width: 160px; }
+    .add-input.visits { width: 90px; }
+    .add-input.value { flex: 1; min-width: 140px; }
+    .add-btn { font-size: .78rem; font-weight: 800; padding: .45rem 1rem; border-radius: 8px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .add-btn:hover { background: rgba(167,139,250,.2); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Loyalty Rewards</div>
+  <p class="page-sub">Reward your repeat clients — the AI mentions active rewards when clients hit milestones.</p>
+
+  <div class="card">
+    <div class="card-title">Active Rewards</div>
+    <div class="rewards-grid" id="rewards-grid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Add Reward</div>
+    <div class="add-form">
+      <input class="add-input name" id="r-name" type="text" placeholder="Reward name…" maxlength="40">
+      <input class="add-input visits" id="r-visits" type="number" placeholder="Visits req." min="1">
+      <input class="add-input value" id="r-value" type="text" placeholder="Reward value (e.g. $10 off)…" maxlength="50">
+      <button class="add-btn" onclick="addReward()">+ Add</button>
+    </div>
+  </div>
+</div>
+<script>
+  let rewards = [];
+
+  async function load() {
+    const r = await fetch('/api/loyalty-rewards');
+    const d = await r.json();
+    rewards = d.rewards || [];
+    render();
+  }
+
+  function render() {
+    document.getElementById('rewards-grid').innerHTML = rewards.map(r => `
+      <div class="reward-card ${r.active ? '' : 'inactive'}">
+        <div class="rw-top">
+          <div class="rw-name">${esc(r.name)}</div>
+          <span class="status-badge ${r.active ? 's-active' : 's-inactive'}">${r.active ? 'On' : 'Off'}</span>
+        </div>
+        <div class="rw-visits">After <span>${r.visits_required}</span> visit${r.visits_required === 1 ? '' : 's'}</div>
+        <div class="rw-value">${esc(r.value)}</div>
+        <div class="rw-foot">
+          <span class="rw-redeemed">${r.redeemed_count} redeemed</span>
+          <div class="rw-actions">
+            <button class="icon-btn" onclick="toggle('${r.id}')">${r.active ? '⏸' : '▶'}</button>
+            <button class="icon-btn" onclick="del('${r.id}')" style="color:var(--red)">✕</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  async function toggle(id) {
+    const res = await fetch(`/api/loyalty-rewards/${id}/toggle`, {method:'POST'});
+    const d = await res.json();
+    const idx = rewards.findIndex(r => r.id === id);
+    if (idx >= 0) rewards[idx] = d.reward;
+    render();
+  }
+
+  async function del(id) {
+    await fetch(`/api/loyalty-rewards/${id}`, {method:'DELETE'});
+    rewards = rewards.filter(r => r.id !== id);
+    render();
+  }
+
+  async function addReward() {
+    const name   = document.getElementById('r-name').value.trim();
+    const visits = parseInt(document.getElementById('r-visits').value) || 5;
+    const value  = document.getElementById('r-value').value.trim();
+    if (!name || !value) return;
+    const res = await fetch('/api/loyalty-rewards', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, visits_required: visits, value})});
+    const d = await res.json();
+    rewards.push(d.reward);
+    document.getElementById('r-name').value = '';
+    document.getElementById('r-visits').value = '';
+    document.getElementById('r-value').value = '';
+    render();
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

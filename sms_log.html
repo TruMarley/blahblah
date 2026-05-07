@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMS Log — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .tab-row { display: flex; gap: .4rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: .75rem; }
+    .tab { background: none; border: none; color: var(--muted); font-size: .83rem; font-weight: 700; padding: .35rem .8rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .tab.active { background: rgba(167,139,250,.1); color: var(--accent); }
+    .tab:hover:not(.active) { color: var(--text); }
+    .count-chip { display: inline-block; font-size: .65rem; font-weight: 800; padding: .05rem .4rem; border-radius: 99px; background: var(--surface2); color: var(--muted); margin-left: .3rem; }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .71rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .7rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .8rem 1.25rem; font-size: .82rem; vertical-align: middle; }
+    .dir-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .6rem; border-radius: 99px; font-size: .72rem; font-weight: 800; }
+    .dir-in  { background: rgba(52,211,153,.1);  color: var(--green);  border: 1px solid rgba(52,211,153,.2); }
+    .dir-out { background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); }
+    .phone-cell { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .body-cell { color: var(--muted); font-size: .78rem; max-width: 320px; }
+    .status-badge { display: inline-block; padding: .15rem .55rem; border-radius: 99px; font-size: .68rem; font-weight: 800; }
+    .s-delivered { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .s-failed    { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+    .s-pending   { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+    .time-cell { color: var(--muted); font-size: .75rem; white-space: nowrap; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">SMS Log</div>
+  <p class="page-sub">All inbound and outbound text messages handled by RingDesk.</p>
+
+  <div class="tab-row">
+    <button class="tab active" onclick="setTab('all',this)">All <span class="count-chip" id="cnt-all">0</span></button>
+    <button class="tab" onclick="setTab('inbound',this)">← Inbound <span class="count-chip" id="cnt-in">0</span></button>
+    <button class="tab" onclick="setTab('outbound',this)">→ Outbound <span class="count-chip" id="cnt-out">0</span></button>
+    <button class="tab" onclick="setTab('failed',this)">Failed <span class="count-chip" id="cnt-fail">0</span></button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Direction</th><th>Phone</th><th>Message</th><th>Status</th><th>Time</th></tr></thead>
+      <tbody id="sms-body"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  let msgs = [], currentTab = 'all';
+
+  async function load() {
+    const r = await fetch('/api/sms-log');
+    const d = await r.json();
+    msgs = d.messages || [];
+    document.getElementById('cnt-all').textContent = msgs.length;
+    document.getElementById('cnt-in').textContent = msgs.filter(m=>m.direction==='inbound').length;
+    document.getElementById('cnt-out').textContent = msgs.filter(m=>m.direction==='outbound').length;
+    document.getElementById('cnt-fail').textContent = msgs.filter(m=>m.status==='failed').length;
+    render();
+  }
+
+  function setTab(t, btn) {
+    currentTab = t;
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  }
+
+  function render() {
+    let filtered = msgs;
+    if (currentTab === 'inbound') filtered = msgs.filter(m => m.direction === 'inbound');
+    else if (currentTab === 'outbound') filtered = msgs.filter(m => m.direction === 'outbound');
+    else if (currentTab === 'failed') filtered = msgs.filter(m => m.status === 'failed');
+
+    document.getElementById('sms-body').innerHTML = filtered.map(m => {
+      const isIn = m.direction === 'inbound';
+      const sc = m.status === 'delivered' ? 's-delivered' : m.status === 'failed' ? 's-failed' : 's-pending';
+      return `<tr>
+        <td><span class="dir-chip ${isIn ? 'dir-in' : 'dir-out'}">${isIn ? '←' : '→'} ${isIn ? 'In' : 'Out'}</span></td>
+        <td class="phone-cell">${esc(m.to_phone)}</td>
+        <td class="body-cell">${esc(m.body)}</td>
+        <td><span class="status-badge ${sc}">${m.status.charAt(0).toUpperCase()+m.status.slice(1)}</span></td>
+        <td class="time-cell">${relTime(m.sent_at)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function relTime(iso) {
+    const diff = Math.floor((new Date() - new Date(iso)) / 60000);
+    if (diff < 1) return 'just now';
+    if (diff < 60) return diff + 'm ago';
+    if (diff < 1440) return Math.floor(diff/60) + 'h ago';
+    return Math.floor(diff/1440) + 'd ago';
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  load();
+</script>
+</body>
+</html>

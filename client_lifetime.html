@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Lifetime Value — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; color: var(--accent); }
+    .hero-sub { font-size: .7rem; color: var(--muted); margin-top: .2rem; }
+    .seg-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: .75rem; margin-bottom: 1.5rem; }
+    .seg-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; text-align: center; }
+    .seg-icon { font-size: 1.5rem; margin-bottom: .4rem; }
+    .seg-label { font-size: .72rem; font-weight: 800; margin-bottom: .35rem; }
+    .seg-count { font-size: 1.4rem; font-weight: 900; color: var(--accent); }
+    .seg-ltv { font-size: .7rem; color: var(--green); font-weight: 700; margin-top: .15rem; }
+    .seg-visits { font-size: .65rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .55rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th:not(:first-child):not(:nth-child(2)) { text-align: right; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .75rem 1rem; font-size: .82rem; }
+    tbody td:not(:first-child):not(:nth-child(2)) { text-align: right; }
+    .seg-pill { display: inline-flex; align-items: center; gap: .3rem; font-size: .7rem; font-weight: 700; padding: .15rem .5rem; border-radius: 6px; background: rgba(167,139,250,.08); color: var(--accent); border: 1px solid rgba(167,139,250,.2); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Lifetime Value</div>
+  <p class="page-sub">Revenue generated per client over their relationship with the shop.</p>
+  <div class="hero-row" id="hero-row"></div>
+  <div class="seg-row" id="seg-row"></div>
+  <div class="card">
+    <div class="card-title">Segment Breakdown</div>
+    <table>
+      <thead><tr><th>Segment</th><th></th><th>Clients</th><th>Avg LTV</th><th>Avg Visits</th><th>$/Visit</th></tr></thead>
+      <tbody id="seg-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/client-lifetime');
+    const d = await r.json();
+
+    document.getElementById('hero-row').innerHTML = [
+      { label: 'Avg LTV',    val: '$' + d.avg_ltv,              sub: 'per client lifetime' },
+      { label: 'Median LTV', val: '$' + d.median_ltv,           sub: '50th percentile' },
+      { label: 'Top 10% LTV',val: '$' + d.top_percentile_ltv,   sub: '90th percentile' },
+    ].map(h => `<div class="hero-card"><div class="hero-label">${h.label}</div><div class="hero-val">${h.val}</div><div class="hero-sub">${h.sub}</div></div>`).join('');
+
+    const segs = d.segments || [];
+    document.getElementById('seg-row').innerHTML = segs.map(s => `
+      <div class="seg-card">
+        <div class="seg-icon">${s.icon}</div>
+        <div class="seg-label">${esc(s.label)}</div>
+        <div class="seg-count">${s.count}</div>
+        <div class="seg-ltv">$${s.avg_ltv} avg LTV</div>
+        <div class="seg-visits">${s.avg_visits} visits avg</div>
+      </div>`).join('');
+
+    document.getElementById('seg-tbody').innerHTML = segs.map(s => `
+      <tr>
+        <td><span class="seg-pill">${s.icon} ${esc(s.label)}</span></td>
+        <td></td>
+        <td>${s.count}</td>
+        <td style="color:var(--accent);font-weight:800">$${s.avg_ltv}</td>
+        <td>${s.avg_visits}</td>
+        <td>$${s.avg_spend_per_visit}</td>
+      </tr>`).join('');
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

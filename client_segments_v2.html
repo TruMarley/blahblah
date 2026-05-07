@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Segments — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .seg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1rem; }
+    .seg-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.25rem; display: flex; flex-direction: column; gap: .7rem; }
+    .seg-top { display: flex; align-items: center; gap: .75rem; }
+    .seg-color { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
+    .seg-name { font-size: .92rem; font-weight: 900; flex: 1; }
+    .seg-count { font-size: .78rem; font-weight: 900; background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); padding: .15rem .6rem; border-radius: 99px; flex-shrink: 0; }
+    .seg-criteria { font-size: .78rem; color: var(--muted); line-height: 1.4; }
+    .seg-footer { display: flex; justify-content: flex-end; }
+    .export-btn { font-size: .72rem; font-weight: 800; padding: .28rem .85rem; border-radius: 7px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-family: inherit; transition: all .15s; }
+    .export-btn:hover { border-color: var(--green); color: var(--green); }
+    .export-btn.done { border-color: rgba(52,211,153,.35); color: var(--green); background: rgba(52,211,153,.08); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Segments</div>
+  <p class="page-sub">Auto-generated client groups based on behavior — export any segment for targeted outreach.</p>
+  <div class="seg-grid" id="seg-grid"></div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/client-segments');
+    const d = await r.json();
+    const segs = d.segments || [];
+    document.getElementById('seg-grid').innerHTML = segs.map(s => `
+      <div class="seg-card">
+        <div class="seg-top">
+          <div class="seg-color" style="background:${esc(s.color)}"></div>
+          <div class="seg-name">${esc(s.name)}</div>
+          <div class="seg-count">${s.client_count} clients</div>
+        </div>
+        <div class="seg-criteria">${esc(s.criteria_description)}</div>
+        <div class="seg-footer">
+          <button class="export-btn" id="exp-${s.id}" onclick="exportSeg('${s.id}')">Export CSV</button>
+        </div>
+      </div>`).join('');
+  }
+
+  async function exportSeg(id) {
+    const btn = document.getElementById('exp-' + id);
+    btn.textContent = 'Exporting…';
+    await fetch(`/api/client-segments/${id}/export`, {method:'POST'});
+    btn.textContent = '✓ Downloaded';
+    btn.classList.add('done');
+    setTimeout(() => { btn.textContent = 'Export CSV'; btn.classList.remove('done'); }, 3000);
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

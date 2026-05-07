@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Geography — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .bar-list { display: flex; flex-direction: column; gap: .85rem; }
+    .bar-row { display: flex; align-items: center; gap: .75rem; }
+    .bar-label { font-size: .8rem; font-weight: 600; min-width: 100px; }
+    .bar-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 8px; }
+    .bar-fill { height: 8px; border-radius: 8px; }
+    .bar-meta { font-size: .75rem; font-weight: 700; min-width: 70px; text-align: right; }
+    .ch-colors { display: none; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Geography</div>
+  <p class="page-sub">See where your clients come from. Use this to decide where to run local ads, whether a second location makes sense, and which neighborhoods are most loyal to your shop.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Top ZIP Code</div>
+      <div class="hero-val" id="h-zip" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Client Radius</div>
+      <div class="hero-val" id="h-radius" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Local (< 3 mi)</div>
+      <div class="hero-val" id="h-local" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Clients by Distance from Shop</div>
+    <div class="bar-list" id="dist-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Acquisition by Channel</div>
+    <div class="bar-list" id="channel-list"></div>
+  </div>
+</div>
+<script>
+  const DIST_COLORS = ['#a78bfa','#818cf8','#60a5fa','#34d399','#fbbf24'];
+  const CH_COLORS   = ['#34d399','#a78bfa','#f87171','#fbbf24','#60a5fa'];
+  async function load() {
+    const d = await fetch('/api/analytics/client-geography-stats').then(r => r.json());
+    document.getElementById('h-zip').textContent = d.top_zip || '—';
+    document.getElementById('h-radius').textContent = d.radius_miles != null ? d.radius_miles + ' mi' : '—';
+
+    const dist = d.clients_by_distance || [];
+    const localPct = dist.filter(b => b.bucket === '< 1 mile' || b.bucket === '1–3 miles').reduce((s, b) => s + (b.pct || 0), 0);
+    document.getElementById('h-local').textContent = localPct ? Math.round(localPct) + '%' : '—';
+
+    const distEl = document.getElementById('dist-list');
+    dist.forEach((b, i) => {
+      const color = DIST_COLORS[i % DIST_COLORS.length];
+      distEl.innerHTML += `<div class="bar-row">
+        <div class="bar-label">${esc(b.bucket)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(b.pct,100)}%;background:${color}"></div></div>
+        <div class="bar-meta" style="color:${color}">${b.pct}% <span style="color:var(--muted);font-weight:400">(${b.count})</span></div>
+      </div>`;
+    });
+
+    const chEl = document.getElementById('channel-list');
+    (d.acquisition_by_channel || []).forEach((c, i) => {
+      const color = CH_COLORS[i % CH_COLORS.length];
+      chEl.innerHTML += `<div class="bar-row">
+        <div class="bar-label">${esc(c.channel)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(c.pct,100)}%;background:${color}"></div></div>
+        <div class="bar-meta" style="color:${color}">${c.pct}% <span style="color:var(--muted);font-weight:400">(${c.count})</span></div>
+      </div>`;
+    });
+  }
+  function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  load();
+</script>
+</body>
+</html>

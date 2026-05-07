@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Outcomes Trend — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 920px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { overflow-x: auto; }
+    .legend { display: flex; gap: 1.25rem; flex-wrap: wrap; margin-top: 1rem; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Outcomes Trend</div>
+  <p class="page-sub">Weekly breakdown of how AI-handled calls resolved — past 8 weeks.</p>
+  <div class="card">
+    <div class="card-title">Grouped by Outcome</div>
+    <div class="chart-wrap">
+      <svg id="chart" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible"></svg>
+    </div>
+    <div class="legend" id="legend"></div>
+  </div>
+</div>
+<script>
+  const OUTCOMES = [
+    {key:'booked',    label:'Booked',    color:'#34d399'},
+    {key:'info',      label:'Info Only', color:'#a78bfa'},
+    {key:'canceled',  label:'Canceled',  color:'#fbbf24'},
+    {key:'voicemail', label:'Voicemail', color:'#666'},
+    {key:'escalated', label:'Escalated', color:'#f87171'},
+  ];
+
+  async function load() {
+    const r = await fetch('/api/analytics/call-outcomes-trend');
+    const d = await r.json();
+    const weeks = d.weeks || [];
+
+    const W = 860, H = 240, PAD_L = 36, PAD_R = 12, PAD_T = 28, PAD_B = 32;
+    const cW = W - PAD_L - PAD_R, cH = H - PAD_T - PAD_B;
+    const n = weeks.length;
+    const groupW = cW / n;
+    const barW = Math.floor(groupW * 0.12);
+    const gap = Math.floor(groupW * 0.015);
+
+    const maxTotal = Math.max(...weeks.map(w => OUTCOMES.reduce((a, o) => a + (w[o.key]||0), 0)), 1);
+
+    let bars = '', xLabels = '', totals = '', yLines = '';
+
+    [0, 0.25, 0.5, 0.75, 1].forEach(f => {
+      const v = Math.round(maxTotal * f);
+      const y = PAD_T + cH - f * cH;
+      yLines += `<line x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      yLines += `<text x="${PAD_L - 4}" y="${y + 4}" text-anchor="end" font-size="9" fill="#555">${v}</text>`;
+    });
+
+    weeks.forEach((w, wi) => {
+      const groupX = PAD_L + wi * groupW + groupW * 0.1;
+      const total = OUTCOMES.reduce((a, o) => a + (w[o.key]||0), 0);
+      const cx = groupX + OUTCOMES.length * (barW + gap) / 2;
+
+      totals += `<text x="${cx}" y="${PAD_T - 6}" text-anchor="middle" font-size="9" fill="#555">${total}</text>`;
+      xLabels += `<text x="${cx}" y="${H - 4}" text-anchor="middle" font-size="10" fill="#555">${w.week_label}</text>`;
+
+      OUTCOMES.forEach((o, oi) => {
+        const x = groupX + oi * (barW + gap);
+        const val = w[o.key] || 0;
+        const bH = Math.max(2, (val / maxTotal) * cH);
+        const y = PAD_T + cH - bH;
+        bars += `<rect x="${x}" y="${y}" width="${barW}" height="${bH}" fill="${o.color}" opacity=".8" rx="3">
+          <title>${w.week_label} ${o.label}: ${val}</title></rect>`;
+      });
+    });
+
+    const svg = document.getElementById('chart');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', H);
+    svg.innerHTML = yLines + bars + xLabels + totals;
+
+    document.getElementById('legend').innerHTML = OUTCOMES.map(o =>
+      `<div class="legend-item"><div class="legend-dot" style="background:${o.color}"></div>${o.label}</div>`
+    ).join('');
+  }
+  load();
+</script>
+</body>
+</html>

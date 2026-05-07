@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Schedule Overrides — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .top-bar { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
+    .add-btn { font-size: .8rem; font-weight: 800; padding: .45rem 1.1rem; border-radius: 8px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; }
+    .add-btn:hover { background: rgba(167,139,250,.2); }
+    .override-list { display: flex; flex-direction: column; gap: .75rem; }
+    .override-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .override-left { flex: 1; }
+    .override-date { font-size: .78rem; font-weight: 800; color: var(--muted); margin-bottom: .3rem; }
+    .override-reason { font-size: .9rem; font-weight: 700; margin-bottom: .3rem; }
+    .type-badge { font-size: .65rem; font-weight: 800; padding: .12rem .38rem; border-radius: 4px; }
+    .type-closed { background: rgba(248,113,113,.12); color: var(--red); }
+    .type-modified { background: rgba(251,191,36,.1); color: var(--yellow); }
+    .override-hours { font-size: .76rem; color: var(--muted); margin-top: .25rem; }
+    .del-btn { font-size: .62rem; font-weight: 800; padding: .18rem .48rem; border-radius: 5px; border: 1px solid rgba(248,113,113,.3); background: rgba(248,113,113,.07); color: var(--red); cursor: pointer; font-family: inherit; flex-shrink: 0; }
+    .del-btn:hover { background: rgba(248,113,113,.18); }
+    .save-row { display: flex; align-items: center; gap: 1rem; margin-top: 1.5rem; }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.5rem; border-radius: 9px; border: 1px solid rgba(52,211,153,.4); background: rgba(52,211,153,.1); color: var(--green); cursor: pointer; font-family: inherit; }
+    .save-btn:hover { background: rgba(52,211,153,.2); }
+    .saved-msg { font-size: .78rem; color: var(--green); font-weight: 700; opacity: 0; transition: opacity .3s; }
+    .empty { color: var(--muted); font-size: .84rem; text-align: center; padding: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Schedule Overrides</div>
+  <p class="page-sub">Mark specific dates as closed or with modified hours — the AI will inform callers automatically on those days.</p>
+  <div class="top-bar">
+    <button class="add-btn" onclick="addOverride()">+ Add Override</button>
+  </div>
+  <div class="override-list" id="override-list"></div>
+  <div class="save-row">
+    <button class="save-btn" onclick="save()">Save Changes</button>
+    <span class="saved-msg" id="saved-msg">✓ Saved</span>
+  </div>
+</div>
+<script>
+  let overrides = [];
+  async function load() {
+    const r = await fetch('/api/schedule-override');
+    const d = await r.json();
+    overrides = d.overrides || [];
+    render();
+  }
+  function render() {
+    const list = document.getElementById('override-list');
+    if (!overrides.length) { list.innerHTML = '<div class="empty">No schedule overrides — all days follow regular hours.</div>'; return; }
+    const sorted = [...overrides].sort((a,b) => a.date.localeCompare(b.date));
+    list.innerHTML = sorted.map(o =>
+      `<div class="override-card">
+        <div class="override-left">
+          <div class="override-date">${esc(o.date)}</div>
+          <div class="override-reason">${esc(o.reason)}</div>
+          <span class="type-badge type-${esc(o.type)}">${o.type === 'closed' ? 'Closed' : 'Modified Hours'}</span>
+          ${o.modified_hours ? `<div class="override-hours">${esc(o.modified_hours)}</div>` : ''}
+        </div>
+        <button class="del-btn" onclick="del('${esc(o.id)}')">Remove</button>
+      </div>`
+    ).join('');
+  }
+  function del(id) {
+    overrides = overrides.filter(o => o.id !== id);
+    render();
+  }
+  function addOverride() {
+    const date = prompt('Date (YYYY-MM-DD):'); if (!date) return;
+    const reason = prompt('Reason (e.g. Holiday, Staff Training):'); if (!reason) return;
+    const type = prompt('Type: closed or modified', 'closed') || 'closed';
+    const hours = type === 'modified' ? (prompt('Modified hours (e.g. 9am–1pm):') || '') : '';
+    overrides.push({id: 'so' + Date.now(), date, reason, type, modified_hours: hours});
+    render();
+  }
+  async function save() {
+    await fetch('/api/schedule-override', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({overrides})});
+    const msg = document.getElementById('saved-msg');
+    msg.style.opacity = '1';
+    setTimeout(() => { msg.style.opacity = '0'; }, 2000);
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  load();
+</script>
+</body>
+</html>

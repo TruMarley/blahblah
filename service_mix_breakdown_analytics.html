@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Mix Breakdown — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .svc-table { width: 100%; border-collapse: collapse; }
+    .svc-table th { font-size: .68rem; color: var(--muted); font-weight: 700; text-align: left; padding: .4rem .6rem; border-bottom: 1px solid var(--border); }
+    .svc-table td { font-size: .8rem; padding: .55rem .6rem; border-bottom: 1px solid #1a1a1a; }
+    .svc-table tr:last-child td { border-bottom: none; }
+    .mini-bar-wrap { width: 60px; background: #1e1e1e; border-radius: 3px; height: 6px; display: inline-block; vertical-align: middle; overflow: hidden; margin-right: .3rem; }
+    .mini-bar { height: 100%; border-radius: 3px; background: var(--accent); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Service Mix Breakdown</div>
+  <p class="page-sub">See which services drive the most bookings and revenue — so you can promote high-margin services, adjust capacity, and train your AI to prioritize the right offerings.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Bookings</div>
+      <div class="hero-val" id="h-bookings" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total Revenue</div>
+      <div class="hero-val" id="h-rev" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Top Revenue Service</div>
+      <div class="hero-val" id="h-top" style="color:var(--green);font-size:1rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Service Performance</div>
+    <table class="svc-table">
+      <thead><tr><th>Service</th><th>Bookings</th><th>Revenue</th><th>Avg Ticket</th><th>Revenue %</th></tr></thead>
+      <tbody id="svc-body"></tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-title">Booking Volume by Service</div>
+    <svg id="chart" viewBox="0 0 680 160" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+</div>
+<script>
+  const COLORS = ['var(--accent)','var(--green)','var(--yellow)','var(--red)','#60a5fa','#f97316'];
+  async function load() {
+    const d = await fetch('/api/analytics/service-mix-breakdown').then(r => r.json());
+    document.getElementById('h-bookings').textContent = d.total_bookings || '—';
+    document.getElementById('h-rev').textContent = d.total_revenue ? '$'+d.total_revenue.toLocaleString() : '—';
+    document.getElementById('h-top').textContent = d.top_revenue_service || '—';
+    const svcs = d.services || [];
+    const maxRev = Math.max(...svcs.map(s=>s.revenue),1);
+    const tbody = document.getElementById('svc-body');
+    svcs.forEach((s,i)=>{
+      const barPct = Math.round(s.revenue/maxRev*100);
+      tbody.innerHTML+=`<tr>
+        <td style="font-weight:700;color:${COLORS[i%COLORS.length]}">${esc(s.service)}</td>
+        <td>${s.bookings} <span style="color:var(--muted);font-size:.72rem">(${s.booking_pct}%)</span></td>
+        <td>$${s.revenue.toLocaleString()}</td>
+        <td>$${s.avg_ticket}</td>
+        <td><div class="mini-bar-wrap" style="background:#1e1e1e"><div class="mini-bar" style="width:${barPct}%;background:${COLORS[i%COLORS.length]}"></div></div>${s.revenue_pct}%</td>
+      </tr>`;
+    });
+
+    const bkgs = svcs.map(s=>s.bookings), names = svcs.map(s=>s.service);
+    if (bkgs.length) {
+      const W=680,H=160,pL=32,pR=16,pT=20,pB=32,n=bkgs.length;
+      const cW=W-pL-pR, cH=H-pT-pB, mx=Math.max(...bkgs,1);
+      const bW=Math.floor(cW/n)-6;
+      let bars='',lbls='';
+      bkgs.forEach((v,i)=>{
+        const x=pL+i*(cW/n)+(cW/n-bW)/2, bH=(v/mx)*cH, y=pT+cH-bH;
+        bars+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bW}" height="${bH.toFixed(1)}" fill="${COLORS[i%COLORS.length]}" opacity="0.75" rx="3"/>`;
+        bars+=`<text x="${(x+bW/2).toFixed(1)}" y="${(y-5).toFixed(1)}" text-anchor="middle" fill="${COLORS[i%COLORS.length]}" font-size="9" font-weight="700">${v}</text>`;
+        lbls+=`<text x="${(x+bW/2).toFixed(1)}" y="${H-pB+14}" text-anchor="middle" fill="#555" font-size="8">${esc(names[i]||'')}</text>`;
+      });
+      document.getElementById('chart').innerHTML=bars+lbls;
+    }
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

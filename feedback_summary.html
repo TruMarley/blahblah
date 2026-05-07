@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feedback Summary — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; --gold: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .top-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+    @media (max-width: 640px) { .top-row { grid-template-columns: 1fr; } }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    /* NPS gauge */
+    .nps-wrap { display: flex; flex-direction: column; align-items: center; }
+    .nps-svg { overflow: visible; }
+    .nps-score { font-size: 3.5rem; font-weight: 900; letter-spacing: -.06em; line-height: 1; margin-top: .5rem; }
+    .nps-label { font-size: .75rem; color: var(--muted); margin-top: .2rem; }
+    .nps-sub { font-size: .72rem; color: var(--muted); margin-top: .4rem; text-align: center; }
+    /* Avg score */
+    .score-hero { text-align: center; }
+    .score-big { font-size: 4rem; font-weight: 900; color: var(--gold); line-height: 1; }
+    .score-stars { font-size: 1.5rem; color: var(--gold); letter-spacing: .1em; margin: .4rem 0; }
+    .score-count { font-size: .78rem; color: var(--muted); }
+    /* Chips */
+    .chips-section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem; margin-bottom: 1.5rem; }
+    .chips-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    @media (max-width: 640px) { .chips-row { grid-template-columns: 1fr; } }
+    .chips-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .75rem; }
+    .chips-wrap { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .chip { font-size: .75rem; font-weight: 700; padding: .25rem .7rem; border-radius: 99px; }
+    .chip-green { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .chip-red   { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+    /* Recent feedback */
+    .feedback-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .fb-row { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+    .fb-row:last-child { border-bottom: none; }
+    .fb-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; }
+    .fb-name { font-size: .85rem; font-weight: 800; }
+    .fb-date { font-size: .7rem; color: var(--muted); }
+    .fb-stars { color: var(--gold); font-size: .85rem; letter-spacing: .05em; }
+    .fb-comment { font-size: .8rem; color: var(--muted); line-height: 1.55; margin-top: .3rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Feedback</div>
+  <p class="page-sub">NPS score and satisfaction summary from your clients.</p>
+
+  <div class="top-row">
+    <div class="card">
+      <div class="card-title">Net Promoter Score</div>
+      <div class="nps-wrap">
+        <svg class="nps-svg" viewBox="0 0 200 110" width="200" height="110">
+          <!-- Background arc -->
+          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#1e1e1e" stroke-width="14" stroke-linecap="round"/>
+          <!-- Colored arc -->
+          <path id="nps-arc" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#34d399" stroke-width="14" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+        </svg>
+        <div class="nps-score" id="nps-score">—</div>
+        <div class="nps-label" id="nps-label">Loading...</div>
+        <div class="nps-sub" id="nps-sub"></div>
+      </div>
+    </div>
+    <div class="card score-hero" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div class="card-title" style="text-align:center">Avg Satisfaction Score</div>
+      <div class="score-big" id="score-big">—</div>
+      <div class="score-stars" id="score-stars"></div>
+      <div class="score-count" id="score-count"></div>
+    </div>
+  </div>
+
+  <div class="chips-section">
+    <div class="chips-row">
+      <div>
+        <div class="chips-label">Top Compliments</div>
+        <div class="chips-wrap" id="compliments"></div>
+      </div>
+      <div>
+        <div class="chips-label">Common Complaints</div>
+        <div class="chips-wrap" id="complaints"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-title" style="margin-bottom:.75rem">Recent Feedback</div>
+  <div class="feedback-card" id="feedback-list"></div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/feedback/summary');
+    const d = await r.json();
+
+    // NPS gauge
+    const nps = d.nps_score || 0;
+    const color = nps >= 30 ? '#34d399' : nps >= 0 ? '#fbbf24' : '#f87171';
+    const label = nps >= 50 ? 'Excellent' : nps >= 30 ? 'Good' : nps >= 0 ? 'Neutral' : 'Needs Work';
+    document.getElementById('nps-score').textContent = (nps > 0 ? '+' : '') + nps;
+    document.getElementById('nps-score').style.color = color;
+    document.getElementById('nps-label').textContent = label;
+    document.getElementById('nps-sub').textContent = `${d.total_responses} responses collected`;
+    // Animate arc: full arc = 251.2, range -100 to +100 → 0% to 100%
+    setTimeout(() => {
+      const pct = (nps + 100) / 200;
+      document.getElementById('nps-arc').style.strokeDashoffset = 251.2 - pct * 251.2;
+      document.getElementById('nps-arc').style.transition = 'stroke-dashoffset .8s ease';
+      document.getElementById('nps-arc').style.stroke = color;
+    }, 100);
+
+    // Avg score
+    const avg = d.avg_score || 0;
+    document.getElementById('score-big').textContent = avg.toFixed(1);
+    document.getElementById('score-stars').textContent = '★'.repeat(Math.round(avg));
+    document.getElementById('score-count').textContent = `from ${d.total_responses} responses`;
+
+    // Chips
+    document.getElementById('compliments').innerHTML = (d.top_compliments || []).map(c => `<span class="chip chip-green">${esc(c)}</span>`).join('');
+    document.getElementById('complaints').innerHTML = (d.top_complaints || []).map(c => `<span class="chip chip-red">${esc(c)}</span>`).join('');
+
+    // Recent feedback
+    document.getElementById('feedback-list').innerHTML = (d.recent_feedback || []).map(f => `
+      <div class="fb-row">
+        <div class="fb-header">
+          <div class="fb-name">${esc(f.client_name || 'Anonymous')}</div>
+          <div class="fb-date">${esc(f.date || '')}</div>
+        </div>
+        <div class="fb-stars">${'★'.repeat(f.score || 0)}${'☆'.repeat(5 - (f.score || 0))}</div>
+        <div class="fb-comment">${esc(f.comment || '')}</div>
+      </div>`).join('') || '<div style="padding:2rem;text-align:center;color:var(--muted)">No feedback yet.</div>';
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

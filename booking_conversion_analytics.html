@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Conversion — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .heroes { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem; }
+    .hero-label { font-size: .63rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; }
+    .hero-value { font-size: 1.55rem; font-weight: 900; letter-spacing: -.03em; }
+    .hero-sub { font-size: .68rem; color: var(--muted); margin-top: .15rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    th { text-align: left; font-size: .67rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding-bottom: .6rem; border-bottom: 1px solid var(--border); }
+    td { padding: .55rem 0; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    td.num { font-weight: 700; }
+    td.green { color: var(--green); }
+    td.red { color: var(--red); }
+    td.accent { color: var(--accent); }
+    .trend-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .35rem; }
+    .trend-label { font-size: .72rem; color: var(--muted); width: 42px; text-align: right; flex-shrink: 0; }
+    .trend-bar-bg { flex: 1; background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+    .trend-bar-fill { height: 100%; border-radius: 4px; background: var(--accent); }
+    .trend-val { font-size: .7rem; color: var(--muted); width: 42px; text-align: right; flex-shrink: 0; }
+    .reason-row { display: flex; align-items: center; gap: .75rem; padding: .55rem 0; border-bottom: 1px solid var(--border); }
+    .reason-row:last-child { border-bottom: none; }
+    .reason-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .reason-name { flex: 1; font-size: .82rem; }
+    .reason-bar-bg { flex: 2; background: var(--surface2); border-radius: 4px; height: 7px; overflow: hidden; }
+    .reason-bar-fill { height: 100%; border-radius: 4px; }
+    .reason-count { font-size: .78rem; font-weight: 700; width: 28px; text-align: right; }
+    .insight-box { background: rgba(52,211,153,.07); border: 1px solid rgba(52,211,153,.18); border-radius: 10px; padding: .85rem 1.1rem; margin-top: 1rem; font-size: .8rem; color: var(--green); }
+    @media (max-width: 600px) { .heroes { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Booking Conversion Rate</div>
+  <p class="page-sub">Of all booking attempts, how many end with a confirmed booking? Every percentage point improvement here translates directly to revenue.</p>
+
+  <div class="heroes">
+    <div class="hero">
+      <div class="hero-label">Conversion Rate</div>
+      <div class="hero-value" id="h-conv" style="color:var(--accent)">—</div>
+      <div class="hero-sub">booking attempts → booked</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Attempts (30d)</div>
+      <div class="hero-value" id="h-attempts">—</div>
+      <div class="hero-sub" id="h-converted-sub">converted</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Abandoned</div>
+      <div class="hero-value" id="h-abandoned" style="color:var(--red)">—</div>
+      <div class="hero-sub">dropped before booking</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Avg Handle Time</div>
+      <div class="hero-value" id="h-handle" style="color:var(--yellow)">—</div>
+      <div class="hero-sub">per booking call</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Conversion Trend</div>
+    <div id="trend-chart"></div>
+    <div class="insight-box" id="insight-box" style="display:none"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Detail</div>
+    <table>
+      <thead><tr><th>Month</th><th>Calls</th><th>Attempts</th><th>Converted</th><th>Abandoned</th><th>Rate</th></tr></thead>
+      <tbody id="monthly-table"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Drop-Off Reasons</div>
+    <div id="drop-reasons"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/booking-conversion-stats').then(r => r.json());
+    document.getElementById('h-conv').textContent = d.conversion_rate_pct.toFixed(1) + '%';
+    document.getElementById('h-attempts').textContent = d.total_booking_attempts_30d;
+    document.getElementById('h-converted-sub').textContent = d.converted_30d + ' converted';
+    document.getElementById('h-abandoned').textContent = d.abandoned_30d;
+    const ht = d.avg_handle_time_seconds;
+    document.getElementById('h-handle').textContent = ht >= 60 ? Math.floor(ht/60) + 'm ' + (ht%60) + 's' : ht + 's';
+
+    const maxRate = Math.max(...d.monthly.map(m => m.conversion_rate_pct));
+    const chart = document.getElementById('trend-chart');
+    d.monthly.forEach(m => {
+      const pct = maxRate > 0 ? (m.conversion_rate_pct / maxRate * 100) : 0;
+      const row = document.createElement('div');
+      row.className = 'trend-row';
+      row.innerHTML = `<div class="trend-label">${m.month}</div><div class="trend-bar-bg"><div class="trend-bar-fill" style="width:${pct}%"></div></div><div class="trend-val">${m.conversion_rate_pct}%</div>`;
+      chart.appendChild(row);
+    });
+
+    const ib = document.getElementById('insight-box');
+    ib.style.display = 'block';
+    const conv = d.conversion_rate_pct;
+    ib.textContent = conv >= 80 ? `Excellent ${conv}% conversion rate. AI is booking ${d.converted_30d} of ${d.total_booking_attempts_30d} attempts. AI outperforms human baseline by ${d.ai_vs_human_conversion_gap_pct}%.`
+      : conv >= 65 ? `Good ${conv}% rate. ${d.abandoned_30d} abandoned attempts represent revenue to recover — review drop-off reasons below.`
+      : `${conv}% conversion needs attention. ${d.abandoned_30d} abandoned bookings — check AI script and slot availability.`;
+
+    const tbody = document.getElementById('monthly-table');
+    d.monthly.forEach(m => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${m.month}</td><td class="num">${m.total_calls}</td><td class="num">${m.booking_attempts}</td><td class="num green">${m.converted}</td><td class="num red">${m.abandoned}</td><td class="num accent">${m.conversion_rate_pct}%</td>`;
+      tbody.appendChild(tr);
+    });
+
+    const maxCount = Math.max(...d.drop_off_reasons.map(r => r.count));
+    const dr = document.getElementById('drop-reasons');
+    d.drop_off_reasons.forEach(r => {
+      const pct = maxCount > 0 ? (r.count / maxCount * 100) : 0;
+      const row = document.createElement('div');
+      row.className = 'reason-row';
+      row.innerHTML = `<div class="reason-dot" style="background:${r.color}"></div><div class="reason-name">${r.reason}</div><div class="reason-bar-bg"><div class="reason-bar-fill" style="width:${pct}%;background:${r.color}"></div></div><div class="reason-count">${r.count}</div>`;
+      dr.appendChild(row);
+    });
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Gender Split — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { height: 240px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Gender Split</div>
+  <p class="page-sub">Understand your client demographic breakdown to tailor services, marketing, and outreach.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Clients</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Largest Segment</div>
+      <div class="hero-val" id="h-top" style="color:var(--green)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Client Segments by Gender / Identity</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 680 240" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  const COLORS = ['rgba(167,139,250,.85)', 'rgba(52,211,153,.8)', 'rgba(251,191,36,.75)', 'rgba(248,113,113,.75)'];
+  async function load() {
+    const r = await fetch('/api/analytics/client-gender-split');
+    const d = await r.json();
+    const segs = d.segments || [];
+    const total = segs.reduce((s, x) => s + x.count, 0);
+    document.getElementById('h-total').textContent = total.toLocaleString();
+    const top = segs.reduce((a, b) => a.count > b.count ? a : b, segs[0] || {});
+    document.getElementById('h-top').textContent = top ? top.label : '—';
+
+    const svg = document.getElementById('chart');
+    const W=680, H=240, pL=130, pR=80, pT=14, pB=10;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n = segs.length;
+    const rowH = cH / n;
+    const barH = Math.min(rowH * 0.52, 32);
+    const maxV = Math.max(...segs.map(s => s.count));
+
+    segs.forEach((seg, i) => {
+      const y = pT + i * rowH + rowH / 2;
+      const bw = cW * seg.count / maxV;
+      svg.innerHTML += `<text x="${pL-8}" y="${y+4}" font-size="10.5" fill="#bbb" text-anchor="end" font-weight="700">${esc(seg.label)}</text>`;
+      svg.innerHTML += `<rect x="${pL}" y="${y - barH/2}" width="${bw}" height="${barH}" rx="5" fill="${COLORS[i % COLORS.length]}"/>`;
+      svg.innerHTML += `<text x="${pL + bw + 8}" y="${y+4}" font-size="11" fill="#ccc" font-weight="800">${seg.count} <tspan fill="#555" font-weight="400" font-size="9">(${seg.pct}%)</tspan></text>`;
+    });
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

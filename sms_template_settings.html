@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMS Templates — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .tpl-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; margin-bottom: .75rem; position: relative; }
+    .tpl-header { display: flex; align-items: center; gap: .6rem; margin-bottom: .6rem; }
+    .tpl-name-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-size: .85rem; font-weight: 700; padding: .3rem .65rem; outline: none; flex: 1; }
+    .tpl-name-input:focus { border-color: var(--accent); }
+    .cat-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; color: var(--muted); font-size: .72rem; padding: .3rem .55rem; outline: none; }
+    .cat-select:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-size: .8rem; padding: .6rem .8rem; outline: none; resize: vertical; min-height: 55px; font-family: inherit; line-height: 1.55; }
+    textarea:focus { border-color: var(--accent); }
+    .char-count { font-size: .65rem; color: var(--muted); text-align: right; margin-top: .2rem; }
+    .tpl-del { position: absolute; top: .9rem; right: 1rem; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; }
+    .tpl-del:hover { color: var(--red); }
+    .var-bar { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .35rem; }
+    .var-chip { background: #1e1e1e; border-radius: 4px; padding: .12rem .35rem; font-size: .64rem; color: var(--accent); font-family: monospace; cursor: pointer; border: 1px solid #2a2a2a; }
+    .var-chip:hover { border-color: var(--accent); }
+    .add-btn { background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; color: var(--accent); font-size: .82rem; font-weight: 700; padding: .9rem; cursor: pointer; width: 100%; text-align: center; margin-bottom: .75rem; }
+    .add-btn:hover { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">SMS Templates</div>
+  <p class="page-sub">Create and manage reusable message templates. Use variables like {name} and {date} to personalize at send time.</p>
+
+  <div id="templates-list"></div>
+  <button class="add-btn" onclick="addTemplate()">+ New Template</button>
+  <button class="save-btn" onclick="save()">Save All Templates</button>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  const VARS = ['{name}','{business}','{date}','{time}','{service}','{link}'];
+  const CATS = ['reminder','follow_up','review','promotion','general'];
+  let templates = [];
+  let counter = 100;
+
+  function renderTemplates() {
+    document.getElementById('templates-list').innerHTML = templates.map((t,i)=>`
+      <div class="tpl-card">
+        <button class="tpl-del" onclick="templates.splice(${i},1);renderTemplates()">✕</button>
+        <div class="tpl-header">
+          <input class="tpl-name-input" type="text" value="${esc(t.name)}" oninput="templates[${i}].name=this.value" placeholder="Template name">
+          <select class="cat-select" onchange="templates[${i}].category=this.value">
+            ${CATS.map(c=>`<option value="${c}" ${t.category===c?'selected':''}>${c.replace('_',' ')}</option>`).join('')}
+          </select>
+        </div>
+        <textarea rows="2" oninput="templates[${i}].body=this.value;this.nextElementSibling.nextElementSibling.textContent=this.value.length+' / 160'">${esc(t.body)}</textarea>
+        <div class="var-bar">${VARS.map(v=>`<span class="var-chip" onclick="insertIntoTpl(${i},'${v}')">${v}</span>`).join('')}</div>
+        <div class="char-count">${(t.body||'').length} / 160</div>
+      </div>
+    `).join('');
+  }
+
+  function insertIntoTpl(i, v) {
+    const tas = document.querySelectorAll('.tpl-card textarea');
+    const ta = tas[i];
+    if (!ta) return;
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    const newVal = ta.value.slice(0,s)+v+ta.value.slice(e);
+    ta.value = newVal;
+    templates[i].body = newVal;
+    ta.selectionStart = ta.selectionEnd = s+v.length;
+    ta.focus();
+  }
+
+  function addTemplate() {
+    templates.push({id:'t'+(++counter), name:'New Template', body:'', category:'general'});
+    renderTemplates();
+  }
+
+  async function load() {
+    const d = await fetch('/api/settings/sms-templates-cfg').then(r => r.json());
+    templates = (d.templates || []).map(t=>({...t}));
+    renderTemplates();
+  }
+
+  async function save() {
+    await fetch('/api/settings/sms-templates-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({templates}) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  load();
+</script>
+</body>
+</html>

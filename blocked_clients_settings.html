@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blocked Clients — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 70px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    input[type=text]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    .client-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .85rem; }
+    .client-item { background: var(--surface2); border: 1px solid rgba(248,113,113,.2); border-radius: 10px; padding: .7rem .9rem; display: flex; align-items: center; gap: .75rem; }
+    .client-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(248,113,113,.15); border: 1px solid rgba(248,113,113,.3); display: flex; align-items: center; justify-content: center; font-size: .78rem; font-weight: 800; color: var(--red); flex-shrink: 0; }
+    .client-info { flex: 1; min-width: 0; }
+    .client-name { font-size: .82rem; font-weight: 700; }
+    .client-phone { font-size: .7rem; color: var(--muted); font-family: monospace; }
+    .client-reason { font-size: .7rem; color: var(--red); margin-top: .1rem; }
+    .client-date { font-size: .65rem; color: var(--muted); white-space: nowrap; }
+    .client-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; flex-shrink: 0; padding: .2rem; }
+    .client-remove:hover { color: var(--red); }
+    .add-client-row { display: flex; gap: .4rem; flex-wrap: wrap; }
+    .add-client-row input[type=text] { flex: 1; min-width: 120px; }
+    .add-btn { background: var(--surface2); border: 1px solid rgba(248,113,113,.35); border-radius: 8px; color: var(--red); font-size: .78rem; font-weight: 700; padding: .38rem .7rem; cursor: pointer; flex-shrink: 0; white-space: nowrap; }
+    .add-btn:hover { background: rgba(248,113,113,.08); }
+    .empty-state { text-align: center; color: var(--muted); font-size: .78rem; padding: 1rem 0; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Blocked Clients</div>
+  <p class="page-sub">Prevent specific phone numbers from booking through your AI. Blocked clients hear a polite decline and can be automatically blocked after a set number of no-shows.</p>
+
+  <div class="card">
+    <div class="card-title">Block Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Client Blocking</div><div class="row-sub">AI silently declines blocked numbers</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Block Mode</div><div class="row-sub">How AI handles blocked callers</div></div>
+      <select id="block-mode">
+        <option value="silent_decline">Silent Decline</option>
+        <option value="polite_decline">Polite Decline</option>
+        <option value="transfer_to_staff">Transfer to Staff</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notify Staff on Block</div><div class="row-sub">Alert when a blocked number calls</div></div>
+      <label class="toggle"><input type="checkbox" id="notify-staff"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Block After No-Shows</div><div class="row-sub">Automatically block repeat no-shows</div></div>
+      <label class="toggle"><input type="checkbox" id="auto-block"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Block Threshold</div><div class="row-sub">No-shows before automatic block</div></div>
+      <input type="number" id="auto-block-threshold" min="1" max="10" placeholder="3">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Allow Rebooking After (days)</div><div class="row-sub">0 = permanently blocked</div></div>
+      <input type="number" id="rebook-days" min="0" max="365" placeholder="0">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Blocked Client List</div>
+    <div class="client-list" id="client-list"></div>
+    <div class="add-client-row">
+      <input type="text" id="new-phone" placeholder="Phone number">
+      <input type="text" id="new-name" placeholder="Name (optional)">
+      <input type="text" id="new-reason" placeholder="Reason">
+      <button class="add-btn" onclick="addClient()">+ Block</button>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let blocked = [];
+  function initials(name) {
+    return (name || '?').split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+  }
+  function renderClients() {
+    const el = document.getElementById('client-list');
+    if (!blocked.length) { el.innerHTML = '<div class="empty-state">No blocked clients</div>'; return; }
+    el.innerHTML = '';
+    blocked.forEach((c, i) => {
+      el.innerHTML += `<div class="client-item">
+        <div class="client-avatar">${esc(initials(c.name))}</div>
+        <div class="client-info">
+          <div class="client-name">${esc(c.name || 'Unknown')}</div>
+          <div class="client-phone">${esc(c.phone)}</div>
+          ${c.reason ? `<div class="client-reason">${esc(c.reason)}</div>` : ''}
+        </div>
+        <div class="client-date">${esc(c.blocked_at || '')}</div>
+        <button class="client-remove" onclick="removeClient(${i})" title="Unblock">✕</button>
+      </div>`;
+    });
+  }
+  function addClient() {
+    const phone = document.getElementById('new-phone').value.trim();
+    const name = document.getElementById('new-name').value.trim();
+    const reason = document.getElementById('new-reason').value.trim();
+    if (!phone) return;
+    const today = new Date().toISOString().slice(0,10);
+    blocked.push({ phone, name, reason, blocked_at: today });
+    document.getElementById('new-phone').value = '';
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-reason').value = '';
+    renderClients();
+  }
+  function removeClient(i) { blocked.splice(i, 1); renderClients(); }
+  async function load() {
+    const d = await fetch('/api/settings/blocked-clients-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled ?? true;
+    document.getElementById('block-mode').value = d.block_mode || 'silent_decline';
+    document.getElementById('notify-staff').checked = d.notify_staff_on_block ?? true;
+    document.getElementById('auto-block').checked = d.auto_block_enabled ?? true;
+    document.getElementById('auto-block-threshold').value = d.auto_block_after_no_shows ?? 3;
+    document.getElementById('rebook-days').value = d.allow_rebooking_after_days ?? 0;
+    blocked = d.blocked_clients || [];
+    renderClients();
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      block_mode: document.getElementById('block-mode').value,
+      notify_staff_on_block: document.getElementById('notify-staff').checked,
+      auto_block_enabled: document.getElementById('auto-block').checked,
+      auto_block_after_no_shows: parseInt(document.getElementById('auto-block-threshold').value) || 3,
+      allow_rebooking_after_days: parseInt(document.getElementById('rebook-days').value) || 0,
+      blocked_clients: blocked,
+    };
+    await fetch('/api/settings/blocked-clients-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk — Partner Program</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #161616;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --blue: #60a5fa; --gold: #fbbf24; --orange: #f97316;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    nav {
+      background: rgba(8,8,8,0.95); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 60px;
+    }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent-light); }
+    nav a.back { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
+
+    /* Hero */
+    .hero {
+      padding: 6rem 2rem 5rem; text-align: center;
+      background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(251,191,36,0.1) 0%, transparent 65%);
+    }
+    .partner-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.25);
+      color: var(--gold); font-size: 0.72rem; font-weight: 700;
+      padding: 5px 14px; border-radius: 20px; margin-bottom: 1.5rem;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .hero h1 { font-size: clamp(2rem, 6vw, 3.5rem); font-weight: 900; color: #fff; letter-spacing: -0.04em; margin-bottom: 1rem; line-height: 1.1; }
+    .hero h1 em { font-style: normal; color: var(--gold); }
+    .hero p { color: var(--muted); font-size: 1rem; max-width: 560px; margin: 0 auto 2.5rem; line-height: 1.7; }
+
+    /* Logos */
+    .logos-strip {
+      display: flex; justify-content: center; align-items: center; gap: 2rem;
+      flex-wrap: wrap; padding: 1rem 2rem 3rem;
+    }
+    .logo-chip {
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 10px; padding: 0.6rem 1.5rem;
+      font-size: 0.9rem; font-weight: 800; color: var(--muted);
+      letter-spacing: -0.02em;
+    }
+
+    .main { max-width: 1000px; margin: 0 auto; padding: 0 2rem 5rem; }
+
+    /* The math section */
+    .math-section { margin-bottom: 4rem; }
+    .math-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 2.5rem;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center;
+    }
+    .math-left h2 { font-size: 1.4rem; font-weight: 800; color: #fff; letter-spacing: -0.03em; margin-bottom: 0.75rem; }
+    .math-left p { font-size: 0.875rem; color: var(--muted); line-height: 1.7; }
+    .math-right { }
+    .math-row { display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 0; border-bottom: 1px solid var(--border); }
+    .math-row:last-child { border-bottom: none; }
+    .math-label { font-size: 0.82rem; color: var(--muted); }
+    .math-value { font-size: 0.95rem; font-weight: 700; color: #fff; }
+    .math-value.gold { color: var(--gold); font-size: 1.2rem; }
+    .math-total { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); border-radius: 10px; padding: 1rem 0.5rem; margin-top: 0.75rem; }
+    .math-total .math-label { color: var(--gold); font-weight: 600; }
+
+    /* Benefits */
+    .benefits-section { margin-bottom: 4rem; }
+    .benefits-section h2 { font-size: 1.5rem; font-weight: 800; color: #fff; letter-spacing: -0.03em; margin-bottom: 1.5rem; }
+    .benefits-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .benefit-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.5rem;
+    }
+    .benefit-icon { font-size: 1.8rem; margin-bottom: 0.75rem; }
+    .benefit-title { font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem; }
+    .benefit-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.6; }
+
+    /* Application form */
+    .form-section {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 2.5rem;
+    }
+    .form-title { font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 0.35rem; }
+    .form-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 2rem; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1/-1; }
+    label { font-size: 0.7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    input, select, textarea {
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 8px; padding: 11px 13px; color: var(--text);
+      font-size: 0.9rem; font-family: inherit; outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    input::placeholder, textarea::placeholder { color: var(--muted2); }
+    select option { background: #1a1a1a; }
+    textarea { resize: vertical; min-height: 80px; }
+    .btn-apply {
+      background: var(--gold); color: #000; border: none;
+      padding: 13px 32px; border-radius: 9px; font-size: 0.95rem; font-weight: 800;
+      cursor: pointer; margin-top: 1.5rem; transition: opacity 0.2s;
+    }
+    .btn-apply:hover { opacity: 0.9; }
+    .success-msg {
+      display: none; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3);
+      color: var(--green); padding: 1rem 1.25rem; border-radius: 8px;
+      font-size: 0.875rem; margin-top: 1rem; line-height: 1.6;
+    }
+    .success-msg.show { display: block; }
+
+    @media (max-width: 768px) {
+      .math-card { grid-template-columns: 1fr; }
+      .benefits-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/" class="back">← Back to RingDesk</a>
+</nav>
+
+<div class="hero">
+  <div class="partner-badge">🤝 Distribution Partners</div>
+  <h1>Your customers use clippers.<br>We keep their phones <em>ringing</em>.</h1>
+  <p>Partner with RingDesk to offer your dealer network an AI receptionist that actually makes their business more money — and earns you 30% recurring commission every month.</p>
+</div>
+
+<div class="logos-strip">
+  <div class="logo-chip">WAHL</div>
+  <div class="logo-chip">Andis</div>
+  <div class="logo-chip">BaByliss PRO</div>
+  <div class="logo-chip">Oster</div>
+  <div class="logo-chip">Fromm</div>
+  <div class="logo-chip">Your Brand</div>
+</div>
+
+<div class="main">
+
+  <!-- The Math -->
+  <div class="math-section">
+    <div class="math-card">
+      <div class="math-left">
+        <h2>The math on 100 referrals.</h2>
+        <p>Your newsletter goes to 50,000+ barbers and shop owners. Even a 0.2% conversion is 100 paying customers — and 30% of their $99/mo subscription is yours, every single month, for as long as they stay.</p>
+      </div>
+      <div class="math-right">
+        <div class="math-row">
+          <span class="math-label">Your newsletter subscribers</span>
+          <span class="math-value">50,000</span>
+        </div>
+        <div class="math-row">
+          <span class="math-label">Conversion rate (0.2%)</span>
+          <span class="math-value">100 shops</span>
+        </div>
+        <div class="math-row">
+          <span class="math-label">RingDesk Pro price</span>
+          <span class="math-value">$99/mo</span>
+        </div>
+        <div class="math-row">
+          <span class="math-label">Your rev share (30%)</span>
+          <span class="math-value">$29.70/shop/mo</span>
+        </div>
+        <div class="math-row math-total">
+          <span class="math-label">Your monthly recurring revenue</span>
+          <span class="math-value gold">$2,970/mo</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Benefits -->
+  <div class="benefits-section">
+    <h2>What you get as a RingDesk partner.</h2>
+    <div class="benefits-grid">
+      <div class="benefit-card">
+        <div class="benefit-icon">💰</div>
+        <div class="benefit-title">30% Recurring Commission</div>
+        <div class="benefit-desc">$29.70 per shop per month, for the lifetime of their subscription. Paid monthly via ACH or PayPal. No caps.</div>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">🎁</div>
+        <div class="benefit-title">Exclusive Extended Trial</div>
+        <div class="benefit-desc">Your subscribers get a 30-day free trial (vs. the standard 14 days). Makes your promotion a no-brainer offer.</div>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">📊</div>
+        <div class="benefit-title">Monthly Performance Reports</div>
+        <div class="benefit-desc">See clicks, signups, active trials, conversions, and commission earned. Full transparency, always.</div>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">🎨</div>
+        <div class="benefit-title">Co-Branded Marketing Materials</div>
+        <div class="benefit-desc">Custom email copy, social assets, and ad creatives featuring your brand + RingDesk. Done for you.</div>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">📞</div>
+        <div class="benefit-title">Dedicated Partner Slack</div>
+        <div class="benefit-desc">Direct line to the RingDesk team. Questions answered same-day. Your referrals get white-glove onboarding.</div>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">🏆</div>
+        <div class="benefit-title">Top Partner Bonus</div>
+        <div class="benefit-desc">Partners who refer 50+ paying shops get 35% rev share, a featured case study on ringdesk.ai, and annual summit invite.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application form -->
+  <div class="form-section">
+    <div class="form-title">Apply to become a partner</div>
+    <div class="form-sub">We review all applications within 48 hours. Partners approved in Q2 2026 get locked-in 30% rev share for life.</div>
+
+    <form id="partner-form" onsubmit="submitApplication(event)">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Company Name</label>
+          <input type="text" id="f-company" placeholder="Wahl Clipper Corporation" required>
+        </div>
+        <div class="form-group">
+          <label>Your Role</label>
+          <input type="text" id="f-role" placeholder="VP of Marketing" required>
+        </div>
+        <div class="form-group">
+          <label>Contact Name</label>
+          <input type="text" id="f-name" placeholder="Sarah Johnson" required>
+        </div>
+        <div class="form-group">
+          <label>Business Email</label>
+          <input type="email" id="f-email" placeholder="sarah@wahl.com" required>
+        </div>
+        <div class="form-group">
+          <label>Estimated Reach (subscribers/dealers)</label>
+          <input type="text" id="f-reach" placeholder="50,000 newsletter subscribers" required>
+        </div>
+        <div class="form-group">
+          <label>Primary Promotion Channel</label>
+          <select id="f-channel">
+            <option value="email">Email newsletter</option>
+            <option value="social">Social media</option>
+            <option value="dealers">Dealer network</option>
+            <option value="events">Trade shows / events</option>
+            <option value="website">Website / blog</option>
+            <option value="multiple">Multiple channels</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>How would you promote RingDesk to your audience?</label>
+          <textarea id="f-plan" placeholder="E.g., monthly feature in our email newsletter to 50K barbers, social posts on our 200K+ Instagram, mention at trade shows..."></textarea>
+        </div>
+      </div>
+      <button type="submit" class="btn-apply">Apply for Partnership →</button>
+      <div class="success-msg" id="success-msg">
+        ✓ Application received! We'll review your application and reach out within 48 hours at the email you provided. Thanks for your interest in partnering with RingDesk.
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<script>
+  async function submitApplication(e) {
+    e.preventDefault();
+    const payload = {
+      company: document.getElementById('f-company').value,
+      role: document.getElementById('f-role').value,
+      name: document.getElementById('f-name').value,
+      email: document.getElementById('f-email').value,
+      reach: document.getElementById('f-reach').value,
+      channel: document.getElementById('f-channel').value,
+      plan: document.getElementById('f-plan').value,
+    };
+    try {
+      const res = await fetch('/api/partner-apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        document.getElementById('partner-form').style.opacity = '0.4';
+        document.getElementById('success-msg').classList.add('show');
+      }
+    } catch (err) { console.error(err); }
+  }
+</script>
+</body>
+</html>

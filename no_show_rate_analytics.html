@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>No-Show Rate — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .day-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; }
+    .day-label { font-size: .78rem; color: var(--text); width: 38px; flex-shrink: 0; }
+    .day-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 9px; overflow: hidden; }
+    .day-fill { height: 100%; border-radius: 4px; background: var(--red); }
+    .day-pct { font-size: .75rem; font-weight: 700; color: var(--red); width: 40px; text-align: right; }
+    .trend-row { display: flex; align-items: flex-end; gap: .5rem; height: 90px; }
+    .trend-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .35rem; }
+    .trend-bar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; }
+    .trend-bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--red); opacity: .7; min-height: 4px; }
+    .trend-lbl { font-size: .58rem; color: var(--muted); }
+    .trend-val { font-size: .62rem; font-weight: 700; color: var(--red); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">No-Show Rate</div>
+  <p class="page-sub">Track missed appointments and late cancellations to gauge deposit policy effectiveness and AI reminder impact. Lower no-shows directly protect your revenue.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Appointments (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-noshow" style="color:var(--red)">—</div><div class="stat-lbl">No-Show Rate</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-late" style="color:var(--yellow)">—</div><div class="stat-lbl">Late Cancel Rate</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-lost" style="color:var(--red)">—</div><div class="stat-lbl">Revenue Lost (30d)</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">No-Show Rate by Day of Week</div>
+    <div id="day-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">6-Month No-Show Trend</div>
+    <div class="trend-row" id="trend-row"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/no-show-rate-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_appointments_30d;
+    document.getElementById('h-noshow').textContent = d.no_show_pct.toFixed(1) + '%';
+    document.getElementById('h-late').textContent = d.late_cancel_pct.toFixed(1) + '%';
+    document.getElementById('h-lost').textContent = '$' + d.revenue_lost_30d.toLocaleString(undefined, {maximumFractionDigits:0});
+    const dl = document.getElementById('day-list');
+    const maxD = Math.max(...d.by_day.map(x => x.no_show_pct));
+    d.by_day.forEach(x => {
+      const w = (x.no_show_pct / maxD * 100).toFixed(1);
+      dl.innerHTML += '<div class="day-row"><div class="day-label">' + x.day + '</div><div class="day-track"><div class="day-fill" style="width:' + w + '%"></div></div><div class="day-pct">' + x.no_show_pct.toFixed(1) + '%</div></div>';
+    });
+    const tr = document.getElementById('trend-row');
+    const maxV = Math.max(...d.monthly.map(m => m.no_show_pct));
+    d.monthly.forEach(m => {
+      const h = Math.max(5, (m.no_show_pct / maxV * 78)).toFixed(1);
+      tr.innerHTML += '<div class="trend-col"><div class="trend-val">' + m.no_show_pct.toFixed(1) + '%</div><div class="trend-bar-wrap"><div class="trend-bar" style="height:' + h + 'px"></div></div><div class="trend-lbl">' + m.month + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Lifetime Value — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; text-align: left; padding: .4rem .6rem; border-bottom: 1px solid var(--border); }
+    td { font-size: .78rem; padding: .65rem .6rem; border-bottom: 1px solid var(--border); color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tr.top-quintile { background: rgba(167,139,250,.05); }
+    tr.top-quintile td { color: var(--accent); font-weight: 700; }
+    .tenure-badge { font-size: .65rem; font-weight: 700; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: .1rem .4rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Lifetime Value</div>
+  <p class="page-sub">Understand long-term client value across tenure cohorts. Use this to prioritise retention, identify high-value segments, and forecast revenue.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-ltv" style="color:var(--accent)">—</div><div class="stat-lbl">Avg LTV</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-tenure" style="color:var(--yellow)">—</div><div class="stat-lbl">Avg Tenure</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-visits" style="color:var(--green)">—</div><div class="stat-lbl">Avg Visits/Year</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-top" style="color:var(--accent)">—</div><div class="stat-lbl">Top 20% LTV</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">LTV by Tenure Cohort</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Tenure</th>
+          <th>Clients</th>
+          <th>Visits / Year</th>
+          <th>Avg Annual Rev</th>
+        </tr>
+      </thead>
+      <tbody id="cohort-body"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/client-lifetime-stats').then(r => r.json());
+    document.getElementById('h-ltv').textContent = '$' + d.avg_client_ltv.toLocaleString(undefined, {maximumFractionDigits:0});
+    document.getElementById('h-tenure').textContent = d.avg_tenure_months.toFixed(1) + ' mo';
+    document.getElementById('h-visits').textContent = d.avg_visits_per_year.toFixed(1);
+    document.getElementById('h-top').textContent = '$' + d.top_quintile_ltv.toLocaleString(undefined, {maximumFractionDigits:0});
+    const tbody = document.getElementById('cohort-body');
+    d.cohorts.forEach((c, i) => {
+      const isTop = i === d.cohorts.length - 1;
+      tbody.innerHTML += '<tr' + (isTop ? ' class="top-quintile"' : '') + '><td><span class="tenure-badge">' + c.tenure + '</span></td><td>' + c.client_count.toLocaleString() + '</td><td>' + c.avg_visits_per_year.toFixed(1) + '</td><td>$' + c.avg_annual_revenue.toLocaleString(undefined, {maximumFractionDigits:0}) + '</td></tr>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

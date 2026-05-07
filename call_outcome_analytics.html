@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Outcomes — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .outcome-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .6rem; }
+    .outcome-label { font-size: .78rem; width: 170px; flex-shrink: 0; }
+    .outcome-bar-wrap { flex: 1; background: var(--surface2); border-radius: 6px; height: 22px; overflow: hidden; position: relative; }
+    .outcome-bar { height: 100%; border-radius: 6px; opacity: .8; }
+    .outcome-pct { font-size: .72rem; font-weight: 700; width: 38px; text-align: right; }
+    .outcome-count { font-size: .65rem; color: var(--muted); width: 32px; text-align: right; }
+    .monthly-row { display: flex; align-items: flex-end; gap: 4px; height: 90px; }
+    .monthly-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .m-bar-booked { width: 100%; border-radius: 2px 2px 0 0; background: var(--green); opacity: .8; }
+    .m-bar-other { width: 100%; background: var(--surface2); }
+    .m-lbl { font-size: .55rem; color: var(--muted); margin-top: 3px; }
+    .m-rate { font-size: .52rem; color: var(--green); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Outcomes</div>
+  <p class="page-sub">Understand what happens on every call — bookings, transfers, info requests, and hang-ups. Track booking conversion rate trends month over month.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-calls" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Total Calls (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-top" style="color:var(--text)">—</div>
+      <div class="stat-lbl">Top Outcome</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-brate" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Booking Rate (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-avg-brate" style="color:var(--muted)">—</div>
+      <div class="stat-lbl">Avg Booking Rate (12m)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-transfer" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Transfer Rate</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Outcome Breakdown</div>
+    <div id="outcome-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Booking Rate Trend</div>
+    <div class="monthly-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/call-outcome-stats').then(r => r.json());
+    document.getElementById('h-calls').textContent = data.total_calls_30d;
+    document.getElementById('h-top').textContent = data.top_outcome;
+    document.getElementById('h-brate').textContent = data.booking_rate_pct_30d.toFixed(1) + '%';
+    document.getElementById('h-avg-brate').textContent = data.avg_booking_rate_pct_12m.toFixed(1) + '%';
+    document.getElementById('h-transfer').textContent = data.transfer_rate_pct.toFixed(1) + '%';
+
+    const maxCount = Math.max(...(data.outcomes || []).map(o => o.count), 1);
+    const outList = document.getElementById('outcome-list');
+    (data.outcomes || []).forEach(o => {
+      outList.innerHTML += `
+        <div class="outcome-row">
+          <div class="outcome-label">${o.outcome}</div>
+          <div class="outcome-bar-wrap"><div class="outcome-bar" style="width:${(o.count/maxCount*100).toFixed(1)}%;background:${o.color}"></div></div>
+          <div class="outcome-pct" style="color:${o.color}">${o.pct.toFixed(1)}%</div>
+          <div class="outcome-count">${o.count}</div>
+        </div>`;
+    });
+
+    const bars = document.getElementById('monthly-bars');
+    (data.monthly || []).forEach(m => {
+      const bh = Math.max((m.booking_rate_pct / 100 * 80).toFixed(0), 2);
+      const oh = 80 - bh;
+      bars.innerHTML += `
+        <div class="monthly-col">
+          <div class="m-bar-booked" style="height:${bh}px" title="${m.month}: ${m.booking_rate_pct}% booked (${m.booked}/${m.total})"></div>
+          <div class="m-bar-other" style="height:${oh}px"></div>
+          <div class="m-lbl">${m.month.slice(0,3)}</div>
+          <div class="m-rate">${m.booking_rate_pct}%</div>
+        </div>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

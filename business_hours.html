@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Business Hours — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .day-row { display: flex; align-items: center; gap: 1rem; padding: .75rem 0; border-bottom: 1px solid var(--border); }
+    .day-row:last-of-type { border-bottom: none; }
+    .day-name { font-size: .85rem; font-weight: 800; width: 100px; flex-shrink: 0; }
+    .time-inputs { display: flex; align-items: center; gap: .5rem; flex: 1; }
+    .time-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-size: .82rem; padding: .35rem .6rem; width: 90px; font-family: inherit; }
+    .time-input:disabled { opacity: .35; }
+    .sep { color: var(--muted); font-size: .82rem; }
+    .closed-toggle { display: flex; align-items: center; gap: .4rem; }
+    .toggle-lbl { font-size: .75rem; color: var(--muted); }
+    input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+    .save-btn { width: 100%; margin-top: 1.5rem; padding: .7rem; border-radius: 10px; border: none; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+    .save-btn:hover { opacity: .85; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: .6rem 1.25rem; font-size: .82rem; display: none; z-index: 99; color: var(--green); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Business Hours</div>
+  <p class="page-sub">Set when your shop is open — the AI uses these to manage bookings and answer callers.</p>
+
+  <div class="card">
+    <div class="card-title">Weekly Hours</div>
+    <div id="hours-form"></div>
+    <button class="save-btn" onclick="save()">Save Hours</button>
+  </div>
+</div>
+<div class="toast" id="toast">Hours saved!</div>
+<script>
+  let hoursData = [];
+
+  async function load() {
+    const r = await fetch('/api/business-hours');
+    const d = await r.json();
+    hoursData = d.hours || [];
+    render();
+  }
+
+  function render() {
+    document.getElementById('hours-form').innerHTML = hoursData.map((h, i) => `
+      <div class="day-row">
+        <div class="day-name">${esc(h.day)}</div>
+        <div class="time-inputs">
+          <input class="time-input" type="time" id="open-${i}" value="${h.open}" ${h.closed ? 'disabled' : ''}>
+          <span class="sep">–</span>
+          <input class="time-input" type="time" id="close-${i}" value="${h.close}" ${h.closed ? 'disabled' : ''}>
+        </div>
+        <div class="closed-toggle">
+          <input type="checkbox" id="closed-${i}" ${h.closed ? 'checked' : ''} onchange="toggleClosed(${i})">
+          <label class="toggle-lbl" for="closed-${i}">Closed</label>
+        </div>
+      </div>`).join('');
+  }
+
+  function toggleClosed(i) {
+    const cb = document.getElementById('closed-' + i);
+    hoursData[i].closed = cb.checked;
+    document.getElementById('open-' + i).disabled = cb.checked;
+    document.getElementById('close-' + i).disabled = cb.checked;
+  }
+
+  async function save() {
+    const payload = { hours: hoursData.map((h, i) => ({
+      day: h.day,
+      open:   document.getElementById('open-' + i).value,
+      close:  document.getElementById('close-' + i).value,
+      closed: document.getElementById('closed-' + i).checked,
+    }))};
+    await fetch('/api/business-hours', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+    const t = document.getElementById('toast');
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 2000);
+  }
+
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

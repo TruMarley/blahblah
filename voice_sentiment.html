@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice Sentiment — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 920px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .top-row { display: grid; grid-template-columns: 220px 1fr; gap: 1.25rem; margin-bottom: 1.25rem; align-items: start; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .donut-wrap { display: flex; flex-direction: column; align-items: center; gap: .75rem; }
+    .donut-legend { display: flex; flex-direction: column; gap: .45rem; margin-top: .25rem; width: 100%; }
+    .leg-row { display: flex; align-items: center; gap: .5rem; font-size: .75rem; }
+    .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .leg-label { flex: 1; color: var(--muted); }
+    .leg-pct { font-weight: 800; }
+    /* Outcome table */
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .55rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th:not(:first-child) { text-align: center; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .7rem 1rem; font-size: .82rem; }
+    tbody td:not(:first-child) { text-align: center; }
+    .mini-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; width: 80px; margin: 0 auto; }
+    /* Phrases */
+    .phrase-list { display: flex; flex-direction: column; gap: .65rem; }
+    .phrase-card { background: var(--surface2); border-radius: 10px; padding: .75rem 1rem; display: flex; align-items: center; gap: .85rem; }
+    .phrase-chip { font-size: .65rem; font-weight: 800; padding: .15rem .5rem; border-radius: 99px; white-space: nowrap; flex-shrink: 0; }
+    .chip-positive { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .chip-neutral  { background: rgba(102,102,102,.12); color: var(--muted); border: 1px solid rgba(102,102,102,.25); }
+    .chip-negative { background: rgba(248,113,113,.12); color: var(--red); border: 1px solid rgba(248,113,113,.25); }
+    .phrase-text { font-size: .8rem; color: var(--text); flex: 1; font-style: italic; }
+    .outcome-tag { font-size: .65rem; color: var(--muted); flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Voice Sentiment</div>
+  <p class="page-sub">AI-detected caller sentiment across all handled calls — 8-week analysis.</p>
+  <div class="top-row">
+    <div class="card">
+      <div class="card-title">Overall Sentiment</div>
+      <div class="donut-wrap">
+        <svg id="donut" width="150" height="150" viewBox="0 0 150 150"></svg>
+        <div class="donut-legend" id="donut-legend"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">8-Week Trend — Stacked</div>
+      <svg id="trend-svg" width="100%" style="display:block;overflow:visible"></svg>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:1.25rem">
+    <div class="card-title">By Call Outcome</div>
+    <table>
+      <thead><tr><th>Outcome</th><th>😊 Positive</th><th>😐 Neutral</th><th>😠 Negative</th><th>Distribution</th></tr></thead>
+      <tbody id="outcome-tbody"></tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-title">Sample Caller Phrases</div>
+    <div class="phrase-list" id="phrase-list"></div>
+  </div>
+</div>
+<script>
+  const SENT_COLORS = {positive:'#34d399', neutral:'#555', negative:'#f87171'};
+
+  async function load() {
+    const r = await fetch('/api/analytics/voice-sentiment');
+    const d = await r.json();
+    const os = d.overall_sentiment_pct;
+
+    // Donut
+    const cx=75, cy=75, R=54, sw=22, circ=2*Math.PI*R;
+    const segs = [
+      {key:'positive', val:os.positive},
+      {key:'neutral',  val:os.neutral},
+      {key:'negative', val:os.negative},
+    ];
+    let offset = circ*0.25;
+    let arcs = '';
+    segs.forEach(s => {
+      const len = circ*(s.val/100);
+      arcs += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${SENT_COLORS[s.key]}" stroke-width="${sw}"
+        stroke-dasharray="${len} ${circ-len}" stroke-dashoffset="${-offset+circ}" opacity=".85"/>`;
+      offset -= len;
+    });
+    document.getElementById('donut').innerHTML = arcs;
+    document.getElementById('donut-legend').innerHTML = segs.map(s =>
+      `<div class="leg-row"><div class="leg-dot" style="background:${SENT_COLORS[s.key]}"></div><div class="leg-label">${s.key}</div><div class="leg-pct" style="color:${SENT_COLORS[s.key]}">${os[s.key]}%</div></div>`
+    ).join('');
+
+    // Stacked area trend
+    const trend = d.trend || [];
+    const W=620, H=110, PL=6, PR=6, PT=12, PB=24, cW=W-PL-PR, cH=H-PT-PB, n=trend.length;
+    const xOf = i => PL + i*cW/(n-1);
+    const yOf = (pct, base=0) => PT+cH - ((pct+base)/100)*cH;
+    const polyPts = (arr, base) => arr.map((t,i)=>`${xOf(i)},${yOf(t,base)}`).join(' ');
+    const pos = trend.map(t=>t.positive), neu = trend.map(t=>t.neutral), neg = trend.map(t=>t.negative);
+    const baseline = `${xOf(n-1)},${PT+cH} ${xOf(0)},${PT+cH}`;
+    const posTop = pos.map((v,i)=>`${xOf(i)},${yOf(v)}`).join(' ');
+    const neuTop = pos.map((v,i)=>`${xOf(i)},${yOf(neu[i],v)}`).join(' ');
+    const negTop = pos.map((v,i)=>`${xOf(i)},${yOf(neg[i],v+neu[i])}`).join(' ');
+    const labels = trend.filter((_,i)=>i%2===0).map((t,i)=>`<text x="${xOf(i*2)}" y="${H-4}" text-anchor="middle" font-size="9" fill="#444">${t.week}</text>`).join('');
+    const svg = document.getElementById('trend-svg');
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+    svg.setAttribute('height',H);
+    svg.innerHTML = `
+      <polygon points="${posTop} ${baseline}" fill="#34d399" opacity=".3"/>
+      <polygon points="${neuTop} ${posTop.split(' ').reverse().join(' ')}" fill="#555" opacity=".3"/>
+      <polygon points="${negTop} ${neuTop.split(' ').reverse().join(' ')}" fill="#f87171" opacity=".3"/>
+      <polyline points="${posTop}" fill="none" stroke="#34d399" stroke-width="1.5" opacity=".8"/>
+      <polyline points="${neuTop}" fill="none" stroke="#777" stroke-width="1.5" opacity=".8"/>
+      <polyline points="${negTop}" fill="none" stroke="#f87171" stroke-width="1.5" opacity=".8"/>
+      ${labels}`;
+
+    // Outcome table
+    document.getElementById('outcome-tbody').innerHTML = (d.by_outcome||[]).map(o => {
+      const s = o.sentiment;
+      return `<tr>
+        <td style="font-weight:800;text-transform:capitalize">${o.outcome}</td>
+        <td style="color:var(--green)">${s.positive}%</td>
+        <td style="color:var(--muted)">${s.neutral}%</td>
+        <td style="color:var(--red)">${s.negative}%</td>
+        <td><div class="mini-bar" style="background:transparent">
+          <div style="width:${s.positive}%;background:#34d399;opacity:.7"></div>
+          <div style="width:${s.neutral}%;background:#555;opacity:.7"></div>
+          <div style="width:${s.negative}%;background:#f87171;opacity:.7"></div>
+        </div></td>
+      </tr>`;
+    }).join('');
+
+    // Phrases
+    document.getElementById('phrase-list').innerHTML = (d.sample_phrases||[]).map(p =>
+      `<div class="phrase-card">
+        <span class="phrase-chip chip-${p.sentiment}">${p.sentiment}</span>
+        <span class="phrase-text">"${esc(p.text)}"</span>
+        <span class="outcome-tag">${p.outcome}</span>
+      </div>`).join('');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Call Revenue — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+    .kpi-block { background: var(--surface2); border-radius: 10px; padding: 1rem 1.1rem; }
+    .kpi-val { font-size: 1.3rem; font-weight: 900; }
+    .kpi-lbl { font-size: .65rem; color: var(--muted); margin-top: .2rem; }
+    .funnel-row { display: flex; align-items: center; justify-content: space-between; padding: .7rem 0; border-bottom: 1px solid var(--border); }
+    .funnel-row:last-child { border-bottom: none; }
+    .funnel-label { font-size: .82rem; color: var(--muted); }
+    .funnel-val { font-size: .9rem; font-weight: 800; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Call Revenue</div>
+  <p class="page-sub">Measure the direct revenue impact of AI-handled calls. Revenue per call is the single clearest signal of AI receptionist ROI — track it monthly to quantify value.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--green)">—</div><div class="stat-lbl">Revenue from AI Calls (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-rpc" style="color:var(--accent)">—</div><div class="stat-lbl">Revenue per Call</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-conv" style="color:var(--yellow)">—</div><div class="stat-lbl">Booking Conversion</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Call Funnel</div>
+    <div class="funnel-row"><div class="funnel-label">Total AI Calls</div><div class="funnel-val" id="f-calls" style="color:var(--text)">—</div></div>
+    <div class="funnel-row"><div class="funnel-label">Resulted in Booking</div><div class="funnel-val" id="f-booked" style="color:var(--accent)">—</div></div>
+    <div class="funnel-row"><div class="funnel-label">Avg Ticket</div><div class="funnel-val" id="f-ticket" style="color:var(--green)">—</div></div>
+    <div class="funnel-row"><div class="funnel-label">Top Service Booked</div><div class="funnel-val" id="f-top" style="color:var(--yellow)">—</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Revenue KPIs</div>
+    <div class="kpi-grid">
+      <div class="kpi-block"><div class="kpi-val" id="k-rev" style="color:var(--green)">—</div><div class="kpi-lbl">Total AI Revenue (30d)</div></div>
+      <div class="kpi-block"><div class="kpi-val" id="k-rpc" style="color:var(--accent)">—</div><div class="kpi-lbl">Revenue per Call</div></div>
+      <div class="kpi-block"><div class="kpi-val" id="k-conv" style="color:var(--yellow)">—</div><div class="kpi-lbl">Conversion Rate</div></div>
+      <div class="kpi-block"><div class="kpi-val" id="k-ticket" style="color:var(--text)">—</div><div class="kpi-lbl">Avg Ticket Value</div></div>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/ai-call-revenue-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = '$' + d.revenue_from_ai_calls_30d.toLocaleString();
+    document.getElementById('h-rpc').textContent = '$' + d.revenue_per_call.toFixed(2);
+    document.getElementById('h-conv').textContent = d.booking_conversion_pct.toFixed(1) + '%';
+    document.getElementById('f-calls').textContent = d.total_calls_30d;
+    document.getElementById('f-booked').textContent = d.calls_resulting_in_booking;
+    document.getElementById('f-ticket').textContent = '$' + d.avg_ticket.toFixed(2);
+    document.getElementById('f-top').textContent = d.top_service_booked;
+    document.getElementById('k-rev').textContent = '$' + d.revenue_from_ai_calls_30d.toLocaleString();
+    document.getElementById('k-rpc').textContent = '$' + d.revenue_per_call.toFixed(2);
+    document.getElementById('k-conv').textContent = d.booking_conversion_pct.toFixed(1) + '%';
+    document.getElementById('k-ticket').textContent = '$' + d.avg_ticket.toFixed(2);
+  }
+  load();
+</script>
+</body>
+</html>

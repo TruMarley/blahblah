@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rebooking Interval — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .svc-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .65rem; }
+    .svc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+    .svc-name { font-size: .9rem; font-weight: 800; }
+    .svc-days { font-size: 1.05rem; font-weight: 900; color: var(--accent); }
+    .svc-meta { font-size: .7rem; color: var(--muted); }
+    .bar-bg { width: 100%; height: 7px; background: var(--border); border-radius: 4px; }
+    .bar-fill { height: 7px; border-radius: 4px; background: var(--accent); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Rebooking Interval</div>
+  <p class="page-sub">Average days between visits by service type — shorter intervals mean more frequent revenue per client.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Fastest Rebooking</div>
+      <div class="hero-val" id="h-fastest" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Slowest Rebooking</div>
+      <div class="hero-val" id="h-slowest" style="color:var(--accent)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Avg Days Between Visits by Service</div>
+    <div id="svc-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/rebooking-interval');
+    const d = await r.json();
+    const svcs = d.services || [];
+    svcs.sort((a,b)=>a.avg_days-b.avg_days);
+    if (svcs.length) {
+      document.getElementById('h-fastest').textContent = svcs[0].avg_days + ' days';
+      document.getElementById('h-slowest').textContent = svcs[svcs.length-1].avg_days + ' days';
+    }
+    const maxDays = Math.max(...svcs.map(s=>s.avg_days));
+    const list = document.getElementById('svc-list');
+    svcs.forEach(s => {
+      const pct = (s.avg_days / maxDays * 100).toFixed(0);
+      list.innerHTML += `
+        <div class="svc-row">
+          <div class="svc-top">
+            <div>
+              <div class="svc-name">${esc(s.service)}</div>
+              <div class="svc-meta">median ${s.median_days}d · ${s.client_count} clients tracked</div>
+            </div>
+            <div class="svc-days">${s.avg_days}d avg</div>
+          </div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
+        </div>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

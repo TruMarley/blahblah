@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue Growth Rate — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; text-align: left; padding: .4rem .6rem; border-bottom: 1px solid var(--border); }
+    td { font-size: .8rem; padding: .55rem .6rem; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue Growth Rate</div>
+  <p class="page-sub">Track your revenue trajectory over the last 12 months and see whether you're accelerating or decelerating. Month-over-month growth rate is the leading indicator — total revenue is the lagging one.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">MoM Growth</div>
+      <div class="hero-val" id="h-mom" style="font-size:1.3rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">YoY Growth</div>
+      <div class="hero-val" id="h-yoy" style="font-size:1.3rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Projected Next Month</div>
+      <div class="hero-val" id="h-proj" style="color:var(--accent)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">12-Month Revenue (with Trend Line)</div>
+    <svg id="rev-chart" viewBox="0 0 720 160" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+  <div class="card">
+    <div class="card-title">Growth Rate Trend</div>
+    <svg id="rate-chart" viewBox="0 0 720 100" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+  <div class="card">
+    <div class="card-title">Month-over-Month Change</div>
+    <table>
+      <thead><tr><th>Month</th><th>Revenue</th><th>MoM Change</th></tr></thead>
+      <tbody id="mom-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d=await fetch('/api/analytics/monthly-revenue-momentum').then(r=>r.json());
+    const momEl=document.getElementById('h-mom');
+    const yoyEl=document.getElementById('h-yoy');
+    if(d.mom_growth_pct!=null){momEl.textContent=(d.mom_growth_pct>=0?'+':'')+d.mom_growth_pct+'%';momEl.style.color=d.mom_growth_pct>=0?'var(--green)':'var(--red)';}
+    if(d.yoy_growth_pct!=null){yoyEl.textContent=(d.yoy_growth_pct>=0?'+':'')+d.yoy_growth_pct+'%';yoyEl.style.color=d.yoy_growth_pct>=0?'var(--green)':'var(--red)';}
+    document.getElementById('h-proj').textContent=d.projected_next_month!=null?'$'+d.projected_next_month.toLocaleString():'—';
+
+    const months=d.months||[],revenue=d.revenue||[],momChanges=d.mom_changes||[];
+    const n=months.length;
+
+    // Revenue bar chart with trend line
+    if(n>0){
+      const W=720,H=160,pL=48,pR=16,pT=14,pB=22;
+      const cW=W-pL-pR,cH=H-pT-pB;
+      const mx=Math.max(...revenue)*1.1;
+      const bW=Math.floor(cW/n)-3;
+      let svg='';
+      revenue.forEach((v,i)=>{
+        const x=pL+i*(cW/n)+1;
+        const bH=(v/mx)*cH;
+        const y=pT+cH-bH;
+        const isLast=i===n-1;
+        svg+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bW}" height="${bH.toFixed(1)}" fill="${isLast?'var(--accent)':'rgba(167,139,250,.35)'}" rx="3"/>`;
+        svg+=`<text x="${(x+bW/2).toFixed(1)}" y="${H-pB+13}" text-anchor="middle" fill="#555" font-size="7.5">${esc(months[i])}</text>`;
+      });
+      // Trend line
+      const pts=revenue.map((v,i)=>({x:pL+i*(cW/n)+bW/2+1,y:pT+cH-(v/mx)*cH}));
+      const tPath=pts.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+      svg+=`<path d="${tPath}" fill="none" stroke="var(--yellow)" stroke-width="1.8" stroke-dasharray="5,3" stroke-linejoin="round" opacity=".8"/>`;
+      document.getElementById('rev-chart').innerHTML=svg;
+    }
+
+    // Growth rate chart
+    const rates=momChanges.filter(v=>v!=null);
+    const rateMonths=months.slice(1);
+    if(rates.length>1){
+      const W=720,H=100,pL=40,pR=16,pT=14,pB=18,n2=rates.length;
+      const cW=W-pL-pR,cH=H-pT-pB;
+      const mn=Math.min(...rates)-1,mx2=Math.max(...rates)+1;
+      const zero=pT+cH-((0-mn)/(mx2-mn))*cH;
+      const pts2=rates.map((v,i)=>({x:pL+i*(cW/(n2-1)),y:pT+cH-((v-mn)/(mx2-mn))*cH,v}));
+      const path2=pts2.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+      let svg2=`<line x1="${pL}" y1="${zero.toFixed(1)}" x2="${W-pR}" y2="${zero.toFixed(1)}" stroke="#222" stroke-width="1"/>`;
+      svg2+=`<path d="${path2}" fill="none" stroke="var(--green)" stroke-width="2" stroke-linejoin="round"/>`;
+      pts2.forEach(p=>{
+        const c=p.v>=0?'var(--green)':'var(--red)';
+        svg2+=`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="${c}"/>`;
+      });
+      rateMonths.forEach((m,i)=>{svg2+=`<text x="${(pL+i*(cW/(n2-1))).toFixed(1)}" y="${H-pB+12}" text-anchor="middle" fill="#555" font-size="7.5">${esc(m)}</text>`;});
+      document.getElementById('rate-chart').innerHTML=svg2;
+    }
+
+    // MoM table
+    const tbody=document.getElementById('mom-tbody');
+    months.forEach((m,i)=>{
+      const chg=momChanges[i];
+      const chgStr=chg==null?'—':(chg>=0?'+':'')+chg+'%';
+      const color=chg==null?'var(--muted)':chg>=0?'var(--green)':'var(--red)';
+      const arrow=chg==null?'':chg>=0?'↑':'↓';
+      tbody.innerHTML+=`<tr>
+        <td style="font-weight:600">${esc(m)}</td>
+        <td>$${(revenue[i]||0).toLocaleString()}</td>
+        <td style="color:${color};font-weight:700">${arrow} ${chgStr}</td>
+      </tr>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

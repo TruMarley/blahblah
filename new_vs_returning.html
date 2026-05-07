@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New vs Returning — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .legend { display: flex; gap: 1.5rem; margin-top: 1rem; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+    .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; }
+    .stat-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .3rem; }
+    .stat-value { font-size: 1.6rem; font-weight: 900; letter-spacing: -.04em; }
+    .stat-sub { font-size: .68rem; color: var(--muted); margin-top: .2rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">New vs Returning Clients</div>
+  <p class="page-sub">6-month breakdown of first-time vs repeat visitors.</p>
+
+  <div class="card">
+    <div class="card-title">Monthly Stacked View</div>
+    <svg id="chart" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%"></svg>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> New Clients</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Returning Clients</div>
+    </div>
+  </div>
+
+  <div class="stat-row" id="stat-row"></div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/new-vs-returning');
+    const d = await r.json();
+    const months = d.months || [];
+
+    const totalNew = months.reduce((a, m) => a + m.new_clients, 0);
+    const totalRet = months.reduce((a, m) => a + m.returning_clients, 0);
+    const total = totalNew + totalRet;
+    const lastMonth = months[months.length - 1] || {};
+    const ratio = totalRet > 0 ? (totalNew / totalRet).toFixed(2) : '—';
+
+    document.getElementById('stat-row').innerHTML = [
+      {label:'Total New (6mo)', value: totalNew, color: 'var(--accent)', sub: `${Math.round(totalNew/total*100)}% of all clients`},
+      {label:'Total Returning (6mo)', value: totalRet, color: 'var(--green)', sub: `${Math.round(totalRet/total*100)}% of all clients`},
+      {label:'New:Returning Ratio', value: `1:${(totalRet/Math.max(totalNew,1)).toFixed(1)}`, color: '', sub: 'this period'},
+    ].map(s => `<div class="stat-card">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-value" style="${s.color?'color:'+s.color:''}">${s.value}</div>
+      <div class="stat-sub">${s.sub}</div>
+    </div>`).join('');
+
+    // SVG stacked bar chart
+    const W = 780, H = 220, PAD_L = 44, PAD_R = 12, PAD_T = 12, PAD_B = 32;
+    const cW = W - PAD_L - PAD_R, cH = H - PAD_T - PAD_B;
+    const n = months.length;
+    const maxTotal = Math.max(...months.map(m => m.new_clients + m.returning_clients), 1);
+    const barW = Math.floor(cW / n * 0.6);
+    const barGap = cW / n;
+
+    let bars = '', xLabels = '', yLines = '';
+
+    [0, 0.25, 0.5, 0.75, 1].forEach(f => {
+      const v = Math.round(maxTotal * f);
+      const y = PAD_T + cH - f * cH;
+      yLines += `<line x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      yLines += `<text x="${PAD_L - 5}" y="${y + 4}" text-anchor="end" font-size="10" fill="#555">${v}</text>`;
+    });
+
+    months.forEach((m, i) => {
+      const cx = PAD_L + i * barGap + barGap / 2;
+      const x = cx - barW / 2;
+      const retH = (m.returning_clients / maxTotal) * cH;
+      const newH = (m.new_clients / maxTotal) * cH;
+      const retY = PAD_T + cH - retH;
+      const newY = retY - newH;
+
+      bars += `<rect x="${x}" y="${retY}" width="${barW}" height="${retH}" fill="var(--green)" opacity=".8" rx="3">
+        <title>${m.month}: ${m.returning_clients} returning (${m.returning_pct}%)</title></rect>`;
+      bars += `<rect x="${x}" y="${newY}" width="${barW}" height="${newH}" fill="var(--accent)" opacity=".8" rx="3 3 0 0">
+        <title>${m.month}: ${m.new_clients} new (${m.new_pct}%)</title></rect>`;
+      xLabels += `<text x="${cx}" y="${H - 6}" text-anchor="middle" font-size="10" fill="#555">${m.month.split(' ')[0]}</text>`;
+    });
+
+    const svg = document.getElementById('chart');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('height', H);
+    svg.innerHTML = yLines + bars + xLabels;
+  }
+  load();
+</script>
+</body>
+</html>

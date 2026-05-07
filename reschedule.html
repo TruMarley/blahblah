@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reschedule — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 1.5rem; height: 58px; }
+    .logo { font-size: 1.15rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    .center { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 3rem 1.25rem 5rem; }
+    .wrap { width: 100%; max-width: 500px; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .35rem; }
+    .page-sub { font-size: .82rem; color: var(--muted); margin-bottom: 2rem; line-height: 1.6; }
+
+    /* Step 1: Phone lookup */
+    .lookup-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.75rem; margin-bottom: 1.5rem; }
+    .lookup-card label { display: block; font-size: .75rem; font-weight: 600; color: var(--muted); margin-bottom: .4rem; }
+    .input-row { display: flex; gap: .75rem; }
+    .input-row input { flex: 1; background: #0d0d0d; border: 1px solid var(--border); color: var(--text); font-size: .9rem; padding: .65rem .9rem; border-radius: 9px; outline: none; font-family: inherit; }
+    .input-row input::placeholder { color: #444; }
+    .input-row input:focus { border-color: var(--accent); }
+    .btn { padding: .65rem 1.25rem; border-radius: 9px; font-size: .85rem; font-weight: 700; border: none; cursor: pointer; transition: opacity .15s; white-space: nowrap; font-family: inherit; }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-accent:hover { opacity: .85; }
+    .btn-accent:disabled { opacity: .45; cursor: default; }
+    .btn-ghost { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); }
+    .btn-ghost:hover { color: var(--text); }
+    .error-inline { font-size: .78rem; color: var(--red); margin-top: .6rem; display: none; }
+
+    /* Step 2: Appointment picker */
+    .step2 { display: none; }
+    .step2.show { display: block; }
+    .appt-pick { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: .75rem; overflow: hidden; }
+    .appt-pick-header { padding: .9rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .appt-service { font-size: .9rem; font-weight: 800; }
+    .appt-date { font-size: .78rem; color: var(--muted); }
+    .appt-pick-body { padding: 1rem 1.25rem; }
+    .field-label { font-size: .73rem; font-weight: 700; color: var(--muted); margin-bottom: .4rem; }
+    .slot-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4rem; margin-bottom: .75rem; }
+    .slot-btn { padding: .4rem .3rem; border-radius: 7px; font-size: .75rem; font-weight: 700; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; text-align: center; transition: all .15s; font-family: inherit; }
+    .slot-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .slot-btn.selected { background: rgba(167,139,250,.15); border-color: var(--accent); color: var(--accent); }
+    .date-input { background: #0d0d0d; border: 1px solid var(--border); color: var(--text); font-size: .85rem; padding: .55rem .85rem; border-radius: 8px; outline: none; font-family: inherit; width: 100%; margin-bottom: .75rem; }
+    .date-input:focus { border-color: var(--accent); }
+    .reschedule-btn { width: 100%; margin-top: .25rem; }
+
+    /* Step 3: Success */
+    .success { display: none; background: var(--surface); border: 1px solid rgba(52,211,153,.25); border-radius: 14px; padding: 2.5rem; text-align: center; }
+    .success.show { display: block; }
+    .success-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .success-title { font-size: 1.1rem; font-weight: 900; margin-bottom: .4rem; }
+    .success-sub { font-size: .83rem; color: var(--muted); line-height: 1.6; }
+    .success-detail { font-size: .88rem; color: var(--green); font-weight: 700; margin: .75rem 0; }
+
+    .spinner { display: none; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; margin: 1rem auto; }
+    .spinner.show { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .footer-note { font-size: .75rem; color: var(--muted); text-align: center; margin-top: 2rem; line-height: 1.7; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+</nav>
+<div class="center">
+  <div class="wrap">
+    <div class="page-title">Reschedule</div>
+    <p class="page-sub">Enter your phone number to find your appointment, then pick a new time.</p>
+
+    <!-- Step 1 -->
+    <div class="lookup-card" id="step1">
+      <label for="phone-input">Your phone number</label>
+      <div class="input-row">
+        <input type="tel" id="phone-input" placeholder="(555) 867-5309" autocomplete="tel"
+               onkeydown="if(event.key==='Enter') lookup()">
+        <button class="btn btn-accent" id="lookup-btn" onclick="lookup()">Find →</button>
+      </div>
+      <div class="error-inline" id="err-msg"></div>
+    </div>
+
+    <div class="spinner" id="spinner"></div>
+
+    <!-- Step 2 -->
+    <div class="step2" id="step2">
+      <div id="appt-list"></div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="success" id="step3">
+      <div class="success-icon">✅</div>
+      <div class="success-title">Appointment rescheduled!</div>
+      <div class="success-detail" id="new-detail"></div>
+      <p class="success-sub">You'll receive a confirmation SMS shortly.</p>
+    </div>
+
+    <div class="footer-note">
+      Need more help? <a href="mailto:hello@ringdesk.ai" style="color:var(--accent);text-decoration:none">Contact support</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SLOTS = ['9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM','1:00 PM','1:30 PM','2:00 PM','2:30 PM','3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM'];
+  let phone = '';
+  let selectedSlots = {}; // appt_id → {date, time}
+
+  async function lookup() {
+    const raw = document.getElementById('phone-input').value;
+    phone = raw.replace(/\D/g,'');
+    const err = document.getElementById('err-msg');
+    err.style.display = 'none';
+    if (phone.length < 7) { err.textContent = 'Please enter a valid phone number.'; err.style.display = 'block'; return; }
+
+    const btn = document.getElementById('lookup-btn');
+    btn.disabled = true; btn.textContent = 'Looking…';
+    document.getElementById('spinner').classList.add('show');
+
+    try {
+      const r = await fetch(`/api/portal/appointments?phone=${encodeURIComponent(phone)}`);
+      const d = await r.json();
+      renderAppointments(d.appointments || []);
+    } catch {
+      err.textContent = 'Unable to load appointments. Please try again.';
+      err.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Find →';
+      document.getElementById('spinner').classList.remove('show');
+    }
+  }
+
+  function renderAppointments(appts) {
+    if (!appts.length) {
+      document.getElementById('err-msg').textContent = 'No upcoming appointments found for this number.';
+      document.getElementById('err-msg').style.display = 'block';
+      return;
+    }
+    document.getElementById('step2').classList.add('show');
+    const today = new Date();
+    const minDate = today.toISOString().slice(0,10);
+    document.getElementById('appt-list').innerHTML = appts.map(a => {
+      const defaultSlot = SLOTS[0];
+      selectedSlots[a.id] = { date: minDate, time: slotTo24(defaultSlot) };
+      return `
+      <div class="appt-pick">
+        <div class="appt-pick-header">
+          <div class="appt-service">${esc(a.service)}</div>
+          <div class="appt-date">Currently: ${esc(a.date)} at ${fmtTime(a.time)}</div>
+        </div>
+        <div class="appt-pick-body">
+          <div class="field-label">New date</div>
+          <input type="date" class="date-input" id="date-${a.id}" value="${minDate}" min="${minDate}"
+                 onchange="selectedSlots[${a.id}].date=this.value">
+          <div class="field-label">New time</div>
+          <div class="slot-grid" id="slots-${a.id}">
+            ${SLOTS.map((s,i) => `<button class="slot-btn ${i===0?'selected':''}" onclick="selectSlot(${a.id},this,'${s}')">${s}</button>`).join('')}
+          </div>
+          <button class="btn btn-accent reschedule-btn" onclick="reschedule(${a.id})">Confirm new time →</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function selectSlot(id, btn, slot) {
+    document.querySelectorAll(`#slots-${id} .slot-btn`).forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedSlots[id].time = slotTo24(slot);
+  }
+
+  async function reschedule(id) {
+    const { date, time } = selectedSlots[id];
+    if (!date || !time) return;
+    const r = await fetch(`/api/appointments/reschedule/${id}`, {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ new_date: date, new_time: time })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      document.getElementById('step1').style.display = 'none';
+      document.getElementById('step2').classList.remove('show');
+      const newD = new Date(date + 'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+      document.getElementById('new-detail').textContent = `${newD} at ${selectedSlots[id].time}`;
+      document.getElementById('step3').classList.add('show');
+    }
+  }
+
+  function slotTo24(slot) {
+    const [time, ap] = slot.split(' ');
+    let [h, m] = time.split(':').map(Number);
+    if (ap === 'PM' && h !== 12) h += 12;
+    if (ap === 'AM' && h === 12) h = 0;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  }
+  function fmtTime(t) {
+    const [h, m] = t.split(':').map(Number);
+    const ap = h >= 12 ? 'PM' : 'AM';
+    return `${h%12||12}:${String(m).padStart(2,'0')} ${ap}`;
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  document.getElementById('phone-input').focus();
+</script>
+</body>
+</html>

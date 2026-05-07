@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Avg Ticket — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    /* Hero */
+    .hero { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; display: flex; align-items: center; gap: 2rem; margin-bottom: 1.5rem; }
+    .hero-val { font-size: 3.5rem; font-weight: 900; letter-spacing: -.05em; color: var(--accent); }
+    .hero-label { font-size: .78rem; color: var(--muted); margin-top: .3rem; }
+    .hero-delta { display: inline-flex; align-items: center; gap: .3rem; font-size: .8rem; font-weight: 800; padding: .2rem .6rem; border-radius: 8px; background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); margin-top: .5rem; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    /* Horizontal bars */
+    .hbar-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+    .hbar-row:last-child { margin-bottom: 0; }
+    .hbar-label { font-size: .78rem; font-weight: 700; width: 130px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hbar-track { flex: 1; background: var(--surface2); border-radius: 5px; height: 18px; overflow: hidden; }
+    .hbar-fill { height: 100%; border-radius: 5px; background: var(--accent); opacity: .8; }
+    .hbar-val { font-size: .75rem; font-weight: 800; color: var(--accent); width: 40px; text-align: right; flex-shrink: 0; }
+    /* Staff cards */
+    .staff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: .65rem; }
+    .staff-mini { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .75rem; text-align: center; }
+    .staff-mini-name { font-size: .72rem; font-weight: 800; margin-bottom: .3rem; }
+    .staff-mini-val { font-size: 1.25rem; font-weight: 900; color: var(--green); }
+    /* Day chart */
+    .day-bars { display: flex; align-items: flex-end; gap: .5rem; height: 90px; }
+    .day-col { display: flex; flex-direction: column; align-items: center; flex: 1; gap: .3rem; }
+    .day-bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--accent); opacity: .75; }
+    .day-lbl { font-size: .65rem; color: var(--muted); }
+    .day-val { font-size: .65rem; font-weight: 800; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Average Ticket</div>
+  <p class="page-sub">Revenue per appointment — broken down by category, staff, and day.</p>
+  <div class="hero">
+    <div>
+      <div class="hero-val" id="h-avg">—</div>
+      <div class="hero-label">avg revenue per appointment</div>
+      <div class="hero-delta" id="h-delta">+$0 vs last month</div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">By Service Category</div>
+      <div id="cat-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">By Day of Week</div>
+      <div class="day-bars" id="day-bars"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:1.25rem">
+    <div class="card-title">By Staff Member</div>
+    <div class="staff-grid" id="staff-grid"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/avg-ticket');
+    const d = await r.json();
+
+    document.getElementById('h-avg').textContent = '$' + d.overall_avg;
+    const delta = d.delta_vs_last_month;
+    const dEl = document.getElementById('h-delta');
+    dEl.textContent = (delta >= 0 ? '+' : '') + '$' + delta + ' vs last month';
+    if (delta < 0) { dEl.style.background = 'rgba(248,113,113,.1)'; dEl.style.color = '#f87171'; dEl.style.borderColor = 'rgba(248,113,113,.2)'; }
+
+    const cats = d.by_category || [];
+    const maxCat = Math.max(...cats.map(c => c.avg_ticket), 1);
+    document.getElementById('cat-bars').innerHTML = cats.map(c => `
+      <div class="hbar-row">
+        <div class="hbar-label">${esc(c.category)}</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:${(c.avg_ticket/maxCat*100).toFixed(1)}%"></div></div>
+        <div class="hbar-val">$${c.avg_ticket}</div>
+      </div>`).join('');
+
+    const days = d.by_day || [];
+    const maxDay = Math.max(...days.map(x => x.avg_ticket), 1);
+    document.getElementById('day-bars').innerHTML = days.map(x => {
+      const h = Math.max(8, Math.round(x.avg_ticket / maxDay * 80));
+      return `<div class="day-col"><div class="day-val">$${x.avg_ticket}</div><div class="day-bar" style="height:${h}px"></div><div class="day-lbl">${x.day}</div></div>`;
+    }).join('');
+
+    document.getElementById('staff-grid').innerHTML = (d.by_staff||[]).map(s =>
+      `<div class="staff-mini"><div class="staff-mini-name">${esc(s.name)}</div><div class="staff-mini-val">$${s.avg_ticket}</div></div>`
+    ).join('');
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

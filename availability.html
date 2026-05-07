@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Availability — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .filters { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+    .filter-group { display: flex; flex-direction: column; gap: .4rem; }
+    .filter-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+    .filter-group input, .filter-group select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: .85rem; padding: .5rem .75rem; border-radius: 8px; font-family: inherit; cursor: pointer; outline: none; }
+    .filter-group input:focus, .filter-group select:focus { border-color: var(--accent); }
+    .filter-group input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: .5; cursor: pointer; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+    .ld-avail { background: rgba(167,139,250,.2); border: 1px solid rgba(167,139,250,.4); }
+    .ld-booked { background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.2); }
+    .ld-break { background: var(--surface2); border: 1px solid var(--border); }
+    .grid-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .grid-header { display: grid; border-bottom: 1px solid var(--border); }
+    .grid-header-cell { padding: .6rem 1rem; font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; border-right: 1px solid var(--border); text-align: center; }
+    .grid-header-cell:last-child { border-right: none; }
+    .grid-body { }
+    .grid-row { display: grid; border-bottom: 1px solid var(--border); }
+    .grid-row:last-child { border-bottom: none; }
+    .time-label { padding: .75rem 1rem; font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; border-right: 1px solid var(--border); display: flex; align-items: center; }
+    .slot { padding: .5rem .6rem; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: .25rem; cursor: default; transition: background .15s; min-height: 58px; }
+    .slot:last-child { border-right: none; }
+    .slot.available { background: rgba(167,139,250,.06); cursor: pointer; }
+    .slot.available:hover { background: rgba(167,139,250,.14); }
+    .slot.booked { background: rgba(248,113,113,.06); cursor: not-allowed; }
+    .slot.break { background: var(--surface2); cursor: default; }
+    .slot-staff { font-size: .7rem; font-weight: 700; }
+    .slot.available .slot-staff { color: var(--accent); }
+    .slot.booked .slot-staff { color: var(--red); }
+    .slot.break .slot-staff { color: var(--muted); }
+    .slot-note { font-size: .65rem; color: var(--muted); }
+    .slot-count { font-size: .68rem; font-weight: 700; }
+    .slot.available .slot-count { color: var(--green); }
+    .no-staff { text-align: center; color: var(--muted); padding: 3rem; font-size: .85rem; }
+    .book-toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--green); color: #000; font-weight: 700; font-size: .85rem; padding: .75rem 1.25rem; border-radius: 10px; transform: translateY(100px); opacity: 0; transition: all .3s; z-index: 999; }
+    .book-toast.show { transform: translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Availability</div>
+  <p class="page-sub">View and book open time slots across your staff.</p>
+
+  <div class="filters">
+    <div class="filter-group">
+      <span class="filter-label">Date</span>
+      <input type="date" id="date-pick">
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Service</span>
+      <select id="service-pick">
+        <option value="">All Services</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot ld-avail"></div> Available</div>
+    <div class="legend-item"><div class="legend-dot ld-booked"></div> Booked</div>
+    <div class="legend-item"><div class="legend-dot ld-break"></div> Break / Closed</div>
+  </div>
+
+  <div class="grid-wrap" id="grid-wrap">
+    <div class="no-staff">Loading availability...</div>
+  </div>
+</div>
+<div class="book-toast" id="toast">Slot selected!</div>
+
+<script>
+  const HOURS = [];
+  for (let h = 9; h <= 18; h++) {
+    HOURS.push(`${pad(h)}:00`);
+    if (h < 18) HOURS.push(`${pad(h)}:30`);
+  }
+  function pad(n) { return String(n).padStart(2,'0'); }
+
+  function todayStr() {
+    const d = new Date();
+    return d.toISOString().slice(0,10);
+  }
+
+  document.getElementById('date-pick').value = todayStr();
+
+  async function loadServices() {
+    try {
+      const r = await fetch('/api/services');
+      const d = await r.json();
+      const sel = document.getElementById('service-pick');
+      (d.services || []).forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.id; o.textContent = s.name;
+        sel.appendChild(o);
+      });
+    } catch(e) {}
+  }
+
+  async function load() {
+    const date = document.getElementById('date-pick').value || todayStr();
+    const svc = document.getElementById('service-pick').value;
+    let url = `/api/availability?date=${date}`;
+    if (svc) url += `&service_id=${encodeURIComponent(svc)}`;
+
+    const r = await fetch(url);
+    const d = await r.json();
+    render(d);
+  }
+
+  function render(d) {
+    const staff = d.staff || [];
+    const slots = d.slots || {};
+
+    if (!staff.length) {
+      document.getElementById('grid-wrap').innerHTML = '<div class="no-staff">No staff available for this date.</div>';
+      return;
+    }
+
+    const colCount = 1 + staff.length;
+    const colTemplate = `100px repeat(${staff.length}, 1fr)`;
+
+    let html = `<div class="grid-header" style="grid-template-columns:${colTemplate}">
+      <div class="grid-header-cell">Time</div>
+      ${staff.map(s => `<div class="grid-header-cell">${esc(s.name)}</div>`).join('')}
+    </div><div class="grid-body">`;
+
+    HOURS.forEach(time => {
+      html += `<div class="grid-row" style="grid-template-columns:${colTemplate}">
+        <div class="time-label">${fmt12(time)}</div>`;
+      staff.forEach(s => {
+        const key = `${s.id}:${time}`;
+        const info = (slots[key]) || null;
+        if (!info || info.status === 'available') {
+          const cnt = info ? info.open_slots : 1;
+          html += `<div class="slot available" onclick="bookSlot('${esc(s.id)}','${esc(s.name)}','${time}')">
+            <div class="slot-staff">${esc(s.name.split(' ')[0])}</div>
+            <div class="slot-count">${cnt} open</div>
+          </div>`;
+        } else if (info.status === 'booked') {
+          html += `<div class="slot booked">
+            <div class="slot-staff">Booked</div>
+            <div class="slot-note">${esc(info.client_name || '')}</div>
+          </div>`;
+        } else {
+          html += `<div class="slot break"><div class="slot-staff">—</div></div>`;
+        }
+      });
+      html += '</div>';
+    });
+
+    html += '</div>';
+    document.getElementById('grid-wrap').innerHTML = html;
+  }
+
+  function fmt12(t) {
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h > 12 ? h - 12 : h || 12;
+    return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+  }
+
+  function bookSlot(staffId, staffName, time) {
+    const toast = document.getElementById('toast');
+    toast.textContent = `✓ ${staffName} at ${fmt12(time)} selected`;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  document.getElementById('date-pick').addEventListener('change', load);
+  document.getElementById('service-pick').addEventListener('change', load);
+
+  loadServices();
+  load();
+</script>
+</body>
+</html>

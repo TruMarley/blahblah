@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Average Handle Time — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1.2rem; margin-bottom: .75rem; }
+    .leg-item { display: flex; align-items: center; gap: .35rem; font-size: .7rem; color: var(--muted); }
+    .leg-line { width: 18px; height: 2px; border-radius: 1px; }
+    .leg-bar { width: 10px; height: 10px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Average Handle Time</div>
+  <p class="page-sub">How long the AI spends on each call. Shorter handle times mean efficient conversations; very short times may signal incomplete service.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Overall Avg</div>
+      <div class="hero-val" id="h-avg" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Busiest Week</div>
+      <div class="hero-val" id="h-busy" style="color:var(--yellow);font-size:1.2rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Trend (vs prev 4w)</div>
+      <div class="hero-val" id="h-trend" style="font-size:1.2rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Handle Time &amp; Call Volume</div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-line" style="background:var(--accent)"></div> Avg Handle Time (s)</div>
+      <div class="leg-item"><div class="leg-bar" style="background:rgba(52,211,153,.5)"></div> Call Volume</div>
+    </div>
+    <svg id="chart" viewBox="0 0 660 240" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/average-handle-time').then(r => r.json());
+    const weeks = d.weeks || [];
+    if (!weeks.length) return;
+
+    const overallAvg = d.overall_avg || Math.round(weeks.reduce((s, w) => s + w.avg_seconds, 0) / weeks.length);
+    const busiestWeek = weeks.reduce((a, b) => b.calls > a.calls ? b : a, weeks[0]);
+    const first4 = weeks.slice(0, 4).reduce((s, w) => s + w.avg_seconds, 0) / 4;
+    const last4 = weeks.slice(4).reduce((s, w) => s + w.avg_seconds, 0) / 4;
+    const trendPct = Math.round((last4 - first4) / first4 * 100);
+    const trendUp = last4 >= first4;
+
+    document.getElementById('h-avg').textContent = overallAvg + 's';
+    document.getElementById('h-busy').textContent = busiestWeek ? busiestWeek.week + ' (' + busiestWeek.calls + ')' : '—';
+    const trendEl = document.getElementById('h-trend');
+    trendEl.textContent = (trendUp ? '▲ ' : '▼ ') + Math.abs(trendPct) + '%';
+    trendEl.style.color = trendUp ? 'var(--red)' : 'var(--green)'; // longer = red, shorter = green
+
+    const W = 660, H = 240, padL = 40, padR = 12, padT = 16, padB = 36;
+    const chartW = W - padL - padR, chartH = H - padT - padB;
+    const maxTime = Math.max(...weeks.map(w => w.avg_seconds), 1);
+    const maxCalls = Math.max(...weeks.map(w => w.calls), 1);
+    const n = weeks.length;
+    const step = chartW / (n - 1);
+    const barW = Math.floor(chartW / n * 0.5);
+
+    // bars (call volume, secondary axis)
+    let bars = '';
+    weeks.forEach((w, i) => {
+      const bh = (w.calls / maxCalls) * chartH * 0.6;
+      const bx = padL + i * step - barW / 2;
+      bars += `<rect x="${bx}" y="${padT + chartH - bh}" width="${barW}" height="${bh}" fill="rgba(52,211,153,.25)" rx="2"/>`;
+    });
+
+    // line (avg_seconds)
+    const pts = weeks.map((w, i) => {
+      const x = padL + i * step;
+      const y = padT + chartH - (w.avg_seconds / maxTime) * chartH;
+      return `${x},${y}`;
+    });
+    const area = `M${pts[0]} ` + pts.slice(1).map(p => `L${p}`).join(' ') + ` L${padL + (n-1)*step},${padT+chartH} L${padL},${padT+chartH} Z`;
+    const line = `M${pts[0]} ` + pts.slice(1).map(p => `L${p}`).join(' ');
+
+    let dots = '', labels = '';
+    weeks.forEach((w, i) => {
+      const x = padL + i * step;
+      const y = padT + chartH - (w.avg_seconds / maxTime) * chartH;
+      dots += `<circle cx="${x}" cy="${y}" r="3.5" fill="var(--accent)" stroke="var(--bg)" stroke-width="1.5"/>`;
+      labels += `<text x="${x}" y="${H - padB + 14}" text-anchor="middle" fill="#555" font-size="9">${esc(w.week)}</text>`;
+    });
+
+    let yAxis = '';
+    for (let t = 0; t <= 4; t++) {
+      const yv = Math.round(maxTime * t / 4);
+      const yp = padT + chartH - (t / 4) * chartH;
+      yAxis += `<line x1="${padL}" x2="${W-padR}" y1="${yp}" y2="${yp}" stroke="#1e1e1e" stroke-width="1"/>`;
+      yAxis += `<text x="${padL-5}" y="${yp+4}" text-anchor="end" fill="#444" font-size="8">${yv}s</text>`;
+    }
+
+    document.getElementById('chart').innerHTML = yAxis + bars +
+      `<path d="${area}" fill="rgba(167,139,250,.08)"/>` +
+      `<path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>` +
+      dots + labels;
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

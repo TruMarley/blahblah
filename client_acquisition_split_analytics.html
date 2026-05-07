@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New vs. Returning — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .split-bar { display: flex; height: 18px; border-radius: 6px; overflow: hidden; margin-bottom: 1rem; }
+    .split-new { background: var(--accent); }
+    .split-ret { background: var(--green); }
+    .split-legend { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .compare-row { display: flex; gap: .75rem; }
+    .cmp-card { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+    .cmp-label { font-size: .65rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: .5rem; }
+    .cmp-val { font-size: 1.4rem; font-weight: 900; }
+    .cmp-sub { font-size: .7rem; color: var(--muted); margin-top: .2rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">New vs. Returning</div>
+  <p class="page-sub">Track the balance between new client acquisition and returning client retention. A healthy business grows both — but the economics of each are very different.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Total Appts (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-new" style="color:var(--accent)">—</div><div class="stat-lbl">New Clients %</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-ret" style="color:var(--green)">—</div><div class="stat-lbl">Returning Clients %</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Acquisition Split</div>
+    <div class="split-bar" id="split-bar"></div>
+    <div class="split-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div><span style="color:var(--accent)">New clients</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><span style="color:var(--green)">Returning clients</span></div>
+    </div>
+    <div class="compare-row">
+      <div class="cmp-card">
+        <div class="cmp-label">New Client</div>
+        <div class="cmp-val" id="c-new-appts" style="color:var(--accent)">—</div>
+        <div class="cmp-sub">appts · <span id="c-new-spend">—</span> avg spend</div>
+      </div>
+      <div class="cmp-card">
+        <div class="cmp-label">Returning Client</div>
+        <div class="cmp-val" id="c-ret-appts" style="color:var(--green)">—</div>
+        <div class="cmp-sub">appts · <span id="c-ret-spend">—</span> avg spend</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/client-acquisition-split-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_appts_30d.toLocaleString();
+    document.getElementById('h-new').textContent = d.new_client_pct.toFixed(1) + '%';
+    document.getElementById('h-ret').textContent = d.returning_client_pct.toFixed(1) + '%';
+    const bar = document.getElementById('split-bar');
+    bar.innerHTML = '<div class="split-new" style="width:' + d.new_client_pct + '%"></div><div class="split-ret" style="width:' + d.returning_client_pct + '%"></div>';
+    document.getElementById('c-new-appts').textContent = d.new_client_appts;
+    document.getElementById('c-new-spend').textContent = '$' + d.new_avg_spend.toFixed(0);
+    document.getElementById('c-ret-appts').textContent = d.returning_client_appts;
+    document.getElementById('c-ret-spend').textContent = '$' + d.returning_avg_spend.toFixed(0);
+  }
+  load();
+</script>
+</body>
+</html>

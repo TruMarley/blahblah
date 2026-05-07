@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Phone Metrics — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 920px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .chips-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .chip-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.25rem; }
+    .chip-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .chip-val { font-size: 1.5rem; font-weight: 900; }
+    .chip-sub { font-size: .7rem; color: var(--muted); margin-top: .25rem; }
+    .two-col { display: grid; grid-template-columns: 220px 1fr; gap: 1.25rem; margin-bottom: 1.25rem; align-items: start; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .donut-wrap { display: flex; flex-direction: column; align-items: center; gap: .75rem; }
+    .donut-legend { display: flex; flex-direction: column; gap: .45rem; width: 100%; }
+    .leg-row { display: flex; align-items: center; gap: .5rem; font-size: .75rem; }
+    .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .leg-label { flex: 1; color: var(--muted); }
+    .leg-val { font-weight: 800; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .55rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th:last-child { text-align: right; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .7rem 1rem; font-size: .82rem; }
+    tbody td:last-child { text-align: right; }
+    .mini-bar-wrap { display: flex; align-items: center; gap: .6rem; justify-content: flex-end; }
+    .mini-bar-track { width: 80px; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+    .mini-bar-fill { height: 100%; border-radius: 3px; background: var(--accent); opacity: .75; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Phone Metrics</div>
+  <p class="page-sub">Incoming call volume, sources, and area code breakdown — this month.</p>
+  <div class="chips-row">
+    <div class="chip-card"><div class="chip-label">Total Calls</div><div class="chip-val" id="c-total">—</div><div class="chip-sub">this month</div></div>
+    <div class="chip-card"><div class="chip-label">Avg / Day</div><div class="chip-val" style="color:var(--accent)" id="c-avg">—</div><div class="chip-sub">calls per day</div></div>
+    <div class="chip-card"><div class="chip-label">Busiest Hour</div><div class="chip-val" style="color:var(--green)" id="c-hour">—</div><div class="chip-sub">peak call time</div></div>
+    <div class="chip-card"><div class="chip-label">Busiest Day</div><div class="chip-val" id="c-day">—</div><div class="chip-sub">most calls</div></div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">By Source</div>
+      <div class="donut-wrap">
+        <svg id="donut" width="150" height="150" viewBox="0 0 150 150"></svg>
+        <div class="donut-legend" id="donut-legend"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Area Codes</div>
+      <table>
+        <thead><tr><th>Area Code</th><th>City</th><th>Calls</th></tr></thead>
+        <tbody id="ac-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+  const COLORS = ['#a78bfa','#34d399','#60a5fa','#fbbf24','#f87171','#fb923c','#e879f9'];
+
+  async function load() {
+    const r = await fetch('/api/analytics/phone-metrics');
+    const d = await r.json();
+
+    document.getElementById('c-total').textContent = (d.total_calls_month||0).toLocaleString();
+    document.getElementById('c-avg').textContent = d.avg_per_day || '—';
+    const bh = d.busiest_hour;
+    if (bh != null) {
+      const ampm = bh >= 12 ? 'PM' : 'AM';
+      const h12 = bh % 12 || 12;
+      document.getElementById('c-hour').textContent = h12 + ampm;
+    }
+    document.getElementById('c-day').textContent = d.busiest_day || '—';
+
+    // Donut
+    const srcs = d.calls_by_source || [];
+    const total = srcs.reduce((a,s)=>a+s.count,0) || 1;
+    const cx=75, cy=75, R=54, sw=22, circ=2*Math.PI*R;
+    let offset = circ*0.25;
+    let arcs = '';
+    srcs.forEach((s,i) => {
+      const len = circ*(s.count/total);
+      const color = COLORS[i % COLORS.length];
+      arcs += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${color}" stroke-width="${sw}"
+        stroke-dasharray="${len} ${circ-len}" stroke-dashoffset="${-offset+circ}" opacity=".85"/>`;
+      offset -= len;
+    });
+    document.getElementById('donut').innerHTML = arcs;
+    document.getElementById('donut-legend').innerHTML = srcs.map((s,i)=>`
+      <div class="leg-row">
+        <div class="leg-dot" style="background:${COLORS[i%COLORS.length]}"></div>
+        <div class="leg-label">${esc(s.source)}</div>
+        <div class="leg-val" style="color:${COLORS[i%COLORS.length]}">${s.count}</div>
+      </div>`).join('');
+
+    // Area codes
+    const acs = d.area_codes || [];
+    const maxAC = Math.max(...acs.map(a=>a.count), 1);
+    document.getElementById('ac-tbody').innerHTML = acs.map(a => `
+      <tr>
+        <td style="font-weight:800;color:var(--accent)">(${esc(String(a.code))})</td>
+        <td style="color:var(--muted)">${esc(a.city)}</td>
+        <td>
+          <div class="mini-bar-wrap">
+            <span style="font-weight:800">${a.count}</span>
+            <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${(a.count/maxAC*100).toFixed(1)}%"></div></div>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Review Requests — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+
+    /* Hero */
+    .hero { text-align: center; padding: 5rem 2rem 3.5rem; max-width: 680px; margin: 0 auto; }
+    .hero-tag { display: inline-block; background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.2); color: var(--accent); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; padding: .3rem .8rem; border-radius: 99px; margin-bottom: 1.25rem; }
+    .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 900; letter-spacing: -.04em; line-height: 1.1; margin-bottom: 1.25rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero p { font-size: 1rem; color: var(--muted); max-width: 520px; margin: 0 auto 2.5rem; line-height: 1.7; }
+    .stars { font-size: 1.5rem; letter-spacing: .1rem; margin-bottom: 1rem; }
+
+    /* Phone mockup */
+    .mockup-section { display: flex; align-items: flex-start; justify-content: center; gap: 4rem; max-width: 900px; margin: 0 auto 5rem; padding: 0 2rem; flex-wrap: wrap; }
+    .phone-frame { width: 220px; flex-shrink: 0; background: #1a1a1a; border-radius: 36px; border: 2px solid #2a2a2a; padding: 20px 14px; box-shadow: 0 30px 80px rgba(0,0,0,.7); position: relative; }
+    .phone-notch { width: 60px; height: 6px; background: #2a2a2a; border-radius: 99px; margin: 0 auto 16px; }
+    .sms-bubble { background: #1c7d4a; border-radius: 16px 16px 4px 16px; padding: 10px 14px; margin-bottom: 8px; }
+    .sms-bubble p { font-size: .78rem; color: #e8e8e8; line-height: 1.5; }
+    .sms-bubble .link { color: #86efac; font-size: .72rem; margin-top: 4px; display: block; }
+    .sms-time { font-size: .65rem; color: #555; text-align: right; margin-top: 4px; }
+    .sms-sender { font-size: .65rem; color: #555; margin-bottom: 6px; text-align: center; }
+    .phone-home { width: 50px; height: 4px; background: #2a2a2a; border-radius: 99px; margin: 14px auto 0; }
+
+    .mockup-copy { max-width: 380px; padding-top: 2rem; }
+    .mockup-copy h2 { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: 1rem; }
+    .mockup-copy p { font-size: .88rem; color: var(--muted); line-height: 1.7; margin-bottom: 1rem; }
+    .stat-inline { font-size: 1.8rem; font-weight: 900; color: var(--green); letter-spacing: -.04em; }
+    .stat-label-sm { font-size: .75rem; color: var(--muted); margin-bottom: 1rem; }
+
+    /* Flow diagram */
+    .flow-section { max-width: 860px; margin: 0 auto 5rem; padding: 0 2rem; text-align: center; }
+    .flow-section h2 { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .5rem; }
+    .flow-section .sub { font-size: .85rem; color: var(--muted); margin-bottom: 2.5rem; }
+    .flow { display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; }
+    .flow-step { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem 1.25rem; width: 220px; text-align: center; }
+    .flow-step .step-num { width: 36px; height: 36px; border-radius: 10px; background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.2); color: var(--accent); font-size: .8rem; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto .75rem; }
+    .flow-step .step-icon { font-size: 1.6rem; margin-bottom: .5rem; }
+    .flow-step h3 { font-size: .88rem; font-weight: 800; margin-bottom: .35rem; }
+    .flow-step p { font-size: .75rem; color: var(--muted); line-height: 1.5; }
+    .flow-arrow { font-size: 1.25rem; color: var(--border); margin: 0 .5rem; flex-shrink: 0; }
+
+    /* CTA */
+    .cta-section { max-width: 520px; margin: 0 auto 6rem; padding: 0 2rem; text-align: center; }
+    .cta-section h2 { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .5rem; }
+    .cta-section .sub { font-size: .85rem; color: var(--muted); margin-bottom: 2rem; }
+    .cta-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; }
+    .cta-form { display: flex; gap: .75rem; flex-wrap: wrap; }
+    .cta-form input { flex: 1; min-width: 200px; background: #0d0d0d; border: 1px solid var(--border); color: var(--text); font-size: .85rem; padding: .65rem .9rem; border-radius: 9px; outline: none; }
+    .cta-form input:focus { border-color: var(--accent); }
+    .cta-form input::placeholder { color: #444; }
+    .btn { padding: .65rem 1.4rem; border-radius: 9px; font-size: .85rem; font-weight: 700; border: none; cursor: pointer; background: var(--accent); color: #fff; transition: opacity .15s; white-space: nowrap; }
+    .btn:hover { opacity: .85; }
+    .success-msg { display: none; font-size: .85rem; color: var(--green); font-weight: 600; padding: .75rem; text-align: center; }
+    .coming-soon-badge { display: inline-block; background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.2); color: #fbbf24; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; padding: .25rem .7rem; border-radius: 99px; margin-bottom: .75rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/" class="back">← Back to RingDesk</a>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-tag">Coming Q4 2026</div>
+  <div class="stars">⭐⭐⭐⭐⭐</div>
+  <h1>Turn happy customers into<br><em>5-star reviews</em> — automatically</h1>
+  <p>24 hours after every appointment, your AI sends a personalized SMS asking for a Google review. No follow-up needed. No awkward asks. Just more 5-star reviews on autopilot.</p>
+</div>
+
+<!-- Phone mockup + copy -->
+<div class="mockup-section">
+  <div class="phone-frame">
+    <div class="phone-notch"></div>
+    <div class="sms-sender">Crown &amp; Blade · Today 3:42 PM</div>
+    <div class="sms-bubble">
+      <p>Hi Marcus, hope your fade with Darius went great today! 💈</p>
+      <p>If you have a minute, we'd love a Google review — it really helps us out:</p>
+      <span class="link">g.page/crownblade/review</span>
+    </div>
+    <div class="sms-time">Delivered ✓✓</div>
+    <div class="phone-home"></div>
+  </div>
+
+  <div class="mockup-copy">
+    <h2>Every review request is personal.</h2>
+    <p>The AI pulls the customer's name, their service, and their barber from the appointment record — so the message never feels like a generic blast.</p>
+    <div class="stat-inline">2.4×</div>
+    <div class="stat-label-sm">more reviews from personalized SMS vs. generic requests</div>
+    <p>Google reviews are the #1 driver of new customers for barbershops and salons. Shops with 4.7+ stars see 34% more walk-ins. RingDesk closes the loop automatically.</p>
+  </div>
+</div>
+
+<!-- 3-step flow -->
+<div class="flow-section">
+  <h2>How it works</h2>
+  <p class="sub">Fully automatic. Zero extra work for you or your staff.</p>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-num">1</div>
+      <div class="step-icon">📅</div>
+      <h3>Appointment Complete</h3>
+      <p>Customer finishes their service. Status updates to "completed" in RingDesk.</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-num">2</div>
+      <div class="step-icon">⏱️</div>
+      <h3>AI Waits 24 Hours</h3>
+      <p>The right time to ask — after the excitement, before the memory fades. Configurable to 1–72 hours.</p>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-num">3</div>
+      <div class="step-icon">📲</div>
+      <h3>Personalized SMS Sent</h3>
+      <p>Customer gets a friendly, personal text with a one-tap link to your Google review page.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Waitlist CTA -->
+<div class="cta-section">
+  <div class="coming-soon-badge">Notify me</div>
+  <h2>Be first when it launches</h2>
+  <p class="sub">This feature is in development. Drop your email and we'll let you know the moment it's live — plus early-access pricing.</p>
+  <div class="cta-card">
+    <div class="cta-form" id="cta-form">
+      <input type="email" id="waitlist-email" placeholder="your@email.com">
+      <button class="btn" onclick="joinWaitlist()">Notify Me</button>
+    </div>
+    <div class="success-msg" id="success-msg">✓ You're on the list! We'll email you when review requests launch.</div>
+  </div>
+</div>
+
+<script>
+  async function joinWaitlist() {
+    const email = document.getElementById('waitlist-email').value.trim();
+    if (!email || !email.includes('@')) return;
+    try {
+      await fetch('/api/signup', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({email, source: 'review_request_waitlist'}),
+      });
+    } catch (e) { /* best-effort */ }
+    document.getElementById('cta-form').style.display = 'none';
+    document.getElementById('success-msg').style.display = 'block';
+  }
+  document.getElementById('waitlist-email').addEventListener('keydown', e => { if (e.key === 'Enter') joinWaitlist(); });
+</script>
+</body>
+</html>

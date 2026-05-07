@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Franchise Location Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .field-row { display: grid; grid-template-columns: 140px 1fr; align-items: center; gap: .6rem; margin-bottom: .65rem; }
+    .field-label { font-size: .78rem; color: var(--muted); }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .7rem; font-family: inherit; width: 100%; outline: none; }
+    .f-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .7rem; font-family: inherit; width: 100%; outline: none; appearance: none; }
+    .toggle { position: relative; width: 34px; height: 19px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #222; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .slider:before { content: ''; position: absolute; width: 13px; height: 13px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: rgba(167,139,250,.3); }
+    input:checked + .slider:before { transform: translateX(15px); background: var(--accent); }
+    .loc-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .6rem; }
+    .loc-header { display: flex; align-items: center; gap: .6rem; margin-bottom: .5rem; }
+    .loc-num { font-size: .68rem; font-weight: 800; color: var(--muted); background: #1e1e1e; padding: .15rem .4rem; border-radius: 4px; }
+    .loc-name { font-size: .9rem; font-weight: 800; flex: 1; }
+    .loc-meta { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .loc-tag { font-size: .63rem; font-weight: 700; padding: .1rem .38rem; border-radius: 4px; background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); }
+    .loc-tag.green { background: rgba(52,211,153,.1); color: var(--green); border-color: rgba(52,211,153,.2); }
+    .loc-tag.yellow { background: rgba(251,191,36,.1); color: var(--yellow); border-color: rgba(251,191,36,.2); }
+    .add-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: .5rem; margin-top: .75rem; }
+    .add-btn { font-size: .72rem; font-weight: 800; padding: .42rem .85rem; border-radius: 7px; border: 1px solid rgba(52,211,153,.35); background: rgba(52,211,153,.1); color: var(--green); cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.4rem; border-radius: 9px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; width: 100%; margin-top: 1rem; }
+    .save-btn:hover { background: rgba(167,139,250,.2); }
+    .saved-msg { font-size: .75rem; color: var(--green); font-weight: 700; text-align: center; margin-top: .5rem; min-height: 1.2em; }
+    .mode-banner { background: rgba(167,139,250,.07); border: 1px solid rgba(167,139,250,.2); border-radius: 10px; padding: .75rem 1rem; margin-bottom: 1.25rem; font-size: .8rem; color: var(--accent); font-weight: 700; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Franchise Location Settings</div>
+  <p class="page-sub">Manage your chain or franchise locations — each location inherits your AI settings but can override greeting, hours, and phone number.</p>
+  <div class="card">
+    <div class="card-title">Franchise Mode</div>
+    <div class="field-row">
+      <span class="field-label">Enable Franchise Mode</span>
+      <label class="toggle"><input type="checkbox" id="f-mode" onchange="toggleMode()"><span class="slider"></span></label>
+    </div>
+    <div class="field-row">
+      <span class="field-label">Brand Name</span>
+      <input class="f-input" id="brand-name" type="text" placeholder="e.g. Luxe Cuts">
+    </div>
+    <div class="field-row">
+      <span class="field-label">Billing Model</span>
+      <select class="f-select" id="billing-model">
+        <option value="per_location">Per-Location</option>
+        <option value="enterprise">Enterprise Flat Rate</option>
+        <option value="revenue_share">Revenue Share</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <span class="field-label">Override Allowed</span>
+      <label class="toggle"><input type="checkbox" id="override-allowed"><span class="slider"></span></label>
+    </div>
+    <div class="mode-banner" id="mode-banner" style="display:none">Franchise mode is active — each location below has its own AI phone number.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Locations</div>
+    <div id="loc-list"></div>
+    <div class="add-grid">
+      <input class="f-input" id="new-loc-name" type="text" placeholder="Location name...">
+      <input class="f-input" id="new-loc-city" type="text" placeholder="City...">
+      <button class="add-btn" onclick="addLoc()">+ Add</button>
+    </div>
+    <button class="save-btn" onclick="save()">Save Franchise Settings</button>
+    <div class="saved-msg" id="saved-msg"></div>
+  </div>
+</div>
+<script>
+  let data = {};
+  function toggleMode() {
+    data.franchise_mode = document.getElementById('f-mode').checked;
+    document.getElementById('mode-banner').style.display = data.franchise_mode ? 'block' : 'none';
+  }
+  function render() {
+    document.getElementById('f-mode').checked = !!data.franchise_mode;
+    document.getElementById('brand-name').value = data.brand_name || '';
+    document.getElementById('override-allowed').checked = !!data.override_allowed;
+    document.getElementById('mode-banner').style.display = data.franchise_mode ? 'block' : 'none';
+    if (data.billing_model) document.getElementById('billing-model').value = data.billing_model;
+    const list = document.getElementById('loc-list');
+    list.innerHTML = (data.locations || []).map((l, i) => `
+      <div class="loc-row">
+        <div class="loc-header">
+          <span class="loc-num">#${i+1}</span>
+          <span class="loc-name">${esc(l.name)}</span>
+          <label class="toggle"><input type="checkbox" ${l.active?'checked':''} onchange="toggleLoc(${i},this.checked)"><span class="slider"></span></label>
+        </div>
+        <div class="loc-meta">
+          <span class="loc-tag">${esc(l.city)}</span>
+          <span class="loc-tag green">${esc(l.phone||'No phone')}</span>
+          <span class="loc-tag yellow">${esc(l.plan||'Standard')}</span>
+        </div>
+      </div>`).join('');
+  }
+  function toggleLoc(i, v) { data.locations[i].active = v; }
+  function addLoc() {
+    const name = document.getElementById('new-loc-name').value.trim();
+    const city = document.getElementById('new-loc-city').value.trim();
+    if (!name) return;
+    data.locations.push({ id: 'loc'+Date.now(), name, city, phone: '', plan: 'Standard', active: true });
+    document.getElementById('new-loc-name').value = '';
+    document.getElementById('new-loc-city').value = '';
+    render();
+  }
+  async function load() {
+    const r = await fetch('/api/franchise-location-settings');
+    data = await r.json();
+    render();
+  }
+  async function save() {
+    data.brand_name = document.getElementById('brand-name').value.trim();
+    data.billing_model = document.getElementById('billing-model').value;
+    data.override_allowed = document.getElementById('override-allowed').checked;
+    await fetch('/api/franchise-location-settings', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const msg = document.getElementById('saved-msg');
+    msg.textContent = '✓ Saved';
+    setTimeout(() => { msg.textContent = ''; }, 2000);
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Conversion Rate — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: 1rem; }
+    .leg-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--muted); }
+    .leg-dot { width: 9px; height: 9px; border-radius: 2px; }
+    .chart-wrap { height: 240px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Booking Conversion Rate</div>
+  <p class="page-sub">Calls received vs. calls converted to bookings — your AI's weekly close rate.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg Conversion Rate</div>
+      <div class="hero-val" id="h-avg" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Latest Week</div>
+      <div class="hero-val" id="h-cur" style="color:var(--accent)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">8-Week Conversion Trend</div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#a78bfa"></div>Calls Received</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#34d399"></div>Converted</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#fbbf24;border-radius:50%"></div>Conversion %</div>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 760 240" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/booking-conversion-rate');
+    const d = await r.json();
+    document.getElementById('h-avg').textContent = d.avg_conversion_pct + '%';
+    const weeks = d.weeks || [];
+    const last = weeks[weeks.length-1];
+    document.getElementById('h-cur').textContent = last ? last.conversion_pct + '%' : '—';
+
+    const svg = document.getElementById('chart');
+    const W=760,H=240,pL=44,pR=44,pT=14,pB=34;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n = weeks.length;
+    const slotW = cW/n;
+    const bW = slotW * 0.3;
+    const maxCalls = Math.max(...weeks.map(w=>w.calls_received), 1);
+
+    // grid lines
+    [0,.25,.5,.75,1].forEach(f => {
+      const y = pT + cH*(1-f);
+      svg.innerHTML += `<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML += `<text x="${pL-4}" y="${y+3}" font-size="8.5" fill="#555" text-anchor="end">${Math.round(maxCalls*f)}</text>`;
+    });
+
+    // right axis: conversion %
+    [0, 50, 100].forEach(v => {
+      const y = pT + cH - v/100*cH;
+      svg.innerHTML += `<text x="${W-pR+4}" y="${y+3}" font-size="8" fill="rgba(251,191,36,.5)" text-anchor="start">${v}%</text>`;
+    });
+
+    // grouped bars
+    weeks.forEach((w,i) => {
+      const cx = pL + i*slotW + slotW/2;
+      const h1 = (w.calls_received/maxCalls)*cH;
+      const h2 = (w.calls_converted/maxCalls)*cH;
+      svg.innerHTML += `<rect x="${cx-bW-1}" y="${pT+cH-h1}" width="${bW}" height="${h1}" rx="2" fill="#a78bfa" opacity=".55"/>`;
+      svg.innerHTML += `<rect x="${cx+1}" y="${pT+cH-h2}" width="${bW}" height="${h2}" rx="2" fill="#34d399" opacity=".7"/>`;
+      svg.innerHTML += `<text x="${cx}" y="${H-4}" font-size="9" fill="#666" text-anchor="middle">${w.week}</text>`;
+    });
+
+    // conversion % line
+    const pts = weeks.map((w,i) => {
+      const cx = pL + i*slotW + slotW/2;
+      const cy = pT + cH - (w.conversion_pct/100)*cH;
+      return [cx, cy];
+    });
+    svg.innerHTML += `<polyline fill="none" stroke="#fbbf24" stroke-width="2" stroke-dasharray="5 3" stroke-linejoin="round" points="${pts.map(p=>p.join(',')).join(' ')}"/>`;
+    pts.forEach((p,i) => {
+      svg.innerHTML += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#fbbf24" opacity=".9"/>`;
+      svg.innerHTML += `<text x="${p[0]}" y="${p[1]-6}" font-size="8" fill="rgba(251,191,36,.8)" text-anchor="middle">${weeks[i].conversion_pct}%</text>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

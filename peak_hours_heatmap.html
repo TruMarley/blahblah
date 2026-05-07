@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Peak Hours Heatmap — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; overflow-x: auto; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .heatmap-table { border-collapse: separate; border-spacing: 3px; min-width: 600px; }
+    .heatmap-table th { font-size: .62rem; font-weight: 700; color: var(--muted); text-align: center; padding: .2rem .3rem; white-space: nowrap; }
+    .heatmap-table th.day-header { text-align: right; padding-right: .6rem; width: 60px; }
+    .heat-cell { width: 44px; height: 34px; border-radius: 6px; text-align: center; vertical-align: middle; font-size: .65rem; font-weight: 800; color: rgba(0,0,0,.6); cursor: default; transition: transform .1s; }
+    .heat-cell:hover { transform: scale(1.12); z-index: 10; position: relative; }
+    .legend-row { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; font-size: .7rem; color: var(--muted); }
+    .legend-grad { flex: 1; max-width: 200px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, #1e1e1e, #34d399, #fbbf24, #f87171); }
+    .tooltip { position: fixed; background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: .4rem .7rem; font-size: .72rem; pointer-events: none; display: none; z-index: 99; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Peak Hours Heatmap</div>
+  <p class="page-sub">Appointment density by day and hour — darker red means higher demand.</p>
+
+  <div class="card">
+    <div class="card-title">Demand Heatmap — Mon to Sun × 8am–8pm</div>
+    <table class="heatmap-table" id="heatmap-tbl">
+      <thead><tr id="heatmap-head"><th class="day-header"></th></tr></thead>
+      <tbody id="heatmap-body"></tbody>
+    </table>
+    <div class="legend-row">
+      <span>Low</span>
+      <div class="legend-grad"></div>
+      <span>High</span>
+    </div>
+  </div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+<script>
+  function intensityColor(v) {
+    // 0=dark, 50=yellow-green, 100=red
+    if (v < 30)  return `rgba(52,211,153,${0.1 + v/30*0.4})`;
+    if (v < 60)  return `rgba(251,191,36,${0.3 + (v-30)/30*0.4})`;
+    return `rgba(248,113,113,${0.5 + (v-60)/40*0.5})`;
+  }
+
+  async function load() {
+    const r = await fetch('/api/analytics/peak-hours-heatmap');
+    const d = await r.json();
+    const heatmap = d.heatmap || [];
+    if (!heatmap.length) return;
+
+    // Header row: hour labels
+    const head = document.getElementById('heatmap-head');
+    heatmap[0].hours.forEach(h => {
+      const th = document.createElement('th');
+      th.textContent = h.label;
+      head.appendChild(th);
+    });
+
+    // Body rows: one per day
+    const body = document.getElementById('heatmap-body');
+    heatmap.forEach(day => {
+      const tr = document.createElement('tr');
+      const th = document.createElement('th');
+      th.className = 'day-header';
+      th.textContent = day.short;
+      tr.appendChild(th);
+      day.hours.forEach(h => {
+        const td = document.createElement('td');
+        td.className = 'heat-cell';
+        td.style.background = intensityColor(h.intensity);
+        td.textContent = h.intensity;
+        td.addEventListener('mouseenter', e => {
+          const tip = document.getElementById('tooltip');
+          tip.textContent = `${day.day} ${h.label} — intensity ${h.intensity}`;
+          tip.style.display = 'block';
+        });
+        td.addEventListener('mousemove', e => {
+          const tip = document.getElementById('tooltip');
+          tip.style.left = (e.clientX + 12) + 'px';
+          tip.style.top  = (e.clientY + 12) + 'px';
+        });
+        td.addEventListener('mouseleave', () => {
+          document.getElementById('tooltip').style.display = 'none';
+        });
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+  }
+  load();
+</script>
+</body>
+</html>

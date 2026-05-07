@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Popularity Trend — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; flex-wrap: wrap; gap: .6rem 1.1rem; margin-bottom: .85rem; }
+    .leg-item { display: flex; align-items: center; gap: .35rem; font-size: .7rem; color: var(--muted); }
+    .leg-line { width: 18px; height: 2px; border-radius: 1px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Service Popularity Trend</div>
+  <p class="page-sub">See which services are gaining or losing demand month over month. Spot seasonal patterns and optimize your service menu accordingly.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Top Service (Total Bookings)</div>
+      <div class="hero-val" id="h-top" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Fastest Growing</div>
+      <div class="hero-val" id="h-grow" style="color:var(--green)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">6-Month Booking Trend by Service</div>
+    <div class="legend" id="legend"></div>
+    <svg id="chart" viewBox="0 0 700 260" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+</div>
+<script>
+  const PALETTE = ['#a78bfa','#34d399','#fbbf24','#f87171','#60a5fa','#fb923c','#a3e635'];
+
+  async function load() {
+    const d = await fetch('/api/analytics/service-booking-trend').then(r => r.json());
+    const services = d.services || [];
+    const months = d.months || [];
+    const data = d.data || {};
+    if (!services.length || !months.length) return;
+
+    // Top service by total
+    const totals = services.map(s => ({ s, total: (data[s]||[]).reduce((a,b)=>a+b,0) }));
+    const topSvc = totals.reduce((a,b)=>b.total>a.total?b:a,totals[0]);
+
+    // Fastest growing: compare last 3 vs first 3 months
+    const n = months.length;
+    const half = Math.floor(n/2);
+    const growth = services.map(s => {
+      const vals = data[s]||[];
+      const first = vals.slice(0,half).reduce((a,b)=>a+b,0)/half;
+      const last = vals.slice(half).reduce((a,b)=>a+b,0)/(n-half);
+      return { s, growth: last - first };
+    });
+    const fastestGrow = growth.reduce((a,b)=>b.growth>a.growth?b:a,growth[0]);
+
+    document.getElementById('h-top').textContent = topSvc ? topSvc.s : '—';
+    document.getElementById('h-grow').textContent = fastestGrow ? fastestGrow.s : '—';
+
+    // Legend
+    document.getElementById('legend').innerHTML = services.map((s,i)=>
+      `<div class="leg-item"><div class="leg-line" style="background:${PALETTE[i%PALETTE.length]}"></div>${esc(s)}</div>`
+    ).join('');
+
+    const W=700, H=260, padL=36, padR=16, padT=16, padB=36;
+    const chartW=W-padL-padR, chartH=H-padT-padB;
+    const m=months.length, step=m>1?chartW/(m-1):chartW;
+    const allVals=services.flatMap(s=>data[s]||[]);
+    const maxVal=Math.max(...allVals,1);
+
+    let paths='', dots='', labels='';
+    services.forEach((s,si)=>{
+      const color=PALETTE[si%PALETTE.length];
+      const pts=(data[s]||[]).map((v,mi)=>({
+        x: padL+mi*step,
+        y: padT+chartH-(v/maxVal)*chartH
+      }));
+      if(!pts.length) return;
+      const linePath=`M${pts[0].x},${pts[0].y} `+pts.slice(1).map(p=>`L${p.x},${p.y}`).join(' ');
+      paths+=`<path d="${linePath}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" opacity=".85"/>`;
+      pts.forEach(p=>{ dots+=`<circle cx="${p.x}" cy="${p.y}" r="3" fill="${color}" stroke="var(--bg)" stroke-width="1.5"/>`; });
+    });
+
+    months.forEach((m,mi)=>{
+      labels+=`<text x="${padL+mi*step}" y="${H-padB+14}" text-anchor="middle" fill="#555" font-size="9">${esc(m)}</text>`;
+    });
+
+    let yAxis='';
+    for(let t=0;t<=4;t++){
+      const yv=Math.round(maxVal*t/4);
+      const yp=padT+chartH-(t/4)*chartH;
+      yAxis+=`<line x1="${padL}" x2="${W-padR}" y1="${yp}" y2="${yp}" stroke="#1e1e1e" stroke-width="1"/>`;
+      yAxis+=`<text x="${padL-5}" y="${yp+4}" text-anchor="end" fill="#444" font-size="8">${yv}</text>`;
+    }
+
+    document.getElementById('chart').innerHTML=yAxis+paths+dots+labels;
+  }
+
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

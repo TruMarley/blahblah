@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.env
+
+# Runtime JSON data files (seeded on first load)
+*.json
+
+# Server logs
+*.log
+nohup.out
+
+# macOS
+.DS_Store

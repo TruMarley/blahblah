@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Tips — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; text-align: center; margin-bottom: 1.25rem; }
+    .hero-val { font-size: 3rem; font-weight: 900; color: var(--yellow); }
+    .hero-sub { font-size: .82rem; color: var(--muted); margin-top: .35rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .staff-tip-row { display: flex; align-items: center; gap: .85rem; margin-bottom: .9rem; }
+    .staff-tip-row:last-child { margin-bottom: 0; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: rgba(167,139,250,.15); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: .82rem; color: var(--accent); flex-shrink: 0; }
+    .staff-name { font-weight: 800; font-size: .85rem; flex-shrink: 0; width: 140px; }
+    .bar-track { flex: 1; background: var(--surface2); border-radius: 5px; height: 8px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 5px; background: var(--yellow); opacity: .8; }
+    .tip-total { font-size: .85rem; font-weight: 900; color: var(--yellow); width: 64px; text-align: right; flex-shrink: 0; }
+    .tip-avg { font-size: .72rem; color: var(--muted); width: 56px; text-align: right; flex-shrink: 0; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .55rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th:last-child { text-align: right; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .65rem 1rem; font-size: .82rem; }
+    tbody td:last-child { text-align: right; font-weight: 800; color: var(--yellow); }
+    .staff-select { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+    .staff-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-size: .75rem; font-weight: 700; padding: .35rem .85rem; border-radius: 99px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .staff-btn.active { background: rgba(167,139,250,.12); border-color: rgba(167,139,250,.4); color: var(--accent); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Tips</div>
+  <p class="page-sub">Tip totals and recent gratuities per team member — last 30 days.</p>
+  <div class="hero">
+    <div class="hero-val" id="h-total">—</div>
+    <div class="hero-sub">total tips across all staff this month</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Tips by Staff Member</div>
+    <div id="staff-bars"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Recent Tips</div>
+    <div class="staff-select" id="staff-select"></div>
+    <table>
+      <thead><tr><th>Date</th><th>From Client</th><th>Amount</th></tr></thead>
+      <tbody id="tips-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  let allStaff = [];
+  let activeId = null;
+
+  async function load() {
+    const r = await fetch('/api/staff-tips/all');
+    const d = await r.json();
+    allStaff = d.staff || [];
+    document.getElementById('h-total').textContent = '$' + (d.grand_total || 0).toLocaleString();
+
+    const maxTip = Math.max(...allStaff.map(s => s.total_tips), 1);
+    document.getElementById('staff-bars').innerHTML = allStaff.map(s => {
+      const initials = s.staff_name.split(' ').map(n=>n[0]).join('');
+      return `<div class="staff-tip-row">
+        <div class="avatar">${initials}</div>
+        <div class="staff-name">${esc(s.staff_name)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(s.total_tips/maxTip*100).toFixed(1)}%"></div></div>
+        <div class="tip-total">$${s.total_tips}</div>
+        <div class="tip-avg">avg $${s.avg_tip}</div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('staff-select').innerHTML = allStaff.map(s =>
+      `<button class="staff-btn${s.staff_id === activeId ? ' active' : ''}" onclick="selectStaff('${s.staff_id}', this)">${esc(s.staff_name.split(' ')[0])}</button>`
+    ).join('');
+
+    if (!activeId && allStaff.length) selectStaffById(allStaff[0].staff_id);
+  }
+
+  function selectStaff(id, btn) {
+    document.querySelectorAll('.staff-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeId = id;
+    const s = allStaff.find(x => x.staff_id === id);
+    if (s) renderTips(s.recent_tips);
+  }
+
+  function selectStaffById(id) {
+    activeId = id;
+    const s = allStaff.find(x => x.staff_id === id);
+    if (s) renderTips(s.recent_tips);
+  }
+
+  function renderTips(tips) {
+    document.getElementById('tips-tbody').innerHTML = (tips || []).map(t =>
+      `<tr>
+        <td style="color:var(--muted)">${esc(t.date)}</td>
+        <td>${esc(t.from_client)}</td>
+        <td>$${t.amount}</td>
+      </tr>`).join('');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

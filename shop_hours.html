@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shop Hours — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: .5rem; }
+    .info-banner { background: rgba(167,139,250,.07); border: 1px solid rgba(167,139,250,.18); border-radius: 10px; padding: .75rem 1rem; font-size: .8rem; color: var(--accent); margin-bottom: 2rem; }
+    .hours-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 1.5rem; }
+    .hours-header { display: grid; grid-template-columns: 130px 80px 1fr 1fr 1fr 1fr; gap: 0; padding: .55rem 1.25rem; border-bottom: 1px solid var(--border); }
+    .hours-header span { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .day-row { display: grid; grid-template-columns: 130px 80px 1fr 1fr 1fr 1fr; gap: .5rem; align-items: center; padding: .85rem 1.25rem; border-bottom: 1px solid var(--border); transition: background .1s; }
+    .day-row:last-child { border-bottom: none; }
+    .day-row.closed { opacity: .5; }
+    .day-name { font-size: .88rem; font-weight: 700; }
+    .toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #2a2a2a; border-radius: 99px; transition: .2s; border: 1px solid var(--border); }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: rgba(52,211,153,.25); border-color: rgba(52,211,153,.4); }
+    input:checked + .slider:before { background: var(--green); transform: translateX(18px); }
+    .time-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: .8rem; padding: .38rem .55rem; border-radius: 7px; font-family: inherit; outline: none; width: 90px; }
+    .time-input:focus { border-color: var(--accent); }
+    .time-input:disabled { opacity: .3; cursor: not-allowed; }
+    .break-label { font-size: .65rem; color: var(--muted); text-align: center; margin-bottom: .1rem; }
+    .break-wrap { display: flex; flex-direction: column; }
+    .save-row { display: flex; align-items: center; justify-content: flex-end; gap: 1rem; }
+    .save-btn { background: var(--accent); color: #fff; border: none; font-size: .9rem; font-weight: 800; padding: .65rem 1.5rem; border-radius: 10px; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+    .save-btn:hover { opacity: .85; }
+    .save-hint { font-size: .75rem; color: var(--muted); }
+    .toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--green); color: #000; font-weight: 800; font-size: .85rem; padding: .75rem 1.25rem; border-radius: 10px; transform: translateY(80px); opacity: 0; transition: all .3s; z-index: 999; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Shop Hours</div>
+  <p class="page-sub">Set your operating hours for each day of the week.</p>
+  <div class="info-banner">📞 When your shop is open = when your AI takes bookings. Calls outside these hours get a voicemail with your next available slot.</div>
+
+  <div class="hours-card">
+    <div class="hours-header">
+      <span>Day</span>
+      <span>Open</span>
+      <span>Opens</span>
+      <span>Closes</span>
+      <span>Break Start</span>
+      <span>Break End</span>
+    </div>
+    <div id="rows-wrap"></div>
+  </div>
+
+  <div class="save-row">
+    <span class="save-hint">Changes apply to AI booking immediately after saving.</span>
+    <button class="save-btn" onclick="save()">Save Hours</button>
+  </div>
+</div>
+<div class="toast" id="toast">✓ Hours saved!</div>
+<script>
+  let hours = [];
+
+  async function load() {
+    const r = await fetch('/api/shop/hours');
+    const d = await r.json();
+    hours = d.hours || [];
+    render();
+  }
+
+  function render() {
+    document.getElementById('rows-wrap').innerHTML = hours.map((h, i) => {
+      const closed = !h.open;
+      return `<div class="day-row${closed ? ' closed' : ''}" id="row-${i}">
+        <div class="day-name">${esc(h.day)}</div>
+        <label class="toggle">
+          <input type="checkbox" ${h.open ? 'checked' : ''} onchange="toggleDay(${i}, this.checked)">
+          <span class="slider"></span>
+        </label>
+        <div>
+          <input class="time-input" type="time" id="start-${i}" value="${h.start_time}" ${closed ? 'disabled' : ''}>
+        </div>
+        <div>
+          <input class="time-input" type="time" id="end-${i}" value="${h.end_time}" ${closed ? 'disabled' : ''}>
+        </div>
+        <div class="break-wrap">
+          <input class="time-input" type="time" id="bs-${i}" value="${h.break_start || ''}" ${closed ? 'disabled' : ''} placeholder="—">
+        </div>
+        <div class="break-wrap">
+          <input class="time-input" type="time" id="be-${i}" value="${h.break_end || ''}" ${closed ? 'disabled' : ''} placeholder="—">
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function toggleDay(i, isOpen) {
+    hours[i].open = isOpen;
+    const row = document.getElementById(`row-${i}`);
+    row.classList.toggle('closed', !isOpen);
+    ['start', 'end', 'bs', 'be'].forEach(p => {
+      const el = document.getElementById(`${p}-${i}`);
+      if (el) el.disabled = !isOpen;
+    });
+  }
+
+  async function save() {
+    hours.forEach((h, i) => {
+      h.start_time = document.getElementById(`start-${i}`)?.value || h.start_time;
+      h.end_time = document.getElementById(`end-${i}`)?.value || h.end_time;
+      h.break_start = document.getElementById(`bs-${i}`)?.value || '';
+      h.break_end = document.getElementById(`be-${i}`)?.value || '';
+    });
+    await fetch('/api/shop/hours', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({hours}) });
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

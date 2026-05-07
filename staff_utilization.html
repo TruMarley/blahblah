@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Utilization — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .section-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    /* Utilization bars */
+    .util-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.1rem; }
+    .util-name { width: 110px; flex-shrink: 0; font-size: .82rem; font-weight: 700; }
+    .util-bar-wrap { flex: 1; position: relative; height: 28px; background: var(--surface2); border-radius: 8px; overflow: hidden; }
+    .util-bar { height: 100%; border-radius: 8px; display: flex; align-items: center; padding-left: .6rem; transition: width .8s ease; }
+    .util-bar .bar-label { font-size: .7rem; font-weight: 800; color: rgba(255,255,255,.85); white-space: nowrap; }
+    .util-meta { width: 120px; flex-shrink: 0; text-align: right; }
+    .util-pct { font-size: .88rem; font-weight: 900; }
+    .util-hrs { font-size: .68rem; color: var(--muted); margin-top: .1rem; }
+    /* Revenue per hour bars */
+    .rev-row { display: flex; align-items: center; gap: 1rem; margin-bottom: .9rem; }
+    .rev-name { width: 110px; flex-shrink: 0; font-size: .82rem; font-weight: 700; }
+    .rev-track { flex: 1; background: var(--surface2); border-radius: 99px; height: 18px; overflow: hidden; }
+    .rev-fill { height: 18px; border-radius: 99px; background: var(--accent); opacity: .8; transition: width .8s ease; }
+    .rev-val { width: 70px; flex-shrink: 0; text-align: right; font-size: .82rem; font-weight: 800; color: var(--accent); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Utilization</div>
+  <p class="page-sub">Scheduled vs. worked hours and revenue per hour by staff member.</p>
+
+  <div class="card">
+    <div class="section-title">Utilization Rate (Worked / Scheduled Hours)</div>
+    <div id="util-bars"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Revenue Per Hour</div>
+    <div id="rev-bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/staff-utilization');
+    const d = await r.json();
+    const staff = d.staff || [];
+
+    const maxRev = Math.max(...staff.map(s => s.revenue_per_hour || 0), 1);
+
+    document.getElementById('util-bars').innerHTML = staff.map(s => {
+      const pct = Math.round(s.utilization_pct || 0);
+      const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--yellow)' : 'var(--red)';
+      return `<div class="util-row">
+        <div class="util-name">${esc(s.staff_name)}</div>
+        <div class="util-bar-wrap">
+          <div class="util-bar" style="width:0%;background:${color}" data-w="${pct}">
+            <span class="bar-label">${s.worked_hours}h worked</span>
+          </div>
+        </div>
+        <div class="util-meta">
+          <div class="util-pct" style="color:${color}">${pct}%</div>
+          <div class="util-hrs">${s.worked_hours}h / ${s.scheduled_hours}h</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('rev-bars').innerHTML = staff.map(s => {
+      const rph = s.revenue_per_hour || 0;
+      const pct = Math.round((rph / maxRev) * 100);
+      return `<div class="rev-row">
+        <div class="rev-name">${esc(s.staff_name)}</div>
+        <div class="rev-track"><div class="rev-fill" style="width:0%" data-w="${pct}"></div></div>
+        <div class="rev-val">$${rph.toFixed(0)}/hr</div>
+      </div>`;
+    }).join('');
+
+    setTimeout(() => {
+      document.querySelectorAll('[data-w]').forEach(el => { el.style.width = el.dataset.w + '%'; });
+    }, 100);
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

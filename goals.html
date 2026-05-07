@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Goals — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    nav a.back:hover { color: var(--text); }
+    .shell { max-width: 800px; margin: 0 auto; padding: 2.5rem 1.5rem 6rem; }
+    .page-header { margin-bottom: 2rem; }
+    .page-header h1 { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-header p { font-size: .84rem; color: var(--muted); }
+    .goals-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
+    .goal-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; transition: border-color .2s; }
+    .goal-card.on-track { border-color: rgba(52,211,153,.25); }
+    .goal-card.warning  { border-color: rgba(251,191,36,.25); }
+    .goal-card.behind   { border-color: rgba(248,113,113,.25); }
+    .card-title { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .09em; text-align: center; }
+    /* Progress ring */
+    .ring-wrap { position: relative; width: 120px; height: 120px; }
+    .ring-svg { width: 120px; height: 120px; transform: rotate(-90deg); }
+    .ring-track { fill: none; stroke: var(--surface2); stroke-width: 10; }
+    .ring-fill  { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset .6s ease, stroke .3s; }
+    .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ring-pct { font-size: 1.35rem; font-weight: 900; letter-spacing: -.04em; line-height: 1; }
+    .ring-label { font-size: .62rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-top: .15rem; }
+    /* Badge */
+    .pct-badge { font-size: .68rem; font-weight: 700; padding: .2rem .55rem; border-radius: 99px; }
+    .badge-green  { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .badge-yellow { background: rgba(251,191,36,.1);  color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+    .badge-red    { background: rgba(248,113,113,.1); color: var(--red);    border: 1px solid rgba(248,113,113,.2); }
+    /* Input */
+    .goal-input-wrap { display: flex; flex-direction: column; align-items: center; gap: .3rem; width: 100%; }
+    .goal-input-wrap label { font-size: .72rem; color: var(--muted); }
+    .goal-input { width: 100%; background: #0d0d0d; border: 1px solid var(--border); color: var(--text); font-size: .92rem; font-weight: 700; text-align: center; padding: .5rem; border-radius: 8px; outline: none; transition: border-color .15s; }
+    .goal-input:focus { border-color: var(--accent); }
+    .sub-vals { font-size: .78rem; color: var(--muted); text-align: center; line-height: 1.5; }
+    .sub-vals strong { color: var(--text); }
+    /* Save bar */
+    .save-bar { position: sticky; bottom: 0; background: rgba(8,8,8,.96); border-top: 1px solid var(--border); padding: .9rem 1.5rem; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(8px); }
+    .save-msg { font-size: .8rem; color: var(--green); display: none; }
+    .save-msg.show { display: block; }
+    .btn { padding: .7rem 1.75rem; border-radius: 10px; font-size: .88rem; font-weight: 700; border: none; cursor: pointer; background: var(--accent); color: #fff; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="shell">
+  <div class="page-header">
+    <h1>Monthly Goals</h1>
+    <p>Set targets for your shop. Track progress in real time.</p>
+  </div>
+  <div class="goals-grid" id="goals-grid">
+    <!-- Rendered by JS -->
+    <div style="color:var(--muted);font-size:.85rem;grid-column:1/-1">Loading goals…</div>
+  </div>
+</div>
+<div class="save-bar">
+  <div class="save-msg" id="save-msg">✓ Goals saved</div>
+  <button class="btn" onclick="saveGoals()">Save goals</button>
+</div>
+<script>
+  const CIRC = 2 * Math.PI * 50; // r=50
+  let goals = { monthly_bookings: 60, monthly_revenue: 3900, no_show_target_pct: 8 };
+  let progress = { bookings_this_month: 0, revenue_est: 0, current_no_show_pct: 0, bookings_pct: 0, revenue_pct: 0 };
+
+  function ringColor(pct, invert) {
+    const v = invert ? (pct >= 1 ? 0 : 1 - pct) : pct;
+    if (v >= 1) return '#34d399';
+    if (v >= 0.7) return '#fbbf24';
+    return '#f87171';
+  }
+
+  function badgeClass(pct, invert) {
+    const v = invert ? (pct <= 1 ? 1 : 0) : pct;
+    if (v >= 1) return 'badge-green';
+    if (v >= 0.7) return 'badge-yellow';
+    return 'badge-red';
+  }
+
+  function statusClass(pct, invert) {
+    const v = invert ? (pct <= 1 ? 1 : 0) : pct;
+    return v >= 1 ? 'on-track' : v >= 0.7 ? 'warning' : 'behind';
+  }
+
+  function makeRing(pct, invert) {
+    const clamp = Math.min(Math.max(pct, 0), 1);
+    const color = ringColor(pct, invert);
+    const offset = CIRC * (1 - (invert ? Math.min(1, 1 - (pct - 1)) : clamp));
+    const displayPct = invert
+      ? (pct <= 1 ? Math.round((1 - pct) * 100 + 100) : Math.round((1 / pct) * 100))
+      : Math.round(clamp * 100);
+    return { color, offset: CIRC * (1 - Math.min(clamp, invert ? Math.min(1, 1/Math.max(pct,0.01)) : clamp)), displayPct };
+  }
+
+  function renderCard(id, title, currentVal, goalVal, pct, unit, invert, inputId) {
+    const { color, offset, displayPct } = makeRing(pct, invert);
+    const sc = statusClass(pct, invert);
+    const bc = badgeClass(pct, invert);
+    const pctLabel = invert
+      ? (pct <= 1 ? 'On target' : Math.round((pct - 1) * 100) + '% over')
+      : displayPct + '%';
+    return `
+    <div class="goal-card ${sc}" id="card-${id}">
+      <div class="card-title">${title}</div>
+      <div class="ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 120 120">
+          <circle class="ring-track" cx="60" cy="60" r="50"/>
+          <circle class="ring-fill" cx="60" cy="60" r="50"
+            stroke="${color}"
+            stroke-dasharray="${CIRC}"
+            stroke-dashoffset="${CIRC * (1 - Math.min(1, invert ? (pct <= 1 ? pct : 1) : pct))}"/>
+        </svg>
+        <div class="ring-center">
+          <span class="ring-pct" style="color:${color}">${displayPct}%</span>
+          <span class="ring-label">${invert ? 'target' : 'of goal'}</span>
+        </div>
+      </div>
+      <span class="pct-badge ${bc}">${pctLabel}</span>
+      <div class="goal-input-wrap">
+        <label>Goal (${unit})</label>
+        <input class="goal-input" id="${inputId}" type="number" value="${goalVal}" min="0" oninput="updateCard('${id}')">
+      </div>
+      <div class="sub-vals"><strong>${unit === '%' ? currentVal + '%' : (unit === '$' ? '$' + currentVal.toLocaleString() : currentVal)}</strong> this month of ${unit === '$' ? '$' + goalVal.toLocaleString() : goalVal + (unit === '%' ? '%' : '')} goal</div>
+    </div>`;
+  }
+
+  function render() {
+    const bPct = goals.monthly_bookings > 0 ? progress.bookings_this_month / goals.monthly_bookings : 0;
+    const rPct = goals.monthly_revenue > 0 ? progress.revenue_est / goals.monthly_revenue : 0;
+    const nsPct = goals.no_show_target_pct > 0 ? progress.current_no_show_pct / goals.no_show_target_pct : 0;
+    document.getElementById('goals-grid').innerHTML =
+      renderCard('bookings', 'Monthly Bookings', progress.bookings_this_month, goals.monthly_bookings, bPct, 'bookings', false, 'inp-bookings') +
+      renderCard('revenue',  'Monthly Revenue',  progress.revenue_est,         goals.monthly_revenue,  rPct, '$',        false, 'inp-revenue') +
+      renderCard('noshows',  'No-Show Rate Target', progress.current_no_show_pct, goals.no_show_target_pct, nsPct, '%', true, 'inp-noshows');
+  }
+
+  function updateCard(id) {
+    if (id === 'bookings') goals.monthly_bookings = parseInt(document.getElementById('inp-bookings').value) || 60;
+    if (id === 'revenue')  goals.monthly_revenue  = parseInt(document.getElementById('inp-revenue').value)  || 3900;
+    if (id === 'noshows')  goals.no_show_target_pct = parseFloat(document.getElementById('inp-noshows').value) || 8;
+    render();
+  }
+
+  async function saveGoals() {
+    try {
+      await fetch('/api/goals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          monthly_bookings: goals.monthly_bookings,
+          monthly_revenue: goals.monthly_revenue,
+          no_show_target_pct: goals.no_show_target_pct,
+        }),
+      });
+    } catch(e) {}
+    const el = document.getElementById('save-msg');
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  fetch('/api/goals').then(r => r.json()).then(d => {
+    goals = { ...goals, ...d.goals };
+    progress = { ...progress, ...d.progress };
+    render();
+  }).catch(() => render());
+</script>
+</body>
+</html>

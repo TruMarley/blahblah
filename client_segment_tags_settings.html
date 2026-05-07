@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Tags — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input:focus { border-color: var(--accent); }
+    .tag-card { border-radius: 12px; border: 1px solid var(--border); background: var(--surface2); padding: .85rem 1rem; margin-bottom: .5rem; border-left: 4px solid transparent; display: flex; align-items: center; gap: .85rem; }
+    .tag-name { font-size: .9rem; font-weight: 800; flex: 1; }
+    .tag-count { font-size: .75rem; color: var(--muted); font-weight: 600; }
+    .auto-badge { font-size: .62rem; font-weight: 700; padding: .1rem .38rem; border-radius: 5px; background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.22); }
+    .manual-badge { font-size: .62rem; font-weight: 700; padding: .1rem .38rem; border-radius: 5px; background: rgba(102,102,102,.1); color: var(--muted); border: 1px solid rgba(102,102,102,.2); }
+    .tag-inactive { opacity: .4; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Segment Tags</div>
+  <p class="page-sub">Automatically classify clients into segments based on behavior. Your AI uses tags to personalize tone — treating VIPs differently from at-risk clients on every call.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-tagged" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Tagged Clients</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-applied" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Tags Applied (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-tag-count" style="color:var(--muted)">—</div>
+      <div class="stat-lbl">Active Tags</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Auto-Tagging Rules</div>
+    <div class="row">
+      <div><div class="row-label">Enable Client Tags</div><div class="row-sub">Activate segment tagging system</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Tag on Booking</div><div class="row-sub">Apply tags when appointment is confirmed</div></div>
+      <label class="toggle"><input type="checkbox" id="auto-booking"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Tag on No-Show</div><div class="row-sub">Apply no-show history tag automatically</div></div>
+      <label class="toggle"><input type="checkbox" id="auto-no-show"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">VIP Threshold (visits)</div><div class="row-sub">Auto-tag as VIP after this many visits</div></div>
+      <input type="number" id="vip-threshold" min="1" max="50">
+    </div>
+    <div class="row">
+      <div><div class="row-label">At-Risk Inactivity (days)</div><div class="row-sub">Auto-tag At Risk after this many inactive days</div></div>
+      <input type="number" id="at-risk-days" min="14" max="365">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Show Tags in AI Context</div><div class="row-sub">AI sees client tags before each call</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-context"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Uses Tags for Tone</div><div class="row-sub">AI adjusts communication style per segment</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-tone"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Tag Settings</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Tag Library</div>
+    <div id="tag-list"></div>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/client-segment-tags-cfg').then(r => r.json());
+    document.getElementById('h-tagged').textContent = data.total_tagged_clients;
+    document.getElementById('h-applied').textContent = data.tags_applied_30d;
+    const activeTags = (data.tags || []).filter(t => t.active).length;
+    document.getElementById('h-tag-count').textContent = activeTags;
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('auto-booking').checked = data.auto_tag_on_booking;
+    document.getElementById('auto-no-show').checked = data.auto_tag_on_no_show;
+    document.getElementById('vip-threshold').value = data.auto_tag_vip_threshold_visits;
+    document.getElementById('at-risk-days').value = data.auto_tag_at_risk_inactive_days;
+    document.getElementById('ai-context').checked = data.show_tags_in_ai_context;
+    document.getElementById('ai-tone').checked = data.ai_uses_tags_for_tone;
+
+    const list = document.getElementById('tag-list');
+    (data.tags || []).forEach(tag => {
+      const card = document.createElement('div');
+      card.className = 'tag-card' + (tag.active ? '' : ' tag-inactive');
+      card.style.borderLeftColor = tag.color;
+      const badge = tag.auto
+        ? '<span class="auto-badge">auto</span>'
+        : '<span class="manual-badge">manual</span>';
+      card.innerHTML = `
+        <div class="tag-name" style="color:${tag.color}">${tag.name}</div>
+        ${badge}
+        <div class="tag-count">${tag.client_count} clients</div>
+        <label class="toggle"><input type="checkbox" class="tag-toggle" data-id="${tag.id}" ${tag.active?'checked':''}><span class="slider"></span></label>
+      `;
+      list.appendChild(card);
+    });
+    list.querySelectorAll('.tag-toggle').forEach(cb => cb.addEventListener('change', e => {
+      const t = data.tags.find(x => x.id === e.target.dataset.id);
+      if (t) t.active = e.target.checked;
+    }));
+  }
+
+  async function save() {
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      auto_tag_on_booking: document.getElementById('auto-booking').checked,
+      auto_tag_on_no_show: document.getElementById('auto-no-show').checked,
+      auto_tag_vip_threshold_visits: parseInt(document.getElementById('vip-threshold').value) || 10,
+      auto_tag_at_risk_inactive_days: parseInt(document.getElementById('at-risk-days').value) || 60,
+      show_tags_in_ai_context: document.getElementById('ai-context').checked,
+      ai_uses_tags_for_tone: document.getElementById('ai-tone').checked,
+    };
+    await fetch('/api/settings/client-segment-tags-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

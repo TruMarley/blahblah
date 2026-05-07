@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk Weekly Digest</title>
+</head>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+
+  <!-- Email wrapper -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0a0a0a;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#1a1030 0%,#111 100%);border-radius:16px 16px 0 0;padding:32px 40px;border:1px solid #2a1f4a;border-bottom:none;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.03em;">Ring<span style="color:#a78bfa">Desk</span></div>
+                    <div style="font-size:12px;color:#6b7280;margin-top:4px;text-transform:uppercase;letter-spacing:0.08em;">Weekly Digest</div>
+                  </td>
+                  <td align="right">
+                    <div style="font-size:12px;color:#6b7280;">{{WEEK_RANGE}}</div>
+                    <div style="font-size:11px;color:#4b5563;margin-top:2px;">{{BUSINESS_NAME}}</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Hero stat -->
+          <tr>
+            <td style="background:#111;border:1px solid #1e1e1e;border-top:none;border-bottom:none;padding:32px 40px;text-align:center;">
+              <div style="font-size:12px;color:#7c3aed;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">THIS WEEK</div>
+              <div style="font-size:56px;font-weight:900;color:#fff;line-height:1;letter-spacing:-0.04em;">{{BOOKINGS_THIS_WEEK}}</div>
+              <div style="font-size:14px;color:#9ca3af;margin-top:8px;">appointments booked by your AI</div>
+              <div style="margin-top:16px;">
+                <span style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);color:#22c55e;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;">
+                  {{WEEK_CHANGE}} vs last week
+                </span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Stats grid -->
+          <tr>
+            <td style="background:#111;border:1px solid #1e1e1e;border-top:1px solid #1e1e1e;border-bottom:none;padding:0 40px 24px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="25%" style="padding:8px 8px 8px 0;">
+                    <div style="background:#161616;border:1px solid #1e1e1e;border-radius:10px;padding:16px;text-align:center;">
+                      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Missed Calls</div>
+                      <div style="font-size:24px;font-weight:800;color:#f87171;">{{MISSED_CALLS}}</div>
+                    </div>
+                  </td>
+                  <td width="25%" style="padding:8px 4px;">
+                    <div style="background:#161616;border:1px solid #1e1e1e;border-radius:10px;padding:16px;text-align:center;">
+                      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">New Clients</div>
+                      <div style="font-size:24px;font-weight:800;color:#60a5fa;">{{NEW_CLIENTS}}</div>
+                    </div>
+                  </td>
+                  <td width="25%" style="padding:8px 4px;">
+                    <div style="background:#161616;border:1px solid #1e1e1e;border-radius:10px;padding:16px;text-align:center;">
+                      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Returning</div>
+                      <div style="font-size:24px;font-weight:800;color:#a78bfa;">{{RETURNING_CLIENTS}}</div>
+                    </div>
+                  </td>
+                  <td width="25%" style="padding:8px 0 8px 8px;">
+                    <div style="background:#161616;border:1px solid #1e1e1e;border-radius:10px;padding:16px;text-align:center;">
+                      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Est. Revenue</div>
+                      <div style="font-size:24px;font-weight:800;color:#fbbf24;">${{EST_REVENUE}}</div>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Top service + Best day -->
+          <tr>
+            <td style="background:#111;border:1px solid #1e1e1e;border-top:1px solid #1e1e1e;border-bottom:none;padding:0 40px 24px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="48%" style="padding-right:12px;vertical-align:top;">
+                    <div style="background:#161616;border:1px solid #1e1e1e;border-radius:10px;padding:20px;">
+                      <div style="font-size:11px;color:#7c3aed;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">🏆 Top Service</div>
+                      <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:4px;">{{TOP_SERVICE}}</div>
+                      <div style="font-size:12px;color:#6b7280;">{{TOP_SERVICE_COUNT}} bookings this week</div>
+                      <div style="background:#1e1e1e;border-radius:4px;height:4px;margin-top:12px;overflow:hidden;">
+                        <div style="background:#7c3aed;height:4px;width:{{TOP_SERVICE_PCT}}%;border-radius:4px;"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td width="4%"></td>
+                  <td width="48%" style="vertical-align:top;">
+                    <div style="background:#161616;border:1px solid #1e1e1e;border-radius:10px;padding:20px;">
+                      <div style="font-size:11px;color:#22c55e;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">📅 Busiest Day</div>
+                      <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:4px;">{{BEST_DAY}}</div>
+                      <div style="font-size:12px;color:#6b7280;">{{BEST_DAY_COUNT}} bookings — plan accordingly</div>
+                      <div style="background:#1e1e1e;border-radius:4px;height:4px;margin-top:12px;overflow:hidden;">
+                        <div style="background:#22c55e;height:4px;width:{{BEST_DAY_PCT}}%;border-radius:4px;"></div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Tip of the week -->
+          <tr>
+            <td style="background:#111;border:1px solid #1e1e1e;border-top:1px solid #1e1e1e;border-bottom:none;padding:0 40px 24px;">
+              <div style="background:linear-gradient(135deg,rgba(124,58,237,0.12) 0%,rgba(99,102,241,0.08) 100%);border:1px solid rgba(124,58,237,0.25);border-radius:12px;padding:20px 24px;">
+                <div style="font-size:11px;color:#a78bfa;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">💡 Tip of the Week</div>
+                <div style="font-size:14px;color:#e8e8e8;line-height:1.7;font-weight:500;">{{TIP_TITLE}}</div>
+                <div style="font-size:13px;color:#9ca3af;line-height:1.7;margin-top:6px;">{{TIP_BODY}}</div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- CTA -->
+          <tr>
+            <td style="background:#111;border:1px solid #1e1e1e;border-top:1px solid #1e1e1e;border-radius:0 0 16px 16px;padding:24px 40px 32px;text-align:center;">
+              <div style="font-size:14px;color:#6b7280;margin-bottom:16px;">See all your bookings, callbacks, and analytics live.</div>
+              <a href="{{DASHBOARD_URL}}" style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;padding:13px 32px;border-radius:9px;font-size:14px;font-weight:700;letter-spacing:-0.01em;">
+                Open Dashboard →
+              </a>
+              <div style="margin-top:20px;font-size:11px;color:#374151;">
+                <a href="{{DASHBOARD_URL}}/voice-settings" style="color:#6b7280;text-decoration:none;">Voice Settings</a>
+                &nbsp;·&nbsp;
+                <a href="{{DASHBOARD_URL}}/analytics" style="color:#6b7280;text-decoration:none;">Analytics</a>
+                &nbsp;·&nbsp;
+                <a href="{{DASHBOARD_URL}}/referral" style="color:#6b7280;text-decoration:none;">Earn $20 per Referral</a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 0;text-align:center;">
+              <div style="font-size:11px;color:#374151;line-height:1.6;">
+                © 2026 RingDesk · Built for barbershops &amp; salons<br>
+                <a href="{{DASHBOARD_URL}}/unsubscribe" style="color:#4b5563;text-decoration:none;">Unsubscribe</a>
+                &nbsp;·&nbsp;
+                <a href="mailto:hello@ringdesk.ai" style="color:#4b5563;text-decoration:none;">hello@ringdesk.ai</a>
+              </div>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+
+<!--
+TEMPLATE VARIABLES — replace before sending:
+  {{WEEK_RANGE}}         → "Apr 10 – Apr 16, 2026"
+  {{BUSINESS_NAME}}      → "Cuts & Fades Barbershop"
+  {{BOOKINGS_THIS_WEEK}} → "23"
+  {{WEEK_CHANGE}}        → "↑ 4 more"
+  {{MISSED_CALLS}}       → "3"
+  {{NEW_CLIENTS}}        → "8"
+  {{RETURNING_CLIENTS}}  → "15"
+  {{EST_REVENUE}}        → "2,070"  (bookings × avg ticket)
+  {{TOP_SERVICE}}        → "Haircut + Beard"
+  {{TOP_SERVICE_COUNT}}  → "9"
+  {{TOP_SERVICE_PCT}}    → "85"
+  {{BEST_DAY}}           → "Saturday"
+  {{BEST_DAY_COUNT}}     → "7"
+  {{BEST_DAY_PCT}}       → "70"
+  {{TIP_TITLE}}          → "Slow Tuesday? Use the callback queue."
+  {{TIP_BODY}}           → "Check your dashboard callback queue every Tuesday morning..."
+  {{DASHBOARD_URL}}      → "https://yourdomain.com"
+-->

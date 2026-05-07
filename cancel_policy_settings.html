@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancellation Policy — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; display: inline-block; margin-bottom: 1.25rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; color: var(--green); }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .79rem; padding: .5rem .72rem; outline: none; resize: vertical; font-family: inherit; line-height: 1.55; }
+    textarea:focus { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Cancellation Policy</div>
+  <p class="page-sub">Configure how the AI communicates and enforces your cancellation policy. Set free-cancel windows, late-cancel fees, and no-show charges.</p>
+  <div class="stat-pill"><div class="stat-val" id="h-fees">—</div><div class="stat-lbl">Fees Collected (30d)</div></div>
+  <div class="card">
+    <div class="card-title">Cancel Windows &amp; Fees</div>
+    <div class="row">
+      <div><div class="row-label">Free Cancel Window (hours)</div><div class="row-sub">Cancellations before this window are free</div></div>
+      <input type="number" id="free-hours" min="0" max="168">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Late-Cancel Fee Type</div></div>
+      <select id="late-type">
+        <option value="none">None</option>
+        <option value="percentage">Percentage of service</option>
+        <option value="flat">Flat fee</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Late-Cancel Fee Amount</div></div>
+      <div style="display:flex;align-items:center;gap:.35rem"><input type="number" id="late-amount" min="0"><span style="font-size:.8rem;color:var(--muted)" id="late-unit">%</span></div>
+    </div>
+    <div class="row">
+      <div><div class="row-label">No-Show Fee Type</div></div>
+      <select id="noshow-type">
+        <option value="none">None</option>
+        <option value="full">Full service price</option>
+        <option value="percentage">Percentage of service</option>
+        <option value="flat">Flat fee</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">No-Show Fee Amount</div><div class="row-sub">Ignored when type is Full or None</div></div>
+      <div style="display:flex;align-items:center;gap:.35rem"><input type="number" id="noshow-amount" min="0"><span style="font-size:.8rem;color:var(--muted)" id="noshow-unit">%</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Policy Text</div>
+    <div style="margin-bottom:.5rem;font-size:.72rem;color:var(--muted)">The AI reads this to callers when cancellation is requested outside the free window.</div>
+    <textarea id="policy-text" rows="4"></textarea>
+    <button class="save-btn" onclick="save()">Save Cancellation Policy</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/cancel-policy-cfg').then(r => r.json());
+    document.getElementById('h-fees').textContent = '$' + data.fees_collected_30d;
+    document.getElementById('free-hours').value = data.free_cancel_hours;
+    document.getElementById('late-type').value = data.late_cancel_fee_type;
+    document.getElementById('late-amount').value = data.late_cancel_fee_amount;
+    document.getElementById('noshow-type').value = data.no_show_fee_type;
+    document.getElementById('noshow-amount').value = data.no_show_fee_amount;
+    document.getElementById('policy-text').value = data.policy_text;
+    updateUnits();
+    document.getElementById('late-type').addEventListener('change', updateUnits);
+    document.getElementById('noshow-type').addEventListener('change', updateUnits);
+  }
+  function updateUnits() {
+    document.getElementById('late-unit').textContent = document.getElementById('late-type').value === 'flat' ? '$' : '%';
+    document.getElementById('noshow-unit').textContent = document.getElementById('noshow-type').value === 'flat' ? '$' : '%';
+  }
+  async function save() {
+    const payload = { ...data,
+      free_cancel_hours: parseInt(document.getElementById('free-hours').value) || 24,
+      late_cancel_fee_type: document.getElementById('late-type').value,
+      late_cancel_fee_amount: parseFloat(document.getElementById('late-amount').value) || 0,
+      no_show_fee_type: document.getElementById('noshow-type').value,
+      no_show_fee_amount: parseFloat(document.getElementById('noshow-amount').value) || 0,
+      policy_text: document.getElementById('policy-text').value,
+    };
+    await fetch('/api/settings/cancel-policy-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

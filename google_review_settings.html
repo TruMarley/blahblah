@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Google Review Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .field-row { display: grid; grid-template-columns: 180px 1fr; align-items: center; gap: .6rem; margin-bottom: .75rem; }
+    .field-label { font-size: .78rem; color: var(--muted); line-height: 1.3; }
+    .field-hint { font-size: .65rem; color: #444; margin-top: .15rem; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .7rem; font-family: inherit; width: 100%; outline: none; }
+    .f-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .7rem; font-family: inherit; width: 100%; outline: none; appearance: none; }
+    .f-textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .5rem .7rem; font-family: inherit; width: 100%; outline: none; resize: vertical; min-height: 80px; line-height: 1.45; }
+    .toggle { position: relative; width: 34px; height: 19px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #222; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .slider:before { content: ''; position: absolute; width: 13px; height: 13px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: rgba(167,139,250,.3); }
+    input:checked + .slider:before { transform: translateX(15px); background: var(--accent); }
+    .star-select { display: flex; gap: .4rem; }
+    .star-opt { cursor: pointer; font-size: 1.1rem; opacity: .35; transition: opacity .15s; }
+    .star-opt.on { opacity: 1; }
+    .preview-sms { background: var(--surface2); border: 1px solid rgba(52,211,153,.2); border-radius: 12px 12px 12px 4px; padding: .7rem .9rem; font-size: .78rem; color: var(--text); line-height: 1.5; margin-top: .6rem; max-width: 80%; }
+    .preview-label { font-size: .62rem; color: var(--muted); margin-bottom: .35rem; }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.4rem; border-radius: 9px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; width: 100%; margin-top: 1rem; }
+    .save-btn:hover { background: rgba(167,139,250,.2); }
+    .saved-msg { font-size: .75rem; color: var(--green); font-weight: 700; text-align: center; margin-top: .5rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Google Review Settings</div>
+  <p class="page-sub">Automatically ask satisfied clients to leave a Google review via SMS after their visit — positive reviews are your best source of new clients.</p>
+  <div class="card">
+    <div class="card-title">Review Request Configuration</div>
+    <div class="field-row">
+      <span class="field-label">Enable Review Requests</span>
+      <label class="toggle"><input type="checkbox" id="gr-enabled"><span class="slider"></span></label>
+    </div>
+    <div class="field-row">
+      <span class="field-label">Auto-Request After Visit</span>
+      <label class="toggle"><input type="checkbox" id="gr-auto"><span class="slider"></span></label>
+    </div>
+    <div class="field-row">
+      <div>
+        <div class="field-label">Send Delay (hours)</div>
+        <div class="field-hint">Hours after appointment ends</div>
+      </div>
+      <input class="f-input" id="gr-delay" type="number" min="0" max="72" placeholder="3">
+    </div>
+    <div class="field-row">
+      <div>
+        <div class="field-label">Google Place ID</div>
+        <div class="field-hint">From Google Business Profile</div>
+      </div>
+      <input class="f-input" id="gr-place" type="text" placeholder="ChIJN1t_...">
+    </div>
+    <div class="field-row">
+      <div>
+        <div class="field-label">Only Ask If Rating ≥</div>
+        <div class="field-hint">Internal rating threshold</div>
+      </div>
+      <select class="f-select" id="gr-minrating">
+        <option value="3">3 stars or above</option>
+        <option value="4">4 stars or above</option>
+        <option value="5">5 stars only</option>
+      </select>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Message Template</div>
+    <textarea class="f-textarea" id="gr-msg" oninput="updatePreview()"></textarea>
+    <div class="preview-label" style="margin-top:.85rem">Preview</div>
+    <div class="preview-sms" id="sms-preview"></div>
+    <button class="save-btn" onclick="save()">Save Review Settings</button>
+    <div class="saved-msg" id="saved-msg"></div>
+  </div>
+</div>
+<script>
+  let data = {};
+  function updatePreview() {
+    const msg = document.getElementById('gr-msg').value;
+    const pid = document.getElementById('gr-place').value.trim() || 'YOUR_PLACE_ID';
+    const link = `https://g.page/r/${pid}/review`;
+    document.getElementById('sms-preview').textContent = msg + '\n' + link;
+  }
+  function render() {
+    document.getElementById('gr-enabled').checked = !!data.enabled;
+    document.getElementById('gr-auto').checked = !!data.auto_request_after_visit;
+    document.getElementById('gr-delay').value = data.request_delay_hours || '';
+    document.getElementById('gr-place').value = data.place_id || '';
+    document.getElementById('gr-minrating').value = data.min_rating_to_request || 4;
+    document.getElementById('gr-msg').value = data.message_template || '';
+    updatePreview();
+  }
+  async function load() {
+    const r = await fetch('/api/google-review-settings');
+    data = await r.json();
+    render();
+  }
+  async function save() {
+    data.enabled = document.getElementById('gr-enabled').checked;
+    data.auto_request_after_visit = document.getElementById('gr-auto').checked;
+    data.request_delay_hours = parseInt(document.getElementById('gr-delay').value)||3;
+    data.place_id = document.getElementById('gr-place').value.trim();
+    data.min_rating_to_request = parseInt(document.getElementById('gr-minrating').value)||4;
+    data.message_template = document.getElementById('gr-msg').value;
+    await fetch('/api/google-review-settings', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const msg = document.getElementById('saved-msg');
+    msg.textContent = '✓ Saved';
+    setTimeout(() => { msg.textContent = ''; }, 2000);
+  }
+  load();
+</script>
+</body>
+</html>

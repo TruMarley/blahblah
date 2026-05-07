@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Drop-off — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .stage-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+    .stage-label { font-size: .75rem; width: 130px; flex-shrink: 0; }
+    .stage-track { flex: 1; background: var(--surface2); border-radius: 3px; height: 9px; overflow: hidden; }
+    .stage-fill { height: 100%; border-radius: 3px; background: var(--red); }
+    .stage-pct { font-size: .72rem; font-weight: 700; width: 70px; text-align: right; flex-shrink: 0; color: var(--red); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Drop-off</div>
+  <p class="page-sub">Pinpoint which stage of the booking flow loses the most callers. High drop-off at service selection suggests menu confusion; at date/time pick suggests availability friction.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Total Calls (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-abandon" style="color:var(--red)">—</div><div class="stat-lbl">Abandonment Rate</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-time" style="color:var(--yellow)">—</div><div class="stat-lbl">Avg Time Before Drop</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Drop-off by Stage</div>
+    <div id="stage-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/call-dropoff-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_calls_30d;
+    document.getElementById('h-abandon').textContent = d.abandonment_rate_pct.toFixed(1) + '%';
+    document.getElementById('h-time').textContent = d.avg_handle_time_before_drop_sec + 's';
+    const sl = document.getElementById('stage-list');
+    const maxD = Math.max(...d.stages.map(s => s.drop_pct), 1);
+    d.stages.forEach(s => {
+      const w = (s.drop_pct / maxD * 100).toFixed(1);
+      sl.innerHTML += '<div class="stage-row"><div class="stage-label">' + s.stage + '</div><div class="stage-track"><div class="stage-fill" style="width:' + w + '%"></div></div><div class="stage-pct">-' + s.drop_pct.toFixed(1) + '%</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

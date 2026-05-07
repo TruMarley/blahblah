@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Roster — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    .staff-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .5rem; }
+    .staff-card.inactive { opacity: .4; }
+    .staff-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; }
+    .staff-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 900; color: #fff; flex-shrink: 0; }
+    .staff-name { font-size: .88rem; font-weight: 700; flex: 1; }
+    .staff-role { font-size: .68rem; color: var(--muted); }
+    .staff-hours { font-size: .72rem; color: var(--accent); }
+    .days-row { display: flex; gap: .25rem; flex-wrap: wrap; }
+    .day-chip { font-size: .62rem; font-weight: 700; padding: .15rem .4rem; border-radius: 4px; }
+    .day-chip.on { background: rgba(52,211,153,.15); color: var(--green); }
+    .day-chip.off { background: var(--surface); color: var(--muted); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Roster</div>
+  <p class="page-sub">Manage which staff members the AI books appointments with. Set working days, hours, and control whether callers can request a specific person.</p>
+
+  <div class="card">
+    <div class="card-title">Booking Settings</div>
+    <div class="row">
+      <div><div class="row-label">AI Checks Staff Schedule</div><div class="row-sub">Only books during working hours</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-checks"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Assign Next Available Staff</div><div class="row-sub">Auto-assigns to first open slot</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-assigns"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Respect Staff Preferences</div><div class="row-sub">Honor service specializations</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-respects"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Allow Client to Pick Staff</div><div class="row-sub">Caller can request a specific person</div></div>
+      <label class="toggle"><input type="checkbox" id="client-pick"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Show Staff Names to Callers</div></div>
+      <label class="toggle"><input type="checkbox" id="show-names"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Roster Settings</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Staff Members</div>
+    <div id="staff-list"></div>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  const ALL_DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/staff-roster-cfg').then(r => r.json());
+    document.getElementById('ai-checks').checked = data.ai_checks_staff_schedule;
+    document.getElementById('ai-assigns').checked = data.ai_assigns_next_available;
+    document.getElementById('ai-respects').checked = data.ai_respects_staff_preferences;
+    document.getElementById('client-pick').checked = data.allow_client_to_pick_staff;
+    document.getElementById('show-names').checked = data.show_staff_names_to_callers;
+
+    const list = document.getElementById('staff-list');
+    (data.staff || []).forEach(s => {
+      const initials = s.name.split(' ').map(x=>x[0]).join('');
+      const daysHtml = ALL_DAYS.map(d =>
+        `<span class="day-chip ${s.days.includes(d)?'on':'off'}">${d}</span>`
+      ).join('');
+      const card = document.createElement('div');
+      card.className = 'staff-card' + (s.active ? '' : ' inactive');
+      card.innerHTML = `
+        <div class="staff-header">
+          <div class="staff-avatar">${initials}</div>
+          <div style="flex:1">
+            <div class="staff-name">${s.name}</div>
+            <div class="staff-role">${s.role}</div>
+          </div>
+          <div class="staff-hours">${s.start} – ${s.end}</div>
+          <label class="toggle"><input type="checkbox" class="st-toggle" data-id="${s.id}" ${s.active?'checked':''}><span class="slider"></span></label>
+        </div>
+        <div class="days-row">${daysHtml}</div>
+      `;
+      list.appendChild(card);
+    });
+    list.querySelectorAll('.st-toggle').forEach(cb => cb.addEventListener('change', e => {
+      const s = data.staff.find(x => x.id === e.target.dataset.id);
+      if (s) { s.active = e.target.checked; e.target.closest('.staff-card').className = 'staff-card' + (s.active ? '' : ' inactive'); }
+    }));
+  }
+  async function save() {
+    const payload = {
+      ...data,
+      ai_checks_staff_schedule: document.getElementById('ai-checks').checked,
+      ai_assigns_next_available: document.getElementById('ai-assigns').checked,
+      ai_respects_staff_preferences: document.getElementById('ai-respects').checked,
+      allow_client_to_pick_staff: document.getElementById('client-pick').checked,
+      show_staff_names_to_callers: document.getElementById('show-names').checked,
+    };
+    await fetch('/api/settings/staff-roster-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

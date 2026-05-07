@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Accuracy — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .error-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .55rem; }
+    .error-label { font-size: .78rem; width: 160px; flex-shrink: 0; }
+    .error-bar-wrap { flex: 1; background: var(--surface2); border-radius: 6px; height: 20px; overflow: hidden; }
+    .error-bar { height: 100%; border-radius: 6px; opacity: .8; }
+    .error-count { font-size: .75rem; font-weight: 700; width: 30px; text-align: right; }
+    .monthly-row { display: flex; align-items: flex-end; gap: 3px; height: 80px; position: relative; }
+    .monthly-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .monthly-bar { width: 100%; border-radius: 3px 3px 0 0; min-height: 2px; }
+    .monthly-lbl { font-size: .56rem; color: var(--muted); }
+    .accuracy-ring { display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; }
+    .ring-inner { text-align: center; }
+    .ring-val { font-size: 2.2rem; font-weight: 900; }
+    .ring-lbl { font-size: .72rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Accuracy Analytics</div>
+  <p class="page-sub">Track how accurately the AI handles bookings. Monitor error types, caller correction rates, and accuracy trends over time to identify improvement opportunities.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-accuracy" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Accuracy (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-calls" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Calls Handled (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-errors" style="color:var(--red)">—</div>
+      <div class="stat-lbl">Errors (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-escalation" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Escalation Rate</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-correction" style="color:var(--muted)">—</div>
+      <div class="stat-lbl">Caller Correction Rate</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Error Breakdown</div>
+    <div id="error-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Accuracy Trend</div>
+    <div class="monthly-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/ai-accuracy-stats').then(r => r.json());
+    document.getElementById('h-accuracy').textContent = data.accuracy_pct_30d.toFixed(1) + '%';
+    document.getElementById('h-calls').textContent = data.calls_handled_30d;
+    document.getElementById('h-errors').textContent = data.errors_30d;
+    document.getElementById('h-escalation').textContent = data.escalation_rate_pct.toFixed(1) + '%';
+    document.getElementById('h-correction').textContent = data.caller_correction_rate_pct.toFixed(1) + '%';
+
+    const maxErr = Math.max(...(data.error_types || []).map(e => e.count), 1);
+    const errList = document.getElementById('error-list');
+    (data.error_types || []).forEach(e => {
+      errList.innerHTML += `
+        <div class="error-row">
+          <div class="error-label">${e.type}</div>
+          <div class="error-bar-wrap"><div class="error-bar" style="width:${(e.count/maxErr*100).toFixed(1)}%;background:${e.color}"></div></div>
+          <div class="error-count" style="color:${e.color}">${e.count}</div>
+        </div>`;
+    });
+
+    const monthly = data.monthly || [];
+    const barsEl = document.getElementById('monthly-bars');
+    monthly.forEach(m => {
+      const h = Math.max(((m.accuracy_pct - 80) / 20 * 72).toFixed(0), 4);
+      const color = m.accuracy_pct >= 95 ? 'var(--green)' : m.accuracy_pct >= 90 ? 'var(--yellow)' : 'var(--red)';
+      barsEl.innerHTML += `
+        <div class="monthly-col">
+          <div class="monthly-bar" style="height:${h}px;background:${color};opacity:.75" title="${m.month}: ${m.accuracy_pct}% accuracy · ${m.calls_handled} calls"></div>
+          <div class="monthly-lbl">${m.month.slice(0,3)}</div>
+        </div>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Mood Score — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .sentiment-bar { display: flex; height: 28px; border-radius: 8px; overflow: hidden; margin-bottom: .6rem; }
+    .seg { display: flex; align-items: center; justify-content: center; font-size: .72rem; font-weight: 800; color: #000; transition: width .4s; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Mood Score</div>
+  <p class="page-sub">AI analyzes caller tone and language on every call to score emotional sentiment. Track how your clients feel — and improve over time.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg Score</div>
+      <div class="hero-val" id="h-avg" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Positive</div>
+      <div class="hero-val" id="h-pos" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Neutral</div>
+      <div class="hero-val" id="h-neu" style="color:var(--muted)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Negative</div>
+      <div class="hero-val" id="h-neg" style="color:var(--red)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Sentiment Breakdown</div>
+    <div class="sentiment-bar" id="sent-bar"></div>
+    <div style="display:flex;gap:1.2rem;margin-top:.4rem">
+      <span style="font-size:.7rem;color:var(--green)">■ Positive</span>
+      <span style="font-size:.7rem;color:var(--muted)">■ Neutral</span>
+      <span style="font-size:.7rem;color:var(--red)">■ Negative</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Monthly Mood Score Trend</div>
+    <svg id="chart" viewBox="0 0 680 200" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/call-mood-score').then(r => r.json());
+    document.getElementById('h-avg').textContent = d.avg_sentiment_score || '—';
+    document.getElementById('h-pos').textContent = (d.positive_pct||0)+'%';
+    document.getElementById('h-neu').textContent = (d.neutral_pct||0)+'%';
+    document.getElementById('h-neg').textContent = (d.negative_pct||0)+'%';
+
+    document.getElementById('sent-bar').innerHTML = `
+      <div class="seg" style="width:${d.positive_pct}%;background:var(--green)">${d.positive_pct}%</div>
+      <div class="seg" style="width:${d.neutral_pct}%;background:#444;color:#aaa">${d.neutral_pct}%</div>
+      <div class="seg" style="width:${d.negative_pct}%;background:var(--red)">${d.negative_pct}%</div>
+    `;
+
+    const months = d.months||[], vals = d.scores||[];
+    if (!months.length) return;
+    const W=680,H=200,pL=36,pR=16,pT=20,pB=32;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n=months.length, step=n>1?cW/(n-1):cW;
+    const mn=Math.max(Math.min(...vals)-1,0), mx=Math.max(...vals)+1, rng=mx-mn||1;
+    const pts=vals.map((v,i)=>({x:pL+i*step, y:pT+cH-(v-mn)/rng*cH}));
+    const line='M'+pts[0].x+','+pts[0].y+' '+pts.slice(1).map(p=>`L${p.x},${p.y}`).join(' ');
+    const area=line+` L${pts[n-1].x},${pT+cH} L${pts[0].x},${pT+cH} Z`;
+    let dots='',lbls='';
+    pts.forEach((p,i)=>{
+      dots+=`<circle cx="${p.x}" cy="${p.y}" r="4" fill="var(--green)" stroke="var(--bg)" stroke-width="2"/>`;
+      dots+=`<text x="${p.x}" y="${p.y-9}" text-anchor="middle" fill="var(--green)" font-size="9" font-weight="700">${vals[i]}</text>`;
+      lbls+=`<text x="${p.x}" y="${H-pB+14}" text-anchor="middle" fill="#555" font-size="9">${esc(months[i])}</text>`;
+    });
+    document.getElementById('chart').innerHTML=
+      `<path d="${area}" fill="rgba(52,211,153,.06)"/>`+
+      `<path d="${line}" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linejoin="round"/>`+
+      dots+lbls;
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

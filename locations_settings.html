@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Locations — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    .loc-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.1rem; margin-bottom: .55rem; }
+    .loc-card.inactive { opacity: .5; border-left: 3px solid #333; }
+    .loc-card.active { border-left: 3px solid var(--green); }
+    .loc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; }
+    .loc-name { font-size: .9rem; font-weight: 800; }
+    .loc-badge { font-size: .62rem; font-weight: 700; border-radius: 4px; padding: .1rem .4rem; }
+    .badge-active { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .badge-inactive { background: rgba(102,102,102,.1); color: var(--muted); border: 1px solid rgba(102,102,102,.2); }
+    .loc-meta { display: flex; gap: 1.2rem; }
+    .loc-meta-item { font-size: .68rem; color: var(--muted); }
+    .loc-meta-item span { color: var(--text); font-weight: 700; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Locations</div>
+  <p class="page-sub">Manage multiple shop locations under a single RingDesk account. Each location has its own AI receptionist, phone number, and booking calendar — unified under one dashboard.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Total Locations</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-active" style="color:var(--green)">—</div><div class="stat-lbl">Active Locations</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Global Settings</div>
+    <div class="row">
+      <div><div class="row-label">Unified AI Routing</div><div class="row-sub">One AI handles calls for all locations</div></div>
+      <label class="toggle"><input type="checkbox" id="unified"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Location Settings</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Location Catalogue</div>
+    <div id="loc-list"></div>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/locations-cfg').then(r => r.json());
+    document.getElementById('h-total').textContent = data.total_locations;
+    document.getElementById('h-active').textContent = data.active_locations;
+    document.getElementById('unified').checked = data.unified_ai_routing;
+    const ll = document.getElementById('loc-list');
+    (data.locations || []).forEach(l => {
+      const cls = l.active ? 'active' : 'inactive';
+      const badgeCls = l.active ? 'badge-active' : 'badge-inactive';
+      const badgeText = l.active ? 'Active' : 'Inactive';
+      const aiText = l.ai_enabled ? 'AI on' : 'AI off';
+      ll.innerHTML += '<div class="loc-card ' + cls + '"><div class="loc-top"><div class="loc-name">' + l.name + '</div><span class="loc-badge ' + badgeCls + '">' + badgeText + '</span></div><div class="loc-meta"><div class="loc-meta-item">Phone <span>' + l.phone + '</span></div><div class="loc-meta-item">AI <span>' + aiText + '</span></div><div class="loc-meta-item">Bookings <span>' + l.bookings_30d + '</span></div></div></div>';
+    });
+  }
+  async function save() {
+    const payload = { ...data, unified_ai_routing: document.getElementById('unified').checked };
+    await fetch('/api/settings/locations-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    .nav-right { display: flex; align-items: center; gap: 1rem; }
+    .nav-search { background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: .83rem; padding: .4rem .9rem; border-radius: 8px; cursor: pointer; text-decoration: none; }
+    .nav-search:hover { color: var(--text); }
+    .notif-icon { color: var(--muted); font-size: 1.1rem; text-decoration: none; position: relative; }
+    .notif-dot { position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; background: var(--red); border-radius: 50%; border: 2px solid var(--bg); }
+    .main { max-width: 1080px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+
+    /* At-a-glance strip */
+    .glance-strip { display: grid; grid-template-columns: repeat(4,1fr); gap: .6rem; margin-bottom: 2rem; }
+    .glance-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; }
+    .glance-label { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .3rem; }
+    .glance-val { font-size: 1.45rem; font-weight: 900; letter-spacing: -.03em; }
+    .glance-sub { font-size: .68rem; color: var(--muted); margin-top: .15rem; }
+
+    /* Alert badges */
+    .alert-row { display: flex; gap: .6rem; margin-bottom: 2rem; flex-wrap: wrap; }
+    .alert-badge { display: flex; align-items: center; gap: .4rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .45rem .85rem; font-size: .78rem; text-decoration: none; color: var(--text); transition: border-color .15s; }
+    .alert-badge:hover { border-color: #3e3e3e; }
+    .alert-badge .dot { width: 7px; height: 7px; border-radius: 50%; }
+    /* Alerts banners */
+    .alerts-section { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: .5rem; }
+    .alert-banner { display: flex; align-items: center; gap: .75rem; padding: .65rem 1rem; border-radius: 10px; font-size: .8rem; font-weight: 600; border: 1px solid; }
+    .alert-banner.info    { background: rgba(167,139,250,.08); border-color: rgba(167,139,250,.25); color: var(--accent); }
+    .alert-banner.warning { background: rgba(251,191,36,.08); border-color: rgba(251,191,36,.25); color: var(--yellow); }
+    .alert-banner.error   { background: rgba(248,113,113,.08); border-color: rgba(248,113,113,.25); color: var(--red); }
+    .alert-banner .al-msg { flex: 1; }
+    .alert-dismiss { background: none; border: none; color: inherit; opacity: .6; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; }
+
+    /* Feature grid */
+    .section-title { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .75rem; }
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .6rem; margin-bottom: 2rem; }
+    .feat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: .35rem; text-decoration: none; color: var(--text); transition: background .1s, border-color .1s; }
+    .feat-card:hover { background: var(--surface2); border-color: #2e2e2e; }
+    .feat-icon { font-size: 1.3rem; }
+    .feat-name { font-size: .82rem; font-weight: 700; }
+    .feat-desc { font-size: .7rem; color: var(--muted); line-height: 1.4; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <div class="nav-right">
+    <a href="/search" class="nav-search">🔍 Search</a>
+    <a href="/notifications" class="notif-icon">🔔<span class="notif-dot" id="notif-dot" style="display:none"></span></a>
+  </div>
+</nav>
+<div class="main">
+
+  <!-- Alerts -->
+  <div class="alerts-section" id="alerts-section"></div>
+
+  <!-- At a Glance -->
+  <div class="section-title">At a Glance</div>
+  <div class="glance-strip" id="glance-strip">
+    <div class="glance-card"><div class="glance-label">Today</div><div class="glance-val" id="g-today-a" style="color:var(--accent)">—</div><div class="glance-sub" id="g-today-r">—</div></div>
+    <div class="glance-card"><div class="glance-label">This Week</div><div class="glance-val" id="g-week-a" style="color:var(--accent)">—</div><div class="glance-sub" id="g-week-r">—</div></div>
+    <div class="glance-card"><div class="glance-label">This Month</div><div class="glance-val" id="g-month-a" style="color:var(--green)">—</div><div class="glance-sub" id="g-month-r">—</div></div>
+    <div class="glance-card"><div class="glance-label">Shop Score</div><div class="glance-val" id="g-score" style="color:var(--yellow)">—</div><div class="glance-sub" id="g-score-sub">—</div></div>
+  </div>
+
+  <!-- Alert badges -->
+  <div class="alert-row" id="alert-row"></div>
+
+  <!-- Core Features -->
+  <div class="section-title">Core</div>
+  <div class="feature-grid">
+    <a class="feat-card" href="/upcoming"><div class="feat-icon">📅</div><div class="feat-name">Upcoming</div><div class="feat-desc">Next appointments</div></a>
+    <a class="feat-card" href="/calendar"><div class="feat-icon">🗓️</div><div class="feat-name">Calendar</div><div class="feat-desc">Monthly view</div></a>
+    <a class="feat-card" href="/missed_calls"><div class="feat-icon">📞</div><div class="feat-name">Missed Calls</div><div class="feat-desc">Callbacks & queue</div></a>
+    <a class="feat-card" href="/reschedule"><div class="feat-icon">🔄</div><div class="feat-name">Reschedule</div><div class="feat-desc">Move appointments</div></a>
+    <a class="feat-card" href="/waitlist"><div class="feat-icon">⏳</div><div class="feat-name">Waitlist</div><div class="feat-desc">Open slot queue</div></a>
+    <a class="feat-card" href="/activity"><div class="feat-icon">⚡</div><div class="feat-name">Activity</div><div class="feat-desc">Live event feed</div></a>
+  </div>
+
+  <!-- Analytics -->
+  <div class="section-title">Analytics</div>
+  <div class="feature-grid">
+    <a class="feat-card" href="/revenue"><div class="feat-icon">💰</div><div class="feat-name">Revenue</div><div class="feat-desc">30-day chart</div></a>
+    <a class="feat-card" href="/reports"><div class="feat-icon">📊</div><div class="feat-name">Reports</div><div class="feat-desc">Custom date range</div></a>
+    <a class="feat-card" href="/heatmap"><div class="feat-icon">🔥</div><div class="feat-name">Heatmap</div><div class="feat-desc">Call volume grid</div></a>
+    <a class="feat-card" href="/capacity"><div class="feat-icon">📈</div><div class="feat-name">Capacity</div><div class="feat-desc">Chair utilization</div></a>
+    <a class="feat-card" href="/retention"><div class="feat-icon">♻️</div><div class="feat-name">Retention</div><div class="feat-desc">Cohort analysis</div></a>
+    <a class="feat-card" href="/conversion"><div class="feat-icon">🎯</div><div class="feat-name">Conversion</div><div class="feat-desc">Call-to-book funnel</div></a>
+    <a class="feat-card" href="/no-shows"><div class="feat-icon">⚠️</div><div class="feat-name">No-Shows</div><div class="feat-desc">Patterns & offenders</div></a>
+    <a class="feat-card" href="/shop-score"><div class="feat-icon">🏆</div><div class="feat-name">Shop Score</div><div class="feat-desc">Health grade</div></a>
+    <a class="feat-card" href="/call-quality"><div class="feat-icon">🎙️</div><div class="feat-name">Call Quality</div><div class="feat-desc">Sentiment & clarity</div></a>
+    <a class="feat-card" href="/insights"><div class="feat-icon">💡</div><div class="feat-name">Insights</div><div class="feat-desc">AI recommendations</div></a>
+  </div>
+
+  <!-- Clients -->
+  <div class="section-title">Clients</div>
+  <div class="feature-grid">
+    <a class="feat-card" href="/loyalty"><div class="feat-icon">🥇</div><div class="feat-name">Loyalty</div><div class="feat-desc">Tiers & visit counts</div></a>
+    <a class="feat-card" href="/top_clients"><div class="feat-icon">⭐</div><div class="feat-name">Top Clients</div><div class="feat-desc">Leaderboard</div></a>
+    <a class="feat-card" href="/feedback"><div class="feat-icon">⭐</div><div class="feat-name">Reviews</div><div class="feat-desc">Ratings & feedback</div></a>
+    <a class="feat-card" href="/tags"><div class="feat-icon">🏷️</div><div class="feat-name">Tags</div><div class="feat-desc">Client labels</div></a>
+    <a class="feat-card" href="/blacklist"><div class="feat-icon">🚫</div><div class="feat-name">Blacklist</div><div class="feat-desc">Blocked numbers</div></a>
+    <a class="feat-card" href="/conversations"><div class="feat-icon">💬</div><div class="feat-name">Conversations</div><div class="feat-desc">Call transcripts</div></a>
+  </div>
+
+  <!-- Marketing -->
+  <div class="section-title">Marketing</div>
+  <div class="feature-grid">
+    <a class="feat-card" href="/campaigns"><div class="feat-icon">📢</div><div class="feat-name">Campaigns</div><div class="feat-desc">SMS automation</div></a>
+    <a class="feat-card" href="/announcements"><div class="feat-icon">📣</div><div class="feat-name">Announcements</div><div class="feat-desc">Broadcast messages</div></a>
+    <a class="feat-card" href="/promo_codes"><div class="feat-icon">🎟️</div><div class="feat-name">Promo Codes</div><div class="feat-desc">Discounts</div></a>
+    <a class="feat-card" href="/referrals"><div class="feat-icon">🤝</div><div class="feat-name">Referrals</div><div class="feat-desc">Partner program</div></a>
+    <a class="feat-card" href="/sms-log"><div class="feat-icon">📱</div><div class="feat-name">SMS Log</div><div class="feat-desc">Message history</div></a>
+  </div>
+
+  <!-- Settings -->
+  <div class="section-title">Settings & Admin</div>
+  <div class="feature-grid">
+    <a class="feat-card" href="/staff"><div class="feat-icon">✂️</div><div class="feat-name">Staff</div><div class="feat-desc">Team management</div></a>
+    <a class="feat-card" href="/staff-schedule"><div class="feat-icon">🗓️</div><div class="feat-name">Staff Schedule</div><div class="feat-desc">Weekly hours</div></a>
+    <a class="feat-card" href="/services"><div class="feat-icon">💈</div><div class="feat-name">Services</div><div class="feat-desc">Menu & pricing</div></a>
+    <a class="feat-card" href="/hours"><div class="feat-icon">🕐</div><div class="feat-name">Hours</div><div class="feat-desc">Shop schedule</div></a>
+    <a class="feat-card" href="/reminders"><div class="feat-icon">⏰</div><div class="feat-name">Reminders</div><div class="feat-desc">SMS templates</div></a>
+    <a class="feat-card" href="/call_scripts"><div class="feat-icon">📝</div><div class="feat-name">Call Scripts</div><div class="feat-desc">AI responses</div></a>
+    <a class="feat-card" href="/chat-widget-config"><div class="feat-icon">🤖</div><div class="feat-name">Widget Config</div><div class="feat-desc">Chat widget</div></a>
+    <a class="feat-card" href="/integrations"><div class="feat-icon">🔌</div><div class="feat-name">Integrations</div><div class="feat-desc">Connected apps</div></a>
+    <a class="feat-card" href="/billing"><div class="feat-icon">💳</div><div class="feat-name">Billing</div><div class="feat-desc">Plan & invoices</div></a>
+    <a class="feat-card" href="/audit-log"><div class="feat-icon">📋</div><div class="feat-name">Audit Log</div><div class="feat-desc">All actions</div></a>
+    <a class="feat-card" href="/status"><div class="feat-icon">🟢</div><div class="feat-name">Status</div><div class="feat-desc">System uptime</div></a>
+    <a class="feat-card" href="/notifications"><div class="feat-icon">🔔</div><div class="feat-name">Notifications</div><div class="feat-desc">Alerts</div></a>
+    <a class="feat-card" href="/payouts"><div class="feat-icon">💵</div><div class="feat-name">Payouts</div><div class="feat-desc">Monthly earnings</div></a>
+    <a class="feat-card" href="/disputes"><div class="feat-icon">⚖️</div><div class="feat-name">Disputes</div><div class="feat-desc">Chargebacks</div></a>
+  </div>
+</div>
+<script>
+  const icons = {info:'ℹ️', warning:'⚠️', error:'🔴'};
+
+  async function dismissAlert(id) {
+    document.getElementById('al-' + id)?.remove();
+    await fetch(`/api/dashboard/alerts/${id}/dismiss`, {method:'POST'});
+  }
+
+  async function loadAlerts() {
+    try {
+      const r = await fetch('/api/dashboard/alerts');
+      const d = await r.json();
+      const alerts = d.alerts || [];
+      if (alerts.length > 0) document.getElementById('notif-dot').style.display = '';
+      document.getElementById('alerts-section').innerHTML = alerts.map(a =>
+        `<div class="alert-banner ${a.type}" id="al-${esc(a.id)}">
+          <span>${icons[a.type]||'•'}</span>
+          <span class="al-msg">${esc(a.message)}</span>
+          <button class="alert-dismiss" onclick="dismissAlert('${esc(a.id)}')">✕</button>
+        </div>`
+      ).join('');
+    } catch(e) {}
+  }
+
+  async function loadSummary() {
+    try {
+      const r = await fetch('/api/dashboard/summary');
+      const d = await r.json();
+      document.getElementById('g-today-a').textContent = d.today_appointments + ' appts';
+      document.getElementById('g-today-r').textContent = '$' + (d.today_revenue||0).toLocaleString(undefined,{maximumFractionDigits:0}) + ' est. revenue';
+      document.getElementById('g-week-a').textContent = d.calls_today + ' calls';
+      document.getElementById('g-week-r').textContent = d.active_calls + ' active now';
+      document.getElementById('g-month-a').textContent = d.pending_confirmations + ' pending';
+      document.getElementById('g-month-r').textContent = 'need confirmation';
+      document.getElementById('g-score').textContent = '—';
+      document.getElementById('g-score-sub').textContent = 'shop score';
+
+      const badges = [];
+      if (d.pending_confirmations > 0) badges.push({dot:'var(--yellow)', label: d.pending_confirmations + ' pending confirmations', url:'/appointments/upcoming'});
+      if (d.active_calls > 0) badges.push({dot:'var(--green)', label: d.active_calls + ' active call' + (d.active_calls > 1 ? 's' : ''), url:'/call-log'});
+      document.getElementById('alert-row').innerHTML = badges.map(a => `<a class="alert-badge" href="${a.url}"><span class="dot" style="background:${a.dot}"></span>${a.label}</a>`).join('');
+    } catch(e) {}
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  loadAlerts();
+  loadSummary();
+</script>
+</body>
+</html>

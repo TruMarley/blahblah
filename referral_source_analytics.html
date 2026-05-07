@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Referral Sources — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .src-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .6rem; }
+    .src-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .src-name { font-size: .82rem; font-weight: 600; width: 145px; flex-shrink: 0; }
+    .src-bar-wrap { flex: 1; background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+    .src-bar { height: 100%; border-radius: 4px; }
+    .src-clients { font-size: .78rem; font-weight: 800; width: 36px; text-align: right; flex-shrink: 0; }
+    .src-pct { font-size: .65rem; color: var(--muted); width: 36px; text-align: right; flex-shrink: 0; }
+    .monthly-row { display: flex; align-items: flex-end; gap: 3px; height: 80px; }
+    .monthly-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+    .m-bar { width: 100%; background: var(--green); opacity: .7; border-radius: 3px 3px 0 0; }
+    .m-lbl { font-size: .5rem; color: var(--muted); margin-top: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Referral Sources</div>
+  <p class="page-sub">Understand where your new clients come from. Track acquisition channels by volume to focus your marketing spend on what works best.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-top" style="color:var(--green)">—</div><div class="stat-lbl">Top Source</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-pct" style="color:var(--green)">—</div><div class="stat-lbl">Top Source %</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-new" style="color:var(--accent)">—</div><div class="stat-lbl">New Clients (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-tracked" style="color:var(--muted)">—</div><div class="stat-lbl">Sources Tracked</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">New Clients by Source</div>
+    <div id="src-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Monthly New Client Volume</div>
+    <div class="monthly-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  const COLOR_MAP = { red: 'var(--red)', yellow: 'var(--yellow)', accent: 'var(--accent)', green: 'var(--green)', muted: 'var(--muted)' };
+  async function load() {
+    const data = await fetch('/api/analytics/referral-source-stats').then(r => r.json());
+    document.getElementById('h-top').textContent = data.top_source;
+    document.getElementById('h-pct').textContent = data.top_source_pct.toFixed(1) + '%';
+    document.getElementById('h-new').textContent = data.new_clients_30d;
+    document.getElementById('h-tracked').textContent = data.sources_tracked;
+    const sources = data.sources || [];
+    const maxC = Math.max(...sources.map(s => s.clients), 1);
+    const list = document.getElementById('src-list');
+    sources.forEach(s => {
+      const color = COLOR_MAP[s.color] || 'var(--accent)';
+      list.innerHTML += '<div class="src-row"><div class="src-dot" style="background:' + color + '"></div><div class="src-name">' + s.source + '</div><div class="src-bar-wrap"><div class="src-bar" style="width:' + (s.clients/maxC*100).toFixed(1) + '%;background:' + color + '"></div></div><div class="src-clients" style="color:' + color + '">' + s.clients + '</div><div class="src-pct">' + s.pct + '%</div></div>';
+    });
+    const monthly = data.monthly || [];
+    const maxM = Math.max(...monthly.map(m => m.new_clients), 1);
+    const bars = document.getElementById('monthly-bars');
+    monthly.forEach(m => {
+      const mh = Math.max((m.new_clients / maxM * 72).toFixed(0), 2);
+      bars.innerHTML += '<div class="monthly-col"><div class="m-bar" style="height:' + mh + 'px" title="' + m.month + ': ' + m.new_clients + ' new clients via ' + m.top_source + '"></div><div class="m-lbl">' + m.month.slice(0,3) + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

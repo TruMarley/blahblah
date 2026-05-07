@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Availability Heatmap — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .heatmap-wrap { overflow-x: auto; }
+    svg.heatmap { display: block; }
+    .scale-wrap { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; }
+    .scale-label { font-size: .68rem; color: var(--muted); }
+    .scale-bar { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(to right, #f87171, #fbbf24, #34d399); }
+    .scale-ticks { display: flex; justify-content: space-between; font-size: .62rem; color: var(--muted); margin-top: .2rem; flex: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Availability Heatmap</div>
+  <p class="page-sub">Availability percentage by staff member and day of week — red cells mean the staff member is heavily booked, green means open slots remain.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Most Available</div>
+      <div class="hero-val" id="h-max" style="color:var(--green);font-size:1.1rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Availability</div>
+      <div class="hero-val" id="h-avg" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Least Available</div>
+      <div class="hero-val" id="h-min" style="color:var(--red);font-size:1.1rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Staff × Day Availability Grid</div>
+    <div class="heatmap-wrap" id="heatmap-wrap"></div>
+    <div class="scale-wrap">
+      <span class="scale-label">0%</span>
+      <div>
+        <div class="scale-bar"></div>
+        <div class="scale-ticks"><span>Low</span><span>Medium</span><span>High</span></div>
+      </div>
+      <span class="scale-label">100%</span>
+    </div>
+  </div>
+</div>
+<script>
+  function pctColor(p) {
+    // 0=red, 50=yellow, 100=green
+    if (p >= 70) return `rgba(52,211,153,${0.3+p/100*0.55})`;
+    if (p >= 40) return `rgba(251,191,36,${0.3+p/100*0.55})`;
+    return `rgba(248,113,113,${0.35+(100-p)/100*0.45})`;
+  }
+
+  async function load() {
+    const r = await fetch('/api/analytics/staff-availability-heatmap');
+    const d = await r.json();
+    const cells = d.cells || [];
+    const staff = d.staff || [];
+    const days = d.days || [];
+
+    const allPcts = cells.map(c=>c.availability_pct);
+    const avgPct = (allPcts.reduce((s,v)=>s+v,0)/allPcts.length).toFixed(1);
+    const staffAvgs = staff.map(s=>({
+      name: s,
+      avg: cells.filter(c=>c.staff===s).reduce((t,c)=>t+c.availability_pct,0) / days.length
+    }));
+    const maxStaff = staffAvgs.reduce((a,b)=>b.avg>a.avg?b:a, staffAvgs[0]);
+    const minStaff = staffAvgs.reduce((a,b)=>b.avg<a.avg?b:a, staffAvgs[0]);
+
+    document.getElementById('h-avg').textContent = avgPct + '%';
+    document.getElementById('h-max').textContent = maxStaff ? maxStaff.name : '—';
+    document.getElementById('h-min').textContent = minStaff ? minStaff.name : '—';
+
+    const cellW = 72, cellH = 38, labelW = 70, labelH = 26;
+    const W = labelW + days.length * cellW + 4;
+    const H = labelH + staff.length * cellH + 4;
+
+    let svg = `<svg class="heatmap" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+    // day headers
+    days.forEach((day,di)=>{
+      svg+=`<text x="${labelW+di*cellW+cellW/2}" y="${labelH-6}" font-size="9" fill="#666" text-anchor="middle" font-weight="700">${day}</text>`;
+    });
+    // staff rows
+    staff.forEach((s,si)=>{
+      const cy=labelH+si*cellH+cellH/2;
+      svg+=`<text x="${labelW-6}" y="${cy+3.5}" font-size="9" fill="#aaa" text-anchor="end" font-weight="700">${s}</text>`;
+      days.forEach((day,di)=>{
+        const cell=cells.find(c=>c.staff===s&&c.day===day);
+        const pct=cell?cell.availability_pct:0;
+        const cx=labelW+di*cellW;
+        const row=labelH+si*cellH;
+        svg+=`<rect x="${cx+2}" y="${row+2}" width="${cellW-4}" height="${cellH-4}" rx="5" fill="${pctColor(pct)}"/>`;
+        svg+=`<text x="${cx+cellW/2}" y="${row+cellH/2+4}" font-size="9.5" fill="#fff" text-anchor="middle" font-weight="800">${pct}%</text>`;
+      });
+    });
+    svg+='</svg>';
+    document.getElementById('heatmap-wrap').innerHTML = svg;
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quick Actions — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .actions-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .action-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; display: flex; flex-direction: column; gap: .9rem; transition: border-color .15s; }
+    .action-card:hover { border-color: #333; }
+    .action-top { display: flex; align-items: flex-start; justify-content: space-between; }
+    .action-icon { font-size: 2rem; line-height: 1; }
+    .action-badge { font-size: .85rem; font-weight: 900; padding: .25rem .7rem; border-radius: 99px; background: rgba(167,139,250,.12); color: var(--accent); border: 1px solid rgba(167,139,250,.25); }
+    .action-badge.zero { background: rgba(102,102,102,.08); color: var(--muted); border-color: var(--border); }
+    .action-name { font-size: 1rem; font-weight: 900; letter-spacing: -.02em; }
+    .action-desc { font-size: .78rem; color: var(--muted); line-height: 1.5; flex: 1; }
+    .action-btn { display: block; text-align: center; background: var(--accent); color: #fff; text-decoration: none; font-size: .82rem; font-weight: 700; padding: .55rem 1rem; border-radius: 8px; transition: opacity .15s; }
+    .action-btn:hover { opacity: .85; }
+    .action-btn.disabled { background: var(--surface2); color: var(--muted); cursor: default; pointer-events: none; }
+    .all-clear { text-align: center; color: var(--muted); padding: 4rem 2rem; }
+    .all-clear-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .all-clear-title { font-size: 1.1rem; font-weight: 800; color: var(--green); margin-bottom: .5rem; }
+    .all-clear-sub { font-size: .83rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Quick Actions</div>
+  <p class="page-sub">Items that need your attention right now.</p>
+  <div id="container"></div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/dashboard/quick-actions');
+    const d = await r.json();
+    const actions = (d.actions || []);
+    const hasAny = actions.some(a => a.count > 0);
+
+    if (!hasAny) {
+      document.getElementById('container').innerHTML = `<div class="all-clear">
+        <div class="all-clear-icon">✅</div>
+        <div class="all-clear-title">You're all caught up!</div>
+        <div class="all-clear-sub">No action items right now. Check back later.</div>
+      </div>`;
+      return;
+    }
+
+    document.getElementById('container').innerHTML = `<div class="actions-grid">${
+      actions.map(a => `<div class="action-card">
+        <div class="action-top">
+          <div class="action-icon">${esc(a.icon || '📋')}</div>
+          <div class="action-badge${a.count === 0 ? ' zero' : ''}">${a.count} item${a.count !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="action-name">${esc(a.label)}</div>
+        <div class="action-desc">${esc(a.description)}</div>
+        <a class="action-btn${a.count === 0 ? ' disabled' : ''}" href="${esc(a.action_url)}">
+          ${a.count === 0 ? 'Nothing to do' : 'Take Action →'}
+        </a>
+      </div>`).join('')
+    }</div>`;
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

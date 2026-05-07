@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Commission — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    .tier-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .85rem; }
+    .tier-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .6rem .9rem; display: flex; align-items: center; gap: .6rem; }
+    .tier-range { font-size: .82rem; font-weight: 700; color: var(--accent); flex: 1; }
+    .tier-rate { font-size: .78rem; color: var(--yellow); font-weight: 900; }
+    .remove-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }
+    .remove-btn:hover { color: var(--red); }
+    .add-row { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+    .add-label { font-size: .75rem; color: var(--muted); }
+    .add-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--accent); font-size: .78rem; font-weight: 700; padding: .38rem .7rem; cursor: pointer; }
+    .add-btn:hover { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Commission</div>
+  <p class="page-sub">Set flat or tiered commission rates for your team — RingDesk automatically calculates each stylist's earned commission based on completed appointments, retail sales, and optional tip inclusion.</p>
+  <div class="card">
+    <div class="card-title">Commission Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Commission Tracking</div><div class="row-sub">Track and calculate staff earnings automatically</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Track By</div><div class="row-sub">Basis for commission calculation</div></div>
+      <select id="track-by">
+        <option value="service_revenue">Service Revenue</option>
+        <option value="bookings">Booking Count</option>
+        <option value="gross_revenue">Gross Revenue</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Default Commission %</div><div class="row-sub">Flat rate for non-tiered commission</div></div>
+      <input type="number" id="default-pct" min="0" max="100" placeholder="40">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Pay Period</div></div>
+      <select id="pay-period">
+        <option value="weekly">Weekly</option>
+        <option value="biweekly">Bi-weekly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Include Tips in Commission Base</div><div class="row-sub">Tips count toward revenue for % calculation</div></div>
+      <label class="toggle"><input type="checkbox" id="include-tips"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Include Retail Sales</div><div class="row-sub">Product sales count toward commission</div></div>
+      <label class="toggle"><input type="checkbox" id="include-retail"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Calculate Each Pay Period</div><div class="row-sub">Generate commission reports automatically</div></div>
+      <label class="toggle"><input type="checkbox" id="auto-calc"><span class="slider"></span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Tiered Commission</div>
+    <div class="row" style="margin-bottom:1rem">
+      <div><div class="row-label">Enable Tiered Rates</div><div class="row-sub">Higher % as monthly revenue increases</div></div>
+      <label class="toggle"><input type="checkbox" id="tiered"><span class="slider"></span></label>
+    </div>
+    <div class="tier-list" id="tier-list"></div>
+    <div class="add-row">
+      <div class="add-label">Min $</div>
+      <input type="number" id="new-min" min="0" placeholder="0" style="width:80px">
+      <div class="add-label">Rate %</div>
+      <input type="number" id="new-rate" min="0" max="100" placeholder="40" style="width:70px">
+      <button class="add-btn" onclick="addTier()">+ Add Tier</button>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let tiers = [];
+  function renderTiers() {
+    const el = document.getElementById('tier-list');
+    el.innerHTML = '';
+    tiers.forEach((t,i) => {
+      const next = tiers[i+1];
+      const rangeStr = next ? `$${t.min_revenue.toLocaleString()} – $${(next.min_revenue-1).toLocaleString()}` : `$${t.min_revenue.toLocaleString()}+`;
+      el.innerHTML += `<div class="tier-item">
+        <div class="tier-range">${esc(rangeStr)}</div>
+        <div class="tier-rate">${t.commission_pct}%</div>
+        <button class="remove-btn" onclick="removeTier(${i})">✕</button>
+      </div>`;
+    });
+  }
+  function addTier() {
+    const min = parseInt(document.getElementById('new-min').value) || 0;
+    const rate = parseInt(document.getElementById('new-rate').value) || 0;
+    tiers.push({min_revenue: min, commission_pct: rate});
+    tiers.sort((a,b)=>a.min_revenue-b.min_revenue);
+    document.getElementById('new-min').value = '';
+    document.getElementById('new-rate').value = '';
+    renderTiers();
+  }
+  function removeTier(i) { tiers.splice(i,1); renderTiers(); }
+  async function load() {
+    const d = await fetch('/api/settings/staff-commission-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('track-by').value = d.track_by || 'service_revenue';
+    document.getElementById('default-pct').value = d.default_commission_pct ?? 40;
+    document.getElementById('pay-period').value = d.pay_period || 'biweekly';
+    document.getElementById('include-tips').checked = d.include_tips;
+    document.getElementById('include-retail').checked = d.include_retail;
+    document.getElementById('auto-calc').checked = d.auto_calculate;
+    document.getElementById('tiered').checked = d.tiered;
+    tiers = d.tiers || [];
+    renderTiers();
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      track_by: document.getElementById('track-by').value,
+      default_commission_pct: parseInt(document.getElementById('default-pct').value) || 40,
+      pay_period: document.getElementById('pay-period').value,
+      include_tips: document.getElementById('include-tips').checked,
+      include_retail: document.getElementById('include-retail').checked,
+      auto_calculate: document.getElementById('auto-calc').checked,
+      tiered: document.getElementById('tiered').checked,
+      tiers
+    };
+    await fetch('/api/settings/staff-commission-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

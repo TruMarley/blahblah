@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Custom Client Fields — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    input[type=text]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    .field-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1rem; }
+    .field-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .65rem .9rem; display: flex; align-items: center; gap: .75rem; }
+    .field-name { flex: 1; font-size: .83rem; font-weight: 600; }
+    .field-type { font-size: .72rem; color: var(--muted); background: #1e1e1e; padding: .12rem .4rem; border-radius: 4px; }
+    .field-req { font-size: .68rem; color: var(--yellow); font-weight: 700; }
+    .remove-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .85rem; padding: .15rem; }
+    .remove-btn:hover { color: var(--red); }
+    .add-row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+    .add-row input[type=text] { flex: 1; min-width: 120px; }
+    .add-field-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--accent); font-size: .8rem; font-weight: 700; padding: .42rem .8rem; cursor: pointer; white-space: nowrap; }
+    .add-field-btn:hover { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Custom Client Fields</div>
+  <p class="page-sub">Collect additional information from clients during booking or at intake — allergy notes, preferred stylist, birthday, or any custom field your business needs.</p>
+  <div class="card">
+    <div class="card-title">Display Options</div>
+    <div class="row">
+      <div><div class="row-label">Enable Custom Fields</div><div class="row-sub">Show additional fields during client intake</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Show on Booking Form</div><div class="row-sub">Ask during online booking flow</div></div>
+      <label class="toggle"><input type="checkbox" id="show-booking"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Show on Client Profile</div><div class="row-sub">Display on staff-facing client profile</div></div>
+      <label class="toggle"><input type="checkbox" id="show-profile"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Collect via SMS</div><div class="row-sub">AI asks for field info during phone intake</div></div>
+      <label class="toggle"><input type="checkbox" id="collect-sms"><span class="slider"></span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Custom Fields</div>
+    <div class="field-list" id="field-list"></div>
+    <div class="add-row">
+      <input type="text" id="new-name" placeholder="Field name">
+      <select id="new-type">
+        <option value="text">Text</option>
+        <option value="textarea">Long text</option>
+        <option value="date">Date</option>
+        <option value="number">Number</option>
+        <option value="checkbox">Checkbox</option>
+      </select>
+      <label class="toggle" style="margin-left:.25rem" title="Required"><input type="checkbox" id="new-req"><span class="slider"></span></label>
+      <button class="add-field-btn" onclick="addField()">+ Add</button>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let fields = [];
+  function renderFields() {
+    const el = document.getElementById('field-list');
+    el.innerHTML = '';
+    fields.forEach((f,i) => {
+      el.innerHTML += `<div class="field-item">
+        <div class="field-name">${esc(f.name)}</div>
+        <span class="field-type">${esc(f.type)}</span>
+        ${f.required ? '<span class="field-req">Required</span>' : ''}
+        <button class="remove-btn" onclick="removeField(${i})">✕</button>
+      </div>`;
+    });
+  }
+  function addField() {
+    const name = document.getElementById('new-name').value.trim();
+    if (!name) return;
+    const type = document.getElementById('new-type').value;
+    const required = document.getElementById('new-req').checked;
+    fields.push({name, type, required});
+    document.getElementById('new-name').value = '';
+    renderFields();
+  }
+  function removeField(i) { fields.splice(i,1); renderFields(); }
+  async function load() {
+    const d = await fetch('/api/settings/custom-fields-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('show-booking').checked = d.show_on_booking;
+    document.getElementById('show-profile').checked = d.show_on_profile;
+    document.getElementById('collect-sms').checked = d.collect_via_sms;
+    fields = d.fields || [];
+    renderFields();
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      fields,
+      show_on_booking: document.getElementById('show-booking').checked,
+      show_on_profile: document.getElementById('show-profile').checked,
+      collect_via_sms: document.getElementById('collect-sms').checked
+    };
+    await fetch('/api/settings/custom-fields-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

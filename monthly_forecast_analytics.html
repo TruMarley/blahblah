@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue Forecast — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { display: flex; align-items: flex-end; gap: .45rem; height: 90px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .2rem; }
+    .bar-actual { border-radius: 3px 3px 0 0; background: var(--accent); opacity: .85; width: 100%; }
+    .bar-forecast { border-radius: 3px 3px 0 0; background: var(--green); opacity: .55; width: 100%; border: 1px dashed rgba(52,211,153,.5); }
+    .bar-lbl { font-size: .6rem; color: var(--muted); }
+    .bar-val { font-size: .58rem; color: var(--text); }
+    .forecast-row { display: flex; align-items: center; gap: .6rem; padding: .7rem 0; border-bottom: 1px solid var(--border); }
+    .forecast-row:last-child { border-bottom: none; }
+    .fc-month { font-size: .82rem; font-weight: 700; width: 50px; }
+    .fc-projected { font-size: .88rem; font-weight: 900; color: var(--green); flex: 1; }
+    .fc-range { font-size: .68rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue Forecast</div>
+  <p class="page-sub">6 months of actual revenue plus a 3-month forward projection based on your current growth rate.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-curr" style="color:var(--green)">—</div><div class="stat-lbl">This Month</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-prev" style="color:var(--muted)">—</div><div class="stat-lbl">Last Month</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-growth" style="color:var(--accent)">—</div><div class="stat-lbl">MoM Growth</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-next" style="color:var(--green)">—</div><div class="stat-lbl">Next Month Est.</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Actuals + Forecast</div>
+    <div style="display:flex;gap:.6rem;margin-bottom:.8rem">
+      <span style="font-size:.68rem;color:var(--accent)">▪ Actual</span>
+      <span style="font-size:.68rem;color:var(--green)">▪ Forecast</span>
+    </div>
+    <div class="chart-wrap" id="chart"></div>
+    <div class="chart-wrap" id="chart-lbls" style="height:auto;margin-top:.25rem"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">3-Month Projection Detail</div>
+    <div id="fc-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/monthly-forecast-stats').then(r => r.json());
+    document.getElementById('h-curr').textContent = '$' + d.current_month_revenue.toLocaleString();
+    document.getElementById('h-prev').textContent = '$' + d.prev_month_revenue.toLocaleString();
+    const g = d.mom_growth_pct;
+    document.getElementById('h-growth').textContent = (g >= 0 ? '+' : '') + g.toFixed(1) + '%';
+    document.getElementById('h-growth').style.color = g >= 0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('h-next').textContent = '$' + d.projected_next_month.toLocaleString();
+    const allBars = [...d.actuals.map(a => a.revenue), ...d.forecast.map(f => f.projected)];
+    const maxV = Math.max(...allBars);
+    const chart = document.getElementById('chart');
+    const lbls = document.getElementById('chart-lbls');
+    d.actuals.forEach(a => {
+      const h = Math.max(4, (a.revenue / maxV * 84)).toFixed(0);
+      chart.innerHTML += '<div class="bar-col"><div class="bar-actual" style="height:' + h + 'px"></div></div>';
+      lbls.innerHTML += '<div class="bar-col"><div class="bar-lbl">' + a.month + '</div></div>';
+    });
+    d.forecast.forEach(f => {
+      const h = Math.max(4, (f.projected / maxV * 84)).toFixed(0);
+      chart.innerHTML += '<div class="bar-col"><div class="bar-forecast" style="height:' + h + 'px"></div></div>';
+      lbls.innerHTML += '<div class="bar-col"><div class="bar-lbl">' + f.month + '</div></div>';
+    });
+    const fl = document.getElementById('fc-list');
+    d.forecast.forEach(f => {
+      fl.innerHTML += '<div class="forecast-row"><div class="fc-month">' + f.month + '</div><div class="fc-projected">$' + f.projected.toLocaleString() + '</div><div class="fc-range">Range: $' + f.low.toLocaleString() + ' – $' + f.high.toLocaleString() + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

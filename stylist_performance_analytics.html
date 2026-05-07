@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stylist Performance — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .stylist-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.1rem; margin-bottom: .65rem; }
+    .stylist-card:last-child { margin-bottom: 0; }
+    .stylist-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .65rem; }
+    .stylist-name { font-size: .92rem; font-weight: 800; }
+    .stylist-rev { font-size: .92rem; font-weight: 900; color: var(--green); }
+    .stylist-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4rem; }
+    .meta-item { }
+    .meta-val { font-size: .78rem; font-weight: 700; }
+    .meta-lbl { font-size: .6rem; color: var(--muted); }
+    .rating-stars { color: var(--yellow); font-size: .75rem; }
+    .util-track { background: var(--border); border-radius: 3px; height: 4px; margin-top: .55rem; overflow: hidden; }
+    .util-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Stylist Performance</div>
+  <p class="page-sub">Compare stylists on revenue, bookings, rebook rate, no-shows, ratings, and utilisation — all tracked automatically by the AI.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-count" style="color:var(--muted)">—</div><div class="stat-lbl">Active Stylists</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-top" style="color:var(--accent)">—</div><div class="stat-lbl">Top Earner</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-rebook" style="color:var(--green)">—</div><div class="stat-lbl">Avg Rebook Rate</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-util" style="color:var(--yellow)">—</div><div class="stat-lbl">Avg Utilisation</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Stylist Breakdown</div>
+    <div id="stylist-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/stylist-performance-stats').then(r => r.json());
+    document.getElementById('h-count').textContent = d.total_stylists;
+    document.getElementById('h-top').textContent = d.top_earner;
+    document.getElementById('h-rebook').textContent = d.avg_rebook_rate_pct.toFixed(1) + '%';
+    document.getElementById('h-util').textContent = d.avg_utilisation_pct.toFixed(1) + '%';
+    const sl = document.getElementById('stylist-list');
+    d.stylists.forEach(s => {
+      const stars = '★'.repeat(Math.round(s.avg_rating)) + '☆'.repeat(5 - Math.round(s.avg_rating));
+      sl.innerHTML += '<div class="stylist-card"><div class="stylist-top"><div class="stylist-name">' + s.name + '</div><div class="stylist-rev">$' + s.revenue_30d.toLocaleString() + '</div></div><div class="stylist-meta"><div class="meta-item"><div class="meta-val">' + s.bookings_30d + '</div><div class="meta-lbl">Bookings</div></div><div class="meta-item"><div class="meta-val">$' + s.avg_ticket.toFixed(0) + '</div><div class="meta-lbl">Avg Ticket</div></div><div class="meta-item"><div class="meta-val">' + s.rebook_rate_pct.toFixed(1) + '%</div><div class="meta-lbl">Rebook</div></div><div class="meta-item"><div class="meta-val rating-stars">' + stars + '</div><div class="meta-lbl">' + s.avg_rating.toFixed(1) + '</div></div></div><div class="util-track"><div class="util-fill" style="width:' + s.utilisation_pct.toFixed(0) + '%"></div></div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

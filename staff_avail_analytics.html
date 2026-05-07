@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Availability — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .staff-avail-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .5rem; display: flex; align-items: center; gap: .85rem; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #6366f1); display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 900; color: #fff; flex-shrink: 0; }
+    .staff-info { flex: 1; min-width: 0; }
+    .staff-name { font-size: .82rem; font-weight: 700; }
+    .staff-next { font-size: .62rem; color: var(--green); margin-top: .1rem; }
+    .day-chips { display: flex; gap: 3px; }
+    .day-chip { width: 26px; height: 20px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: .52rem; font-weight: 700; }
+    .day-chip.on { background: rgba(52,211,153,.15); color: var(--green); border: 1px solid rgba(52,211,153,.3); }
+    .day-chip.off { background: rgba(102,102,102,.1); color: #444; border: 1px solid #222; }
+    .util-pct { font-size: .82rem; font-weight: 900; color: var(--accent); width: 40px; text-align: right; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Availability</div>
+  <p class="page-sub">See which staff are working each day, their booking utilization, and next available slot. The AI uses this data to route callers to the right stylist.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-staff" style="color:var(--accent)">—</div><div class="stat-lbl">Total Staff</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-util" style="color:var(--green)">—</div><div class="stat-lbl">Avg Utilization</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-full" style="color:var(--red)">—</div><div class="stat-lbl">Fully Booked Today</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-open" style="color:var(--yellow)">—</div><div class="stat-lbl">Open Slots Today</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Staff Weekly Schedule & Utilization</div>
+    <div id="staff-list"></div>
+  </div>
+</div>
+<script>
+  const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  async function load() {
+    const data = await fetch('/api/analytics/staff-avail-stats').then(r => r.json());
+    document.getElementById('h-staff').textContent = data.total_staff;
+    document.getElementById('h-util').textContent = data.avg_utilization_pct.toFixed(1) + '%';
+    document.getElementById('h-full').textContent = data.fully_booked_today;
+    document.getElementById('h-open').textContent = data.open_slots_today;
+    const list = document.getElementById('staff-list');
+    (data.staff || []).forEach(s => {
+      const initials = s.name.split(' ').map(w => w[0]).join('').slice(0,2);
+      const chips = DAYS.map(d => {
+        const day = s.weekly[d] || { available: false };
+        return '<div class="day-chip ' + (day.available ? 'on' : 'off') + '">' + d.slice(0,2) + '</div>';
+      }).join('');
+      list.innerHTML += '<div class="staff-avail-card"><div class="avatar">' + initials + '</div><div class="staff-info"><div class="staff-name">' + s.name + ' <span style="font-size:.6rem;color:var(--muted)">' + s.role + '</span></div><div class="staff-next">Next available: ' + s.next_available + '</div></div><div class="day-chips">' + chips + '</div><div class="util-pct">' + s.avg_utilization_pct + '%</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

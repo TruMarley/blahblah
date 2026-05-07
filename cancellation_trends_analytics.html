@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancellation Trends — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .reason-list { display: flex; flex-direction: column; gap: .65rem; }
+    .reason-row { display: flex; align-items: center; gap: .75rem; }
+    .reason-name { font-size: .8rem; font-weight: 600; width: 160px; flex-shrink: 0; }
+    .reason-bar-wrap { flex: 1; background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+    .reason-bar { height: 100%; border-radius: 4px; background: var(--red); }
+    .reason-pct { font-size: .75rem; color: var(--muted); width: 34px; text-align: right; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Cancellation Trends</div>
+  <p class="page-sub">Track your cancellation rate over time and understand the top reasons clients cancel — so you can target the right interventions and recover lost revenue.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Current Rate</div>
+      <div class="hero-val" id="h-current" style="color:var(--red)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">6-Month Avg</div>
+      <div class="hero-val" id="h-avg" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Worst Month</div>
+      <div class="hero-val" id="h-peak" style="color:var(--red)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Cancellation Rate — 6 Months</div>
+    <svg id="chart" viewBox="0 0 680 150" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+  <div class="card">
+    <div class="card-title">Cancellation Reasons</div>
+    <div class="reason-list" id="reasons"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/cancellation-trends').then(r => r.json());
+    document.getElementById('h-current').textContent = d.current_rate_pct != null ? d.current_rate_pct+'%' : '—';
+    document.getElementById('h-avg').textContent = d.avg_rate_pct != null ? d.avg_rate_pct+'%' : '—';
+    document.getElementById('h-peak').textContent = d.peak_month || '—';
+
+    const months = d.months || [], rates = d.cancellation_rates || [];
+    if (months.length) {
+      const W=680,H=150,pL=36,pR=16,pT=20,pB=28,n=months.length;
+      const cW=W-pL-pR, cH=H-pT-pB;
+      const mn=0, mx=Math.max(...rates)*1.15;
+      const pts = rates.map((v,i) => ({
+        x: pL + i*(cW/(n-1)),
+        y: pT + cH - (v-mn)/(mx-mn)*cH, v
+      }));
+      const path = pts.map((p,i) => (i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+      const fill = path+' L'+pts[pts.length-1].x.toFixed(1)+','+(pT+cH)+' L'+pL+','+(pT+cH)+' Z';
+      let svg = `<path d="${fill}" fill="rgba(248,113,113,.08)"/>`;
+      svg += `<path d="${path}" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linejoin="round"/>`;
+      pts.forEach(p => {
+        svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="var(--red)"/>`;
+        svg += `<text x="${p.x.toFixed(1)}" y="${(p.y-9).toFixed(1)}" text-anchor="middle" fill="var(--red)" font-size="9" font-weight="700">${p.v}%</text>`;
+      });
+      months.forEach((m,i) => {
+        const x = pL + i*(cW/(n-1));
+        svg += `<text x="${x.toFixed(1)}" y="${H-pB+14}" text-anchor="middle" fill="#555" font-size="9">${esc(m)}</text>`;
+      });
+      document.getElementById('chart').innerHTML = svg;
+    }
+
+    const el = document.getElementById('reasons');
+    (d.reasons || []).forEach(r => {
+      el.innerHTML += `<div class="reason-row">
+        <div class="reason-name">${esc(r.reason)}</div>
+        <div class="reason-bar-wrap"><div class="reason-bar" style="width:${r.pct}%"></div></div>
+        <div class="reason-pct">${r.pct}%</div>
+      </div>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

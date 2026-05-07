@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Satisfaction — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .nps-breakdown { display: flex; flex-direction: column; gap: .7rem; }
+    .nps-row { display: flex; align-items: center; gap: .75rem; }
+    .nps-label { font-size: .8rem; font-weight: 600; min-width: 120px; }
+    .nps-bar { flex: 1; height: 10px; background: var(--surface2); border-radius: 10px; }
+    .nps-fill { height: 10px; border-radius: 10px; }
+    .nps-val { font-size: .8rem; font-weight: 700; min-width: 40px; text-align: right; }
+    .feedback-list { display: flex; flex-direction: column; gap: .6rem; }
+    .fb-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .8rem .9rem; }
+    .fb-top { display: flex; align-items: center; gap: .6rem; margin-bottom: .4rem; }
+    .stars { font-size: .82rem; color: var(--yellow); }
+    .fb-svc { font-size: .72rem; color: var(--muted); }
+    .fb-date { font-size: .68rem; color: var(--muted); margin-left: auto; }
+    .fb-comment { font-size: .78rem; color: var(--text); line-height: 1.45; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Satisfaction</div>
+  <p class="page-sub">Track your CSAT and Net Promoter Score over time. Satisfied clients rebook, refer friends, and leave glowing reviews — monitor these signals to catch service issues before they become churn.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">CSAT Score</div>
+      <div class="hero-val" id="h-csat" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">NPS Score</div>
+      <div class="hero-val" id="h-nps" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Response Rate</div>
+      <div class="hero-val" id="h-resp" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">6-Month CSAT &amp; NPS Trend</div>
+    <svg id="trend-chart" viewBox="0 0 680 140" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+    <div style="display:flex;gap:1.2rem;margin-top:.6rem;font-size:.7rem">
+      <span style="color:var(--green)">■ CSAT</span>
+      <span style="color:var(--accent)">■ NPS</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">NPS Breakdown</div>
+    <div class="nps-breakdown" id="nps-breakdown"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Top Client Compliment</div>
+    <div id="top-compliment" style="font-size:.85rem;color:var(--text);padding:.5rem 0;line-height:1.6">—</div>
+    <div style="font-size:.72rem;color:var(--muted);margin-top:.5rem" id="response-count"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/client-satisfaction-stats').then(r => r.json());
+    document.getElementById('h-csat').textContent = d.avg_rating != null ? d.avg_rating + ' / 5' : '—';
+    document.getElementById('h-nps').textContent = d.nps_score != null ? d.nps_score : '—';
+    document.getElementById('h-resp').textContent = d.response_rate_pct != null ? d.response_rate_pct + '%' : '—';
+
+    const monthly = d.monthly || [];
+    const ratings = monthly.map(m => m.avg_rating);
+    const npsList = monthly.map(m => m.nps);
+    if (monthly.length > 1) {
+      const W=680,H=140,pL=36,pR=16,pT=14,pB=24,n=monthly.length;
+      const cW=W-pL-pR, cH=H-pT-pB;
+      const allVals=[...ratings,...npsList.map(v=>v/20)];
+      const mn=Math.min(...allVals)*0.9||0, mx=Math.max(...allVals)*1.05||5;
+      const scaleY=v=>pT+cH-((v-mn)/(mx-mn||1))*cH;
+      const ptsCsat=ratings.map((v,i)=>({x:pL+i*(cW/(n-1)),y:scaleY(v),v}));
+      const ptsNps=npsList.map((v,i)=>({x:pL+i*(cW/(n-1)),y:scaleY(v/20),v}));
+      const pathC=ptsCsat.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+      const pathN=ptsNps.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+      let svg=`<path d="${pathC}" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linejoin="round"/>`;
+      svg+=`<path d="${pathN}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6,3"/>`;
+      monthly.forEach((m,i)=>{svg+=`<text x="${(pL+i*(cW/(n-1))).toFixed(1)}" y="${H-pB+13}" text-anchor="middle" fill="#555" font-size="9">${esc(m.month)}</text>`;});
+      ptsCsat.forEach(p=>{svg+=`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="var(--green)"/><text x="${p.x.toFixed(1)}" y="${(p.y-6).toFixed(1)}" text-anchor="middle" fill="#aaa" font-size="7">${p.v}</text>`;});
+      ptsNps.forEach(p=>{svg+=`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="var(--accent)"/><text x="${p.x.toFixed(1)}" y="${(p.y+13).toFixed(1)}" text-anchor="middle" fill="#aaa" font-size="7">${p.v}</text>`;});
+      document.getElementById('trend-chart').innerHTML=svg;
+    }
+
+    const bel = document.getElementById('nps-breakdown');
+    (d.breakdown || []).forEach(b => {
+      bel.innerHTML += `<div class="nps-row">
+        <div class="nps-label">${esc(b.label)}</div>
+        <div class="nps-bar"><div class="nps-fill" style="width:${Math.min(b.pct,100)}%;background:${esc(b.color||'var(--accent)')}"></div></div>
+        <div class="nps-val" style="color:${esc(b.color||'var(--accent)')}">${b.pct}% <span style="color:var(--muted);font-weight:400;font-size:.72rem">(${b.count})</span></div>
+      </div>`;
+    });
+
+    document.getElementById('top-compliment').textContent = d.top_compliment ? '"' + d.top_compliment + '"' : '—';
+    document.getElementById('response-count').textContent = d.total_responses_30d != null ? d.total_responses_30d + ' responses collected in the last 30 days' : '';
+  }
+  function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  load();
+</script>
+</body>
+</html>

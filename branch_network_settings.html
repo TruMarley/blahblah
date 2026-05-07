@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Branch Network — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    .loc-card { border-radius: 12px; border: 1px solid var(--border); background: var(--surface2); padding: 1rem 1.1rem; margin-bottom: .6rem; border-left: 4px solid transparent; }
+    .loc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .55rem; }
+    .loc-name { font-size: .93rem; font-weight: 800; }
+    .loc-phone { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+    .loc-meta { display: flex; gap: 1rem; margin-top: .45rem; }
+    .loc-stat { font-size: .72rem; color: var(--muted); }
+    .loc-stat span { color: var(--text); font-weight: 700; }
+    .inactive-loc { opacity: .45; }
+    .active-badge { font-size: .62rem; font-weight: 700; padding: .1rem .38rem; border-radius: 5px; background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .inactive-badge { font-size: .62rem; font-weight: 700; padding: .1rem .38rem; border-radius: 5px; background: rgba(102,102,102,.12); color: var(--muted); border: 1px solid rgba(102,102,102,.2); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Branch Network</div>
+  <p class="page-sub">Manage multi-location operations from one dashboard. Enable cross-location booking, unified client records, and consolidated reporting across all branches.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-total-loc" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Total Locations</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-active-loc" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Active</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-network-bookings" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Network Bookings (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-cross-bookings" style="color:var(--muted)">—</div>
+      <div class="stat-lbl">Cross-Location (30d)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Network Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Branch Network</div><div class="row-sub">Activate multi-location management</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Allow Cross-Location Booking</div><div class="row-sub">Clients can book at any branch</div></div>
+      <label class="toggle"><input type="checkbox" id="cross-booking"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Suggests Nearby Location</div><div class="row-sub">Offer alternate location when primary is full</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-suggests"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Unified Client Database</div><div class="row-sub">Share client records across all locations</div></div>
+      <label class="toggle"><input type="checkbox" id="unified-db"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Unified Reporting</div><div class="row-sub">Aggregate analytics across all branches</div></div>
+      <label class="toggle"><input type="checkbox" id="unified-reporting"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Network Settings</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Locations</div>
+    <div id="loc-list"></div>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/branch-network-cfg').then(r => r.json());
+    document.getElementById('h-total-loc').textContent = data.total_locations;
+    document.getElementById('h-active-loc').textContent = data.active_locations;
+    document.getElementById('h-network-bookings').textContent = data.network_bookings_30d;
+    document.getElementById('h-cross-bookings').textContent = data.cross_location_bookings_30d;
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('cross-booking').checked = data.allow_cross_location_booking;
+    document.getElementById('ai-suggests').checked = data.ai_suggests_nearby_location;
+    document.getElementById('unified-db').checked = data.unified_client_database;
+    document.getElementById('unified-reporting').checked = data.unified_reporting;
+
+    const list = document.getElementById('loc-list');
+    (data.locations || []).forEach(loc => {
+      const card = document.createElement('div');
+      card.className = 'loc-card' + (loc.active ? '' : ' inactive-loc');
+      card.style.borderLeftColor = loc.color;
+      const badge = loc.active
+        ? '<span class="active-badge">Active</span>'
+        : '<span class="inactive-badge">Inactive</span>';
+      card.innerHTML = `
+        <div class="loc-top">
+          <div>
+            <div class="loc-name">${loc.name}</div>
+            <div class="loc-phone">${loc.phone}</div>
+          </div>
+          ${badge}
+        </div>
+        <div class="loc-meta">
+          <div class="loc-stat">Staff: <span>${loc.staff_count}</span></div>
+          <div class="loc-stat">Bookings (30d): <span>${loc.bookings_30d}</span></div>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+  }
+
+  async function save() {
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      allow_cross_location_booking: document.getElementById('cross-booking').checked,
+      ai_suggests_nearby_location: document.getElementById('ai-suggests').checked,
+      unified_client_database: document.getElementById('unified-db').checked,
+      unified_reporting: document.getElementById('unified-reporting').checked,
+    };
+    await fetch('/api/settings/branch-network-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

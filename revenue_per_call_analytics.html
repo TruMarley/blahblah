@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue Per Call — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem .9rem; text-align: center; }
+    .hero-label { font-size: .6rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.1rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .insight-box { background: rgba(167,139,250,.06); border: 1px solid rgba(167,139,250,.2); border-radius: 10px; padding: .9rem 1rem; margin-top: 1rem; }
+    .insight-box p { font-size: .78rem; color: var(--accent); line-height: 1.6; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue Per Call</div>
+  <p class="page-sub">Measure the average dollar value of every inbound call your AI handles. Higher revenue-per-call means the AI is booking higher-value services and upselling effectively. Missed revenue shows what went out the door unanswered.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg Rev / Call</div>
+      <div class="hero-val" id="h-avg" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total Calls</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Revenue Calls</div>
+      <div class="hero-val" id="h-rev-calls" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Missed Revenue</div>
+      <div class="hero-val" id="h-missed" style="color:var(--red)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Monthly Revenue Per Call Trend</div>
+    <svg id="trend-chart" viewBox="0 0 680 140" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+    <div class="insight-box" id="insight-box"></div>
+  </div>
+</div>
+<script>
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  async function load() {
+    const d = await fetch('/api/analytics/revenue-per-call-stats').then(r => r.json());
+    document.getElementById('h-avg').textContent = d.avg_revenue_per_call != null ? '$' + d.avg_revenue_per_call : '—';
+    document.getElementById('h-total').textContent = d.total_calls ?? '—';
+    document.getElementById('h-rev-calls').textContent = d.revenue_calls ?? '—';
+    document.getElementById('h-missed').textContent = d.missed_revenue != null ? '$' + d.missed_revenue.toLocaleString() : '—';
+
+    const monthly = d.monthly || [];
+    if (monthly.length > 1) {
+      const W=680,H=140,pL=42,pR=16,pT=14,pB=24,n=monthly.length;
+      const vals = monthly.map(m => m.value);
+      const mn = Math.min(...vals)*0.88, mx = Math.max(...vals)*1.06;
+      const cW=W-pL-pR, cH=H-pT-pB;
+      const scaleY = v => pT+cH-((v-mn)/(mx-mn))*cH;
+      const pts = monthly.map((m,i) => ({x:pL+i*(cW/(n-1)), y:scaleY(m.value), v:m.value, month:m.month}));
+      const areaPath = 'M'+pts.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('L')+`L${pts[pts.length-1].x.toFixed(1)},${(pT+cH).toFixed(1)}L${pts[0].x.toFixed(1)},${(pT+cH).toFixed(1)}Z`;
+      const linePath = pts.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+      let svg = `<defs><linearGradient id="rpcg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a78bfa" stop-opacity=".25"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/></linearGradient></defs>`;
+      svg += `<path d="${areaPath}" fill="url(#rpcg)"/>`;
+      svg += `<path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>`;
+      pts.forEach(p => {
+        svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="var(--accent)"/>`;
+        svg += `<text x="${p.x.toFixed(1)}" y="${(p.y-8).toFixed(1)}" text-anchor="middle" fill="#ccc" font-size="8">$${p.v}</text>`;
+        svg += `<text x="${p.x.toFixed(1)}" y="${(H-pB+13).toFixed(1)}" text-anchor="middle" fill="#555" font-size="9">${esc(p.month)}</text>`;
+      });
+      document.getElementById('trend-chart').innerHTML = svg;
+    }
+
+    const conversionRate = d.revenue_calls && d.total_calls ? Math.round(d.revenue_calls/d.total_calls*100) : null;
+    const insight = document.getElementById('insight-box');
+    if (conversionRate !== null) {
+      insight.innerHTML = `<p>${conversionRate}% of all inbound calls resulted in bookable revenue. Improving call-to-booking conversion by just 5% would add approximately <strong style="color:var(--green)">$${Math.round(d.avg_revenue_per_call*(d.total_calls*0.05)).toLocaleString()}</strong> in monthly revenue at current call volume.</p>`;
+    }
+  }
+  load();
+</script>
+</body>
+</html>

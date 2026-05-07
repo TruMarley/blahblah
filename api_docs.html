@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk API Reference</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #0f0f0f; --surface2: #161616; --surface3: #1c1c1c;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --blue: #3b82f6; --orange: #f97316; --red: #ef4444;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* Top nav */
+    .topnav {
+      position: fixed; top: 0; width: 100%; z-index: 100;
+      background: rgba(8,8,8,0.97); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 1.5rem; height: 52px;
+    }
+    .topnav-logo { font-size: 1rem; font-weight: 900; color: #fff; text-decoration: none; letter-spacing: -0.02em; }
+    .topnav-logo span { color: var(--accent-light); }
+    .topnav-right { display: flex; align-items: center; gap: 1.25rem; }
+    .topnav-right a { font-size: 0.78rem; color: var(--muted); text-decoration: none; }
+    .topnav-right a:hover { color: var(--text); }
+    .api-badge { background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3); color: var(--accent-light); font-size: 0.65rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* Layout */
+    .layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; padding-top: 52px; }
+
+    /* Sidebar */
+    .sidebar {
+      position: sticky; top: 52px; height: calc(100vh - 52px);
+      overflow-y: auto; background: var(--surface); border-right: 1px solid var(--border);
+      padding: 1.25rem 0;
+    }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+    .sb-section { padding: 0.75rem 1.25rem 0.25rem; font-size: 0.6rem; font-weight: 700; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.1em; }
+    .sb-link { display: flex; align-items: center; gap: 8px; padding: 0.45rem 1.25rem; font-size: 0.75rem; color: var(--muted); text-decoration: none; transition: all 0.15s; border-left: 2px solid transparent; }
+    .sb-link:hover { color: var(--text); background: var(--surface2); }
+    .sb-link.active { color: var(--accent-light); border-left-color: var(--accent); background: rgba(124,58,237,0.06); }
+    .sb-method { font-size: 0.55rem; font-weight: 800; padding: 1px 5px; border-radius: 3px; text-transform: uppercase; }
+    .m-get { background: rgba(59,130,246,0.2); color: #60a5fa; }
+    .m-post { background: rgba(34,197,94,0.2); color: #4ade80; }
+
+    /* Main content */
+    .content { padding: 2.5rem 2rem 4rem; max-width: 820px; }
+
+    /* Intro */
+    .intro { margin-bottom: 3rem; }
+    .intro h1 { font-size: 1.8rem; font-weight: 900; color: #fff; letter-spacing: -0.04em; margin-bottom: 0.5rem; }
+    .intro p { font-size: 0.88rem; color: var(--muted); line-height: 1.7; margin-bottom: 0.75rem; }
+    .base-url-box {
+      background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px;
+      padding: 0.65rem 1rem; font-family: "SF Mono", "Fira Code", monospace; font-size: 0.82rem;
+      color: var(--accent-light); margin-top: 1rem;
+    }
+    .base-url-box span { color: var(--muted); }
+
+    /* Category sections */
+    .category { margin-bottom: 3rem; scroll-margin-top: 70px; }
+    .category-header { padding-bottom: 0.75rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
+    .category-title { font-size: 1.1rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; }
+    .category-desc { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
+
+    /* Endpoint cards */
+    .endpoint { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 1rem; overflow: hidden; }
+    .ep-header { display: flex; align-items: center; gap: 0.75rem; padding: 0.9rem 1.25rem; cursor: pointer; user-select: none; transition: background 0.15s; }
+    .ep-header:hover { background: var(--surface2); }
+    .method-badge { font-size: 0.65rem; font-weight: 800; padding: 3px 8px; border-radius: 5px; text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0; }
+    .badge-get { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.25); }
+    .badge-post { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+    .badge-ws { background: rgba(249,115,22,0.15); color: #fb923c; border: 1px solid rgba(249,115,22,0.25); }
+    .ep-path { font-family: "SF Mono", "Fira Code", monospace; font-size: 0.85rem; color: #fff; font-weight: 600; }
+    .ep-desc-short { font-size: 0.75rem; color: var(--muted); margin-left: auto; }
+    .ep-chevron { color: var(--muted); font-size: 0.65rem; flex-shrink: 0; transition: transform 0.2s; }
+    .endpoint.open .ep-chevron { transform: rotate(180deg); }
+
+    .ep-body { display: none; border-top: 1px solid var(--border); }
+    .endpoint.open .ep-body { display: block; }
+    .ep-section { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+    .ep-section:last-child { border-bottom: none; }
+    .ep-section-label { font-size: 0.62rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.6rem; }
+    .ep-description { font-size: 0.82rem; color: var(--muted); line-height: 1.7; }
+    pre.code {
+      background: #0a0a0a; border: 1px solid var(--border2); border-radius: 8px;
+      padding: 1rem; font-family: "SF Mono", "Fira Code", monospace; font-size: 0.75rem;
+      color: #e8e8e8; overflow-x: auto; line-height: 1.7; position: relative;
+    }
+    .copy-code-btn {
+      position: absolute; top: 0.5rem; right: 0.5rem;
+      background: var(--surface2); border: 1px solid var(--border2); color: var(--muted);
+      padding: 3px 10px; border-radius: 5px; font-size: 0.65rem; cursor: pointer;
+      font-family: inherit; transition: all 0.15s;
+    }
+    .copy-code-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+    .copy-code-btn.copied { border-color: var(--green); color: var(--green); }
+    .c-key { color: #60a5fa; }
+    .c-str { color: #86efac; }
+    .c-num { color: #fbbf24; }
+    .c-bool { color: #f472b6; }
+    .c-comment { color: #555; }
+    .param-table { width: 100%; border-collapse: collapse; }
+    .param-table th { font-size: 0.62rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--border); text-align: left; }
+    .param-table td { font-size: 0.75rem; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .param-table tr:last-child td { border-bottom: none; }
+    .param-name { font-family: "SF Mono", monospace; color: var(--accent-light); }
+    .param-type { color: var(--orange); font-size: 0.68rem; }
+    .param-req { color: var(--red); font-size: 0.62rem; font-weight: 700; }
+    .param-opt { color: var(--muted2); font-size: 0.62rem; }
+    .param-desc { color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="/" class="topnav-logo">Ring<span>Desk</span></a>
+  <div class="topnav-right">
+    <span class="api-badge">API v1</span>
+    <a href="/dashboard">Dashboard</a>
+    <a href="/">← Back</a>
+  </div>
+</nav>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sb-section">Getting Started</div>
+    <a href="#intro" class="sb-link">Introduction</a>
+
+    <div class="sb-section">Health</div>
+    <a href="#health" class="sb-link"><span class="sb-method m-get">GET</span> /api/health</a>
+
+    <div class="sb-section">Voice / Call</div>
+    <a href="#incoming-call" class="sb-link"><span class="sb-method m-post">POST</span> /incoming-call</a>
+    <a href="#demo" class="sb-link"><span class="sb-method m-get">GET</span> /api/demo</a>
+    <a href="#voice-preview" class="sb-link"><span class="sb-method m-post">POST</span> /api/voice-preview</a>
+
+    <div class="sb-section">Appointments</div>
+    <a href="#stats" class="sb-link"><span class="sb-method m-get">GET</span> /api/stats</a>
+    <a href="#analytics" class="sb-link"><span class="sb-method m-get">GET</span> /api/analytics</a>
+    <a href="#callbacks" class="sb-link"><span class="sb-method m-post">POST</span> /api/callbacks</a>
+    <a href="#send-reminder" class="sb-link"><span class="sb-method m-post">POST</span> /api/send-reminder</a>
+
+    <div class="sb-section">Settings</div>
+    <a href="#voice-settings" class="sb-link"><span class="sb-method m-get">GET</span> /api/voice-settings</a>
+    <a href="#setup-shop" class="sb-link"><span class="sb-method m-post">POST</span> /api/setup-shop</a>
+
+    <div class="sb-section">Outreach</div>
+    <a href="#signup" class="sb-link"><span class="sb-method m-post">POST</span> /api/signup</a>
+    <a href="#dm-leads" class="sb-link"><span class="sb-method m-get">GET</span> /api/dm-leads</a>
+
+    <div class="sb-section">Locations</div>
+    <a href="#locations" class="sb-link"><span class="sb-method m-get">GET</span> /api/locations</a>
+    <a href="#locations-add" class="sb-link"><span class="sb-method m-post">POST</span> /api/locations/add</a>
+
+    <div class="sb-section">Referrals</div>
+    <a href="#referrals" class="sb-link"><span class="sb-method m-get">GET</span> /api/referrals</a>
+    <a href="#referrals-add" class="sb-link"><span class="sb-method m-post">POST</span> /api/referrals/add</a>
+
+    <div class="sb-section">Partners</div>
+    <a href="#partner-apply" class="sb-link"><span class="sb-method m-post">POST</span> /api/partner-apply</a>
+    <a href="#partners" class="sb-link"><span class="sb-method m-get">GET</span> /api/partners</a>
+
+    <div class="sb-section">Webhooks</div>
+    <a href="#twilio-status" class="sb-link"><span class="sb-method m-post">POST</span> /api/webhook/twilio-status</a>
+    <a href="#sms-log" class="sb-link"><span class="sb-method m-get">GET</span> /api/sms-log</a>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Intro -->
+    <div class="intro" id="intro">
+      <h1>API Reference</h1>
+      <p>The RingDesk API is a REST API that allows you to interact with your AI receptionist programmatically. All responses are JSON unless otherwise noted. The API runs on your self-hosted server instance.</p>
+      <p>Authentication is not required for local development. For production deployments, set the <code style="color:var(--accent-light);font-family:monospace">RINGDESK_API_KEY</code> environment variable to enable bearer token authentication.</p>
+      <div class="base-url-box"><span>Base URL</span>&nbsp;&nbsp;http://localhost:5050</div>
+    </div>
+
+    <!-- Health -->
+    <div class="category" id="health">
+      <div class="category-header">
+        <div class="category-title">Health</div>
+        <div class="category-desc">Service status and configuration verification.</div>
+      </div>
+
+      <div class="endpoint" id="ep-health">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-get">GET</span>
+          <span class="ep-path">/api/health</span>
+          <span class="ep-desc-short">Service health check</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section">
+            <div class="ep-section-label">Description</div>
+            <div class="ep-description">Returns the current health status of the RingDesk service, including the shop name, AI agent name, and server timestamp. Use this endpoint to verify your server is running correctly after deployment.</div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-label">Response 200</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{
+  <span class="c-key">"status"</span>: <span class="c-str">"ok"</span>,
+  <span class="c-key">"service"</span>: <span class="c-str">"Crown &amp; Blade Barbershop"</span>,
+  <span class="c-key">"ai"</span>: <span class="c-str">"Alex"</span>,
+  <span class="c-key">"timestamp"</span>: <span class="c-str">"2026-04-16T23:00:00.000000"</span>
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Voice / Call -->
+    <div class="category" id="incoming-call">
+      <div class="category-header">
+        <div class="category-title">Voice / Call</div>
+        <div class="category-desc">Twilio webhook endpoints and voice agent controls. The /incoming-call endpoint is called by Twilio on every inbound call.</div>
+      </div>
+
+      <div class="endpoint">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-post">POST</span>
+          <span class="ep-path">/incoming-call</span>
+          <span class="ep-desc-short">Twilio inbound call webhook</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section">
+            <div class="ep-section-label">Description</div>
+            <div class="ep-description">Called by Twilio when a call arrives at your phone number. Returns TwiML that connects the call to the AI voice agent via a WebSocket Media Stream. Configure this URL in your Twilio phone number's "Voice & Fax" webhook settings.</div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-label">Twilio Request Body (form-encoded)</div>
+            <pre class="code">CallSid=CAxxxxxxxx
+From=%2B17865550100
+To=%2B17865559999
+CallStatus=ringing</pre>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-label">Response — TwiML</div>
+            <pre class="code"><span class="c-comment">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+&lt;Response&gt;
+  &lt;Connect&gt;
+    &lt;Stream url="wss://your-server.com/ws/audio" /&gt;
+  &lt;/Connect&gt;
+&lt;/Response&gt;</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="endpoint" id="demo">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-get">GET</span>
+          <span class="ep-path">/api/demo</span>
+          <span class="ep-desc-short">Return mock demo data</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section">
+            <div class="ep-section-label">Description</div>
+            <div class="ep-description">Returns mock appointment and call data for the demo dashboard. Used by the /dashboard demo mode to show realistic data without requiring live calls.</div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-label">Response 200</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{
+  <span class="c-key">"appointments"</span>: [
+    {
+      <span class="c-key">"name"</span>: <span class="c-str">"Marcus J."</span>,
+      <span class="c-key">"service"</span>: <span class="c-str">"Fade"</span>,
+      <span class="c-key">"time"</span>: <span class="c-str">"10:30 AM"</span>,
+      <span class="c-key">"status"</span>: <span class="c-str">"confirmed"</span>
+    }
+  ],
+  <span class="c-key">"missed_calls"</span>: <span class="c-num">3</span>,
+  <span class="c-key">"callbacks"</span>: <span class="c-num">1</span>
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="endpoint" id="voice-preview">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-post">POST</span>
+          <span class="ep-path">/api/voice-preview</span>
+          <span class="ep-desc-short">Generate TTS audio preview</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section">
+            <div class="ep-section-label">Description</div>
+            <div class="ep-description">Calls Deepgram Aura TTS and returns a WAV audio file for browser playback. Used by the voice settings page to preview voices before saving. Requires DEEPGRAM_API_KEY environment variable.</div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-label">Request Body</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{
+  <span class="c-key">"text"</span>: <span class="c-str">"Thanks for calling Crown and Blade. I'm Alex. How can I help?"</span>,
+  <span class="c-key">"voice_id"</span>: <span class="c-str">"aura-asteria-en"</span>
+}</pre>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-label">Response</div>
+            <div class="ep-description">Returns <code style="color:var(--accent-light);font-family:monospace">audio/wav</code> binary data. Play with <code style="color:var(--accent-light);font-family:monospace">new Audio(URL.createObjectURL(blob))</code>.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Appointments -->
+    <div class="category" id="stats">
+      <div class="category-header">
+        <div class="category-title">Appointments & Analytics</div>
+        <div class="category-desc">Read appointment data, analytics, callbacks, and send reminders.</div>
+      </div>
+
+      <div class="endpoint">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-get">GET</span>
+          <span class="ep-path">/api/stats</span>
+          <span class="ep-desc-short">Dashboard KPI summary</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section"><div class="ep-section-label">Description</div><div class="ep-description">Returns today's appointment count, missed calls, callback requests, and SMS confirmations sent. Used by the owner dashboard.</div></div>
+          <div class="ep-section">
+            <div class="ep-section-label">Response 200</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{
+  <span class="c-key">"appointments_today"</span>: <span class="c-num">8</span>,
+  <span class="c-key">"missed_calls"</span>: <span class="c-num">2</span>,
+  <span class="c-key">"callbacks_pending"</span>: <span class="c-num">1</span>,
+  <span class="c-key">"sms_sent_today"</span>: <span class="c-num">8</span>
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="endpoint" id="analytics">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-get">GET</span>
+          <span class="ep-path">/api/analytics</span>
+          <span class="ep-desc-short">Full analytics dataset</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section"><div class="ep-section-label">Description</div><div class="ep-description">Returns 30-day booking trends, 7-day hourly peak data, service breakdown percentages, and answered vs. missed call ratio. Feeds the analytics dashboard charts.</div></div>
+          <div class="ep-section">
+            <div class="ep-section-label">Response 200</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{
+  <span class="c-key">"bookings_30d"</span>: [<span class="c-num">12</span>, <span class="c-num">18</span>, <span class="c-num">15</span>, <span class="c-comment">/* 30 days */</span>],
+  <span class="c-key">"peak_hours"</span>: { <span class="c-str">"10"</span>: <span class="c-num">24</span>, <span class="c-str">"11"</span>: <span class="c-num">31</span> },
+  <span class="c-key">"services"</span>: [
+    { <span class="c-key">"name"</span>: <span class="c-str">"Haircut"</span>, <span class="c-key">"count"</span>: <span class="c-num">45</span>, <span class="c-key">"pct"</span>: <span class="c-num">42</span> }
+  ],
+  <span class="c-key">"answered"</span>: <span class="c-num">312</span>,
+  <span class="c-key">"missed"</span>: <span class="c-num">28</span>
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="endpoint" id="callbacks">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-post">POST</span>
+          <span class="ep-path">/api/callbacks/{cb_id}/resolve</span>
+          <span class="ep-desc-short">Mark callback resolved</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section"><div class="ep-section-label">Description</div><div class="ep-description">Marks a pending callback request as resolved. The <code style="color:var(--accent-light);font-family:monospace">cb_id</code> is the SQLite row ID from the callbacks table, returned in the /api/stats response.</div></div>
+          <div class="ep-section">
+            <div class="ep-section-label">Response 200</div>
+            <pre class="code">{ <span class="c-key">"ok"</span>: <span class="c-bool">true</span> }</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="endpoint" id="send-reminder">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-post">POST</span>
+          <span class="ep-path">/api/send-reminder</span>
+          <span class="ep-desc-short">Manually trigger SMS reminder</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section"><div class="ep-section-label">Description</div><div class="ep-description">Manually sends a reminder SMS to a specific phone number. Normally reminders are sent automatically 24h and 2h before appointments.</div></div>
+          <div class="ep-section">
+            <div class="ep-section-label">Request Body</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{
+  <span class="c-key">"phone"</span>: <span class="c-str">"+17865550100"</span>,
+  <span class="c-key">"message"</span>: <span class="c-str">"Reminder: Your appointment is in 2 hours!"</span>
+}</pre>
+          </div>
+          <div class="ep-section"><div class="ep-section-label">Response 200</div><pre class="code">{ <span class="c-key">"ok"</span>: <span class="c-bool">true</span>, <span class="c-key">"sent"</span>: <span class="c-bool">true</span> }</pre></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="category" id="voice-settings">
+      <div class="category-header">
+        <div class="category-title">Settings</div>
+        <div class="category-desc">Voice configuration, shop setup, and onboarding.</div>
+      </div>
+
+      <div class="endpoint">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-get">GET</span>
+          <span class="ep-path">/api/voice-settings</span>
+          <span class="ep-desc-short">Get current voice config</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section"><div class="ep-section-label">Response 200</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{
+  <span class="c-key">"ai_name"</span>: <span class="c-str">"Alex"</span>,
+  <span class="c-key">"greeting"</span>: <span class="c-str">"Thanks for calling Crown and Blade! I'm Alex."</span>,
+  <span class="c-key">"voice_id"</span>: <span class="c-str">"aura-asteria-en"</span>
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="endpoint">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-post">POST</span>
+          <span class="ep-path">/api/voice-settings</span>
+          <span class="ep-desc-short">Update voice config</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section">
+            <div class="ep-section-label">Request Body</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{
+  <span class="c-key">"ai_name"</span>: <span class="c-str">"Aria"</span>,
+  <span class="c-key">"greeting"</span>: <span class="c-str">"Welcome to Prestige Cuts! I'm Aria, how can I help?"</span>,
+  <span class="c-key">"voice_id"</span>: <span class="c-str">"aura-luna-en"</span>
+}</pre>
+          </div>
+          <div class="ep-section"><div class="ep-section-label">Response 200</div><pre class="code">{ <span class="c-key">"ok"</span>: <span class="c-bool">true</span> }</pre></div>
+        </div>
+      </div>
+
+      <div class="endpoint" id="setup-shop">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-post">POST</span>
+          <span class="ep-path">/api/setup-shop</span>
+          <span class="ep-desc-short">Configure shop profile</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section"><div class="ep-section-label">Description</div><div class="ep-description">Creates or updates the shop's full configuration, including service menu, business hours, and AI settings. Writes to shop_config.json on the server.</div></div>
+          <div class="ep-section">
+            <div class="ep-section-label">Request Body</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{
+  <span class="c-key">"name"</span>: <span class="c-str">"Crown &amp; Blade"</span>,
+  <span class="c-key">"phone"</span>: <span class="c-str">"786-555-0100"</span>,
+  <span class="c-key">"address"</span>: <span class="c-str">"1420 NW 7th Ave, Miami FL 33136"</span>,
+  <span class="c-key">"ai_name"</span>: <span class="c-str">"Alex"</span>,
+  <span class="c-key">"ai_voice_id"</span>: <span class="c-str">"aura-asteria-en"</span>,
+  <span class="c-key">"services"</span>: [
+    { <span class="c-key">"name"</span>: <span class="c-str">"Haircut"</span>, <span class="c-key">"price"</span>: <span class="c-num">30</span>, <span class="c-key">"duration_min"</span>: <span class="c-num">30</span> },
+    { <span class="c-key">"name"</span>: <span class="c-str">"Fade"</span>, <span class="c-key">"price"</span>: <span class="c-num">35</span>, <span class="c-key">"duration_min"</span>: <span class="c-num">45</span> }
+  ],
+  <span class="c-key">"hours"</span>: {
+    <span class="c-key">"monday"</span>: <span class="c-str">"9am-7pm"</span>,
+    <span class="c-key">"saturday"</span>: <span class="c-str">"8am-6pm"</span>,
+    <span class="c-key">"sunday"</span>: <span class="c-str">"closed"</span>
+  }
+}</pre>
+          </div>
+          <div class="ep-section"><div class="ep-section-label">Response 200</div><pre class="code">{ <span class="c-key">"ok"</span>: <span class="c-bool">true</span>, <span class="c-key">"shop"</span>: <span class="c-str">"Crown &amp; Blade"</span> }</pre></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Outreach -->
+    <div class="category" id="signup">
+      <div class="category-header">
+        <div class="category-title">Outreach & Signups</div>
+        <div class="category-desc">Email capture, DM lead tracking, and outreach campaigns.</div>
+      </div>
+
+      <div class="endpoint">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-post">POST</span>
+          <span class="ep-path">/api/signup</span>
+          <span class="ep-desc-short">Capture email signup</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section">
+            <div class="ep-section-label">Request Body</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button">{ <span class="c-key">"email"</span>: <span class="c-str">"owner@crownblade.com"</span> }</pre>
+          </div>
+          <div class="ep-section"><div class="ep-section-label">Response 200</div><pre class="code">{ <span class="c-key">"ok"</span>: <span class="c-bool">true</span> }</pre></div>
+        </div>
+      </div>
+
+      <div class="endpoint" id="dm-leads">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-get">GET</span>
+          <span class="ep-path">/api/dm-leads</span>
+          <span class="ep-desc-short">List outreach leads</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section"><div class="ep-section-label">Response 200</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{
+  <span class="c-key">"leads"</span>: [
+    {
+      <span class="c-key">"shop"</span>: <span class="c-str">"Kings Cuts"</span>,
+      <span class="c-key">"ig"</span>: <span class="c-str">"@kingscuts_miami"</span>,
+      <span class="c-key">"status"</span>: <span class="c-str">"replied"</span>,
+      <span class="c-key">"date_sent"</span>: <span class="c-str">"2026-04-10"</span>
+    }
+  ]
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Locations -->
+    <div class="category" id="locations">
+      <div class="category-header">
+        <div class="category-title">Locations</div>
+        <div class="category-desc">Multi-location management endpoints.</div>
+      </div>
+
+      <div class="endpoint">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-get">GET</span>
+          <span class="ep-path">/api/locations</span>
+          <span class="ep-desc-short">List all locations</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section"><div class="ep-section-label">Response 200</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{
+  <span class="c-key">"locations"</span>: [
+    {
+      <span class="c-key">"name"</span>: <span class="c-str">"Crown &amp; Blade - Wynwood"</span>,
+      <span class="c-key">"type"</span>: <span class="c-str">"barbershop"</span>,
+      <span class="c-key">"phone"</span>: <span class="c-str">"786-555-0100"</span>,
+      <span class="c-key">"ai_name"</span>: <span class="c-str">"Alex"</span>,
+      <span class="c-key">"status"</span>: <span class="c-str">"active"</span>
+    }
+  ]
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="endpoint" id="locations-add">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-post">POST</span>
+          <span class="ep-path">/api/locations/add</span>
+          <span class="ep-desc-short">Add a location</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section">
+            <div class="ep-section-label">Request Body</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{
+  <span class="c-key">"name"</span>: <span class="c-str">"Crown &amp; Blade - Brickell"</span>,
+  <span class="c-key">"type"</span>: <span class="c-str">"barbershop"</span>,
+  <span class="c-key">"phone"</span>: <span class="c-str">"786-555-0200"</span>,
+  <span class="c-key">"owner_phone"</span>: <span class="c-str">"786-555-9999"</span>,
+  <span class="c-key">"address"</span>: <span class="c-str">"801 Brickell Ave, Miami FL 33131"</span>,
+  <span class="c-key">"ai_name"</span>: <span class="c-str">"Alex"</span>,
+  <span class="c-key">"status"</span>: <span class="c-str">"active"</span>
+}</pre>
+          </div>
+          <div class="ep-section"><div class="ep-section-label">Response 200</div><pre class="code">{ <span class="c-key">"ok"</span>: <span class="c-bool">true</span>, <span class="c-key">"id"</span>: <span class="c-num">2</span> }</pre></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Referrals -->
+    <div class="category" id="referrals">
+      <div class="category-header">
+        <div class="category-title">Referrals</div>
+        <div class="category-desc">Referral program tracking and management.</div>
+      </div>
+
+      <div class="endpoint">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-get">GET</span>
+          <span class="ep-path">/api/referrals</span>
+          <span class="ep-desc-short">List referrals</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section"><div class="ep-section-label">Response 200</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{
+  <span class="c-key">"referrals"</span>: [
+    { <span class="c-key">"name"</span>: <span class="c-str">"Kings Cuts Hialeah"</span>, <span class="c-key">"status"</span>: <span class="c-str">"active"</span>, <span class="c-key">"date_joined"</span>: <span class="c-str">"2026-04-16"</span> }
+  ]
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="endpoint" id="referrals-add">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-post">POST</span>
+          <span class="ep-path">/api/referrals/add</span>
+          <span class="ep-desc-short">Record a new referral</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section">
+            <div class="ep-section-label">Request Body</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{ <span class="c-key">"name"</span>: <span class="c-str">"Prestige Cuts Bronx"</span>, <span class="c-key">"status"</span>: <span class="c-str">"trial"</span> }</pre>
+          </div>
+          <div class="ep-section"><div class="ep-section-label">Response 200</div><pre class="code">{ <span class="c-key">"ok"</span>: <span class="c-bool">true</span> }</pre></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Partners -->
+    <div class="category" id="partner-apply">
+      <div class="category-header">
+        <div class="category-title">Partners</div>
+        <div class="category-desc">Distribution partner applications and management.</div>
+      </div>
+
+      <div class="endpoint">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-post">POST</span>
+          <span class="ep-path">/api/partner-apply</span>
+          <span class="ep-desc-short">Submit partner application</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section">
+            <div class="ep-section-label">Request Body</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{
+  <span class="c-key">"company"</span>: <span class="c-str">"Wahl Clipper Corporation"</span>,
+  <span class="c-key">"role"</span>: <span class="c-str">"VP of Marketing"</span>,
+  <span class="c-key">"name"</span>: <span class="c-str">"Sarah Johnson"</span>,
+  <span class="c-key">"email"</span>: <span class="c-str">"sarah@wahl.com"</span>,
+  <span class="c-key">"reach"</span>: <span class="c-str">"50,000 newsletter subscribers"</span>,
+  <span class="c-key">"channel"</span>: <span class="c-str">"email"</span>,
+  <span class="c-key">"plan"</span>: <span class="c-str">"Monthly newsletter feature"</span>
+}</pre>
+          </div>
+          <div class="ep-section"><div class="ep-section-label">Response 200</div><pre class="code">{ <span class="c-key">"ok"</span>: <span class="c-bool">true</span>, <span class="c-key">"id"</span>: <span class="c-num">1</span> }</pre></div>
+        </div>
+      </div>
+
+      <div class="endpoint" id="partners">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-get">GET</span>
+          <span class="ep-path">/api/partners</span>
+          <span class="ep-desc-short">List all partner applications</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section"><div class="ep-section-label">Response 200</div><pre class="code">{ <span class="c-key">"partners"</span>: [<span class="c-comment">/* array of partner objects */</span>] }</pre></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Webhooks -->
+    <div class="category" id="twilio-status">
+      <div class="category-header">
+        <div class="category-title">Webhooks</div>
+        <div class="category-desc">Inbound webhooks from Twilio and other services.</div>
+      </div>
+
+      <div class="endpoint">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-post">POST</span>
+          <span class="ep-path">/api/webhook/twilio-status</span>
+          <span class="ep-desc-short">Twilio SMS delivery status</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section"><div class="ep-section-label">Description</div><div class="ep-description">Called by Twilio when an SMS delivery status changes. Configure this as the "Status Callback URL" in your Twilio messaging service. Logs each event to sms_log.json.</div></div>
+          <div class="ep-section">
+            <div class="ep-section-label">Twilio Request (form-encoded)</div>
+            <pre class="code">MessageSid=SMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+MessageStatus=delivered
+To=%2B17865550100
+From=%2B17865559999</pre>
+          </div>
+          <div class="ep-section"><div class="ep-section-label">Response 200</div><pre class="code">{ <span class="c-key">"ok"</span>: <span class="c-bool">true</span> }</pre></div>
+        </div>
+      </div>
+
+      <div class="endpoint" id="sms-log">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge badge-get">GET</span>
+          <span class="ep-path">/api/sms-log</span>
+          <span class="ep-desc-short">Recent SMS delivery events</span>
+          <span class="ep-chevron">▼</span>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section"><div class="ep-section-label">Description</div><div class="ep-description">Returns the last 50 SMS delivery status events received from Twilio webhooks.</div></div>
+          <div class="ep-section">
+            <div class="ep-section-label">Response 200</div>
+            <pre class="code"><button class="copy-code-btn" onclick="copyCode(this)">Copy</button>{
+  <span class="c-key">"events"</span>: [
+    {
+      <span class="c-key">"MessageSid"</span>: <span class="c-str">"SMxxxxxxxx"</span>,
+      <span class="c-key">"MessageStatus"</span>: <span class="c-str">"delivered"</span>,
+      <span class="c-key">"To"</span>: <span class="c-str">"+17865550100"</span>,
+      <span class="c-key">"timestamp"</span>: <span class="c-str">"2026-04-16T23:15:00"</span>
+    }
+  ],
+  <span class="c-key">"total"</span>: <span class="c-num">1</span>
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function toggle(header) {
+    header.closest('.endpoint').classList.toggle('open');
+  }
+
+  function copyCode(btn) {
+    const pre = btn.closest('pre');
+    const text = pre.innerText.replace('Copy\n', '').replace('Copied!\n', '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  // Highlight sidebar link on scroll
+  const sections = document.querySelectorAll('.category, .intro');
+  const links = document.querySelectorAll('.sb-link');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => { if (window.scrollY >= s.offsetTop - 80) current = s.id; });
+    links.forEach(l => {
+      l.classList.toggle('active', l.getAttribute('href') === '#' + current);
+    });
+  });
+</script>
+</body>
+</html>

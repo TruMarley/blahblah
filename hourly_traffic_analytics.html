@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hourly Traffic — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .heatmap-wrap { overflow-x: auto; }
+    .heatmap-table { border-collapse: separate; border-spacing: 3px; }
+    .heatmap-table th { font-size: .6rem; color: var(--muted); font-weight: 600; padding: 0 4px; text-align: center; white-space: nowrap; }
+    .heatmap-table td { width: 34px; height: 28px; border-radius: 5px; text-align: center; vertical-align: middle; font-size: .62rem; font-weight: 700; cursor: default; transition: opacity .15s; }
+    .heatmap-table td:hover { opacity: .7; }
+    .day-label { font-size: .68rem; color: var(--muted); font-weight: 600; padding-right: 6px; white-space: nowrap; }
+    .day-bar-row { display: flex; align-items: center; gap: .7rem; margin-bottom: .55rem; }
+    .day-bar-label { font-size: .78rem; width: 28px; flex-shrink: 0; }
+    .day-bar-wrap { flex: 1; background: var(--surface2); border-radius: 6px; height: 20px; overflow: hidden; }
+    .day-bar { height: 100%; border-radius: 6px; background: var(--accent); opacity: .7; }
+    .day-bar-val { font-size: .75rem; font-weight: 700; color: var(--accent); width: 30px; text-align: right; }
+    .legend { display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: .3rem; font-size: .65rem; color: var(--muted); }
+    .legend-swatch { width: 18px; height: 12px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Hourly Traffic Heatmap</div>
+  <p class="page-sub">Visualize booking density by day and hour to optimize staffing, schedule high-demand services, and identify underutilized windows for promotions.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-busiest-day" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Busiest Day</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-busiest-hour" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Busiest Hour</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-peak-combo" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Peak Combo</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-slowest-day" style="color:var(--muted)">—</div>
+      <div class="stat-lbl">Slowest Day</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-avg-slot" style="color:var(--text)">—</div>
+      <div class="stat-lbl">Avg / Slot</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Booking Heatmap (Day × Hour)</div>
+    <div class="legend" id="legend"></div>
+    <div class="heatmap-wrap">
+      <table class="heatmap-table" id="heatmap-table"></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Daily Volume Totals</div>
+    <div id="day-bars"></div>
+  </div>
+</div>
+<script>
+  function heatColor(norm) {
+    if (norm < 0.15) return { bg: '#1a1a2e', color: '#444' };
+    if (norm < 0.35) return { bg: '#1e1e4a', color: '#7779cc' };
+    if (norm < 0.55) return { bg: '#2d1e5c', color: '#a78bfa' };
+    if (norm < 0.75) return { bg: '#3b1278', color: '#c4b5fd' };
+    return { bg: '#5b21b6', color: '#fff' };
+  }
+
+  async function load() {
+    const data = await fetch('/api/analytics/hourly-traffic-stats').then(r => r.json());
+    document.getElementById('h-busiest-day').textContent = data.busiest_day;
+    document.getElementById('h-busiest-hour').textContent = data.busiest_hour;
+    document.getElementById('h-peak-combo').textContent = data.peak_combo;
+    document.getElementById('h-slowest-day').textContent = data.slowest_day;
+    document.getElementById('h-avg-slot').textContent = data.avg_bookings_per_slot.toFixed(1);
+
+    // legend
+    const legendData = [
+      { label: 'None', bg: '#1a1a2e', color: '#444' },
+      { label: 'Low', bg: '#1e1e4a', color: '#7779cc' },
+      { label: 'Medium', bg: '#2d1e5c', color: '#a78bfa' },
+      { label: 'High', bg: '#3b1278', color: '#c4b5fd' },
+      { label: 'Peak', bg: '#5b21b6', color: '#fff' },
+    ];
+    const legend = document.getElementById('legend');
+    legendData.forEach(l => {
+      legend.innerHTML += `<div class="legend-item"><div class="legend-swatch" style="background:${l.bg}"></div>${l.label}</div>`;
+    });
+
+    const hours = data.hours || [];
+    const days = data.days || [];
+    const heatmap = data.heatmap || [];
+
+    // build lookup: heatmap[day][hour] = bookings
+    const lookup = {};
+    heatmap.forEach(cell => {
+      if (!lookup[cell.day]) lookup[cell.day] = {};
+      lookup[cell.day][cell.hour] = cell.bookings;
+    });
+
+    const maxVal = Math.max(...heatmap.map(c => c.bookings), 1);
+
+    const table = document.getElementById('heatmap-table');
+    // header row
+    let headerRow = '<tr><th></th>';
+    hours.forEach(h => { headerRow += `<th>${h}</th>`; });
+    headerRow += '</tr>';
+    table.innerHTML = headerRow;
+
+    days.forEach(day => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="day-label">${day}</td>`;
+      hours.forEach(h => {
+        const val = (lookup[day] && lookup[day][h]) || 0;
+        const norm = val / maxVal;
+        const { bg, color } = heatColor(norm);
+        const td = document.createElement('td');
+        td.style.background = bg;
+        td.style.color = color;
+        td.textContent = val > 0 ? val : '';
+        td.title = `${day} ${h}: ${val} bookings`;
+        tr.appendChild(td);
+      });
+      table.appendChild(tr);
+    });
+
+    // day bars
+    const dayBars = document.getElementById('day-bars');
+    const maxDay = Math.max(...(data.day_totals || []).map(d => d.total), 1);
+    (data.day_totals || []).forEach(d => {
+      dayBars.innerHTML += `
+        <div class="day-bar-row">
+          <div class="day-bar-label">${d.day.slice(0,3)}</div>
+          <div class="day-bar-wrap"><div class="day-bar" style="width:${(d.total/maxDay*100).toFixed(1)}%"></div></div>
+          <div class="day-bar-val">${d.total}</div>
+        </div>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

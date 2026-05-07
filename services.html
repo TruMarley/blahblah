@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Services — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    nav a.back:hover { color: var(--text); }
+
+    .main { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; gap: 1rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .btn { padding: .55rem 1.1rem; border-radius: 9px; font-size: .82rem; font-weight: 700; border: none; cursor: pointer; transition: opacity .15s; font-family: inherit; }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-accent:hover { opacity: .85; }
+    .btn-ghost { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); }
+    .btn-ghost:hover { color: var(--text); }
+
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .75rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td { padding: .7rem 1rem; font-size: .85rem; vertical-align: middle; }
+    .editable { outline: none; background: transparent; border: none; color: var(--text); font-family: inherit; font-size: .85rem; width: 100%; min-width: 60px; }
+    .editable:focus { background: #0d0d0d; border-radius: 6px; padding: .2rem .4rem; outline: 1px solid var(--accent); }
+    .editable-num { text-align: right; }
+    .toggle { width: 32px; height: 18px; border-radius: 99px; background: var(--border); border: none; cursor: pointer; position: relative; transition: background .2s; }
+    .toggle.on { background: var(--green); }
+    .toggle::after { content: ''; position: absolute; width: 12px; height: 12px; border-radius: 50%; background: #fff; top: 3px; left: 3px; transition: left .2s; }
+    .toggle.on::after { left: 17px; }
+    .del-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .8rem; padding: .2rem .4rem; border-radius: 5px; font-family: inherit; }
+    .del-btn:hover { background: rgba(248,113,113,.1); color: var(--red); }
+    .add-row { padding: .75rem 1.25rem; border-top: 1px solid var(--border); }
+    .add-row button { background: none; border: none; color: var(--accent); font-size: .82rem; font-weight: 700; cursor: pointer; font-family: inherit; padding: 0; }
+    .add-row button:hover { opacity: .75; }
+
+    .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(8,8,8,.96); border-top: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; justify-content: flex-end; gap: .75rem; z-index: 200; display: none; }
+    .save-bar.show { display: flex; }
+    .save-status { font-size: .8rem; color: var(--green); display: none; }
+    .save-status.show { display: block; }
+    .hint { font-size: .75rem; color: var(--muted); margin-top: .5rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="top-row">
+    <div>
+      <div class="page-title">Services</div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Service Name</th>
+        <th>Duration</th>
+        <th>Price ($)</th>
+        <th>Active</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="svc-body"></tbody>
+    </table>
+    <div class="add-row">
+      <button onclick="addService()">+ Add service</button>
+    </div>
+  </div>
+  <p class="hint">Click any cell to edit inline. Changes are saved as a batch.</p>
+</div>
+
+<div class="save-bar" id="save-bar">
+  <span class="save-status" id="save-status">Saved!</span>
+  <button class="btn btn-ghost" onclick="loadServices()">Discard</button>
+  <button class="btn btn-accent" onclick="saveServices()">Save changes</button>
+</div>
+
+<script>
+  let services = [];
+
+  async function loadServices() {
+    const r = await fetch('/api/services');
+    const d = await r.json();
+    services = d.services || [];
+    render();
+    hideSaveBar();
+  }
+
+  function render() {
+    document.getElementById('svc-body').innerHTML = services.map((s, i) => `
+      <tr>
+        <td><span class="editable" contenteditable="true" oninput="updateField(${i},'name',this.textContent);dirty()">${esc(s.name)}</span></td>
+        <td><span class="editable editable-num" contenteditable="true" inputmode="numeric" oninput="updateField(${i},'duration_min',+this.textContent.replace(/\D/g,''));dirty()">${s.duration_min} min</span></td>
+        <td><span class="editable editable-num" contenteditable="true" inputmode="numeric" oninput="updateField(${i},'price',+this.textContent.replace(/[^\d.]/g,''));dirty()">$${s.price}</span></td>
+        <td>
+          <button class="toggle ${s.active ? 'on' : ''}" onclick="toggleSvc(${i})" title="${s.active ? 'Active' : 'Inactive'}"></button>
+        </td>
+        <td><button class="del-btn" onclick="removeSvc(${i})">✕</button></td>
+      </tr>`).join('');
+  }
+
+  function updateField(i, key, val) { services[i][key] = val; }
+  function toggleSvc(i) { services[i].active = !services[i].active; render(); dirty(); }
+  function removeSvc(i) { services.splice(i, 1); render(); dirty(); }
+
+  function addService() {
+    const nextId = services.reduce((m, s) => Math.max(m, s.id || 0), 0) + 1;
+    services.push({ id: nextId, name: 'New Service', duration_min: 30, price: 0, active: true });
+    render();
+    dirty();
+  }
+
+  async function saveServices() {
+    // Pull live DOM values for editable cells before saving
+    document.querySelectorAll('#svc-body tr').forEach((tr, i) => {
+      const cells = tr.querySelectorAll('[contenteditable]');
+      if (cells[0]) services[i].name = cells[0].textContent.trim();
+      if (cells[1]) services[i].duration_min = parseInt(cells[1].textContent) || 30;
+      if (cells[2]) services[i].price = parseFloat(cells[2].textContent.replace(/[^\d.]/g,'')) || 0;
+    });
+    await fetch('/api/services', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({services}) });
+    const s = document.getElementById('save-status');
+    s.classList.add('show');
+    setTimeout(() => s.classList.remove('show'), 2000);
+    hideSaveBar();
+    loadServices();
+  }
+
+  function dirty() { showSaveBar(); }
+  function showSaveBar() { document.getElementById('save-bar').classList.add('show'); }
+  function hideSaveBar() { document.getElementById('save-bar').classList.remove('show'); }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  loadServices();
+</script>
+</body>
+</html>

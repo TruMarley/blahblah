@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gift Certificates — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.2rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select, input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus, input[type=number]:focus { border-color: var(--accent); }
+    input[type=number] { width: 90px; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .8rem; padding: .55rem .75rem; outline: none; resize: vertical; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .28rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .field-wrap { margin-bottom: .9rem; }
+    .denom-wrap { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .5rem; }
+    .denom-chip { background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.25); border-radius: 6px; padding: .2rem .65rem; font-size: .8rem; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: .35rem; }
+    .denom-chip button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .75rem; padding: 0; }
+    .denom-add-row { display: flex; gap: .5rem; margin-top: .3rem; }
+    .add-btn { background: var(--accent); color: #fff; border: none; border-radius: 7px; padding: .35rem .8rem; font-size: .78rem; font-weight: 700; cursor: pointer; }
+    .token-list { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .35rem; }
+    .token { font-size: .67rem; background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.25); border-radius: 5px; padding: .1rem .4rem; color: var(--accent); font-family: monospace; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Gift Certificates</div>
+  <p class="page-sub">Sell and redeem gift certificates. Your AI promotes them during calls — especially around holidays and for clients looking to treat a friend.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-sold">—</div>
+      <div class="stat-lbl">Sold (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-revenue" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Revenue</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-redeemed" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Redeemed</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-outstanding" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Outstanding</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Gift Certificate Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Gift Certificates</div><div class="row-sub">Allow purchase and redemption</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Allow Purchase</div></div>
+      <label class="toggle"><input type="checkbox" id="allow-purchase"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Allow Redemption</div></div>
+      <label class="toggle"><input type="checkbox" id="allow-redemption"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Allow Custom Amount</div><div class="row-sub">Clients can enter any amount</div></div>
+      <label class="toggle"><input type="checkbox" id="custom-amount"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Min Amount ($)</div></div>
+      <input type="number" id="min-amount" min="5" max="100" placeholder="10">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Amount ($)</div></div>
+      <input type="number" id="max-amount" min="50" max="1000" placeholder="500">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Expiry (months)</div><div class="row-sub">0 = never expires</div></div>
+      <input type="number" id="expiry-months" min="0" max="60" placeholder="24">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Send Via</div></div>
+      <select id="send-via">
+        <option value="email">Email</option>
+        <option value="sms">SMS</option>
+        <option value="print">Print</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Personalized Message</div><div class="row-sub">Let buyers add a personal note</div></div>
+      <label class="toggle"><input type="checkbox" id="personalized"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Promotes Gift Cards</div><div class="row-sub">AI mentions during calls</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-promotes"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Preset Denominations</div>
+    <div class="denom-wrap" id="denom-list"></div>
+    <div class="denom-add-row">
+      <input type="number" id="new-denom" min="5" max="500" placeholder="75" style="width:90px">
+      <button class="add-btn" onclick="addDenom()">Add $</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Redemption Message</div>
+    <div class="field-wrap">
+      <textarea id="redemption-msg" rows="2"></textarea>
+      <div class="token-list">
+        <span class="token">{first_name}</span>
+        <span class="token">{amount}</span>
+        <span class="token">{business_name}</span>
+      </div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Gift Certificate Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let denomsData = [];
+
+  function renderDenoms() {
+    const wrap = document.getElementById('denom-list');
+    wrap.innerHTML = '';
+    denomsData.sort((a,b)=>a-b).forEach((v, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'denom-chip';
+      chip.innerHTML = `$${v}<button onclick="removeDenom(${i})">✕</button>`;
+      wrap.appendChild(chip);
+    });
+  }
+
+  function addDenom() {
+    const val = parseInt(document.getElementById('new-denom').value);
+    if (val && !denomsData.includes(val)) { denomsData.push(val); renderDenoms(); }
+    document.getElementById('new-denom').value = '';
+  }
+
+  function removeDenom(i) {
+    denomsData.splice(i, 1); renderDenoms();
+  }
+
+  async function load() {
+    const d = await fetch('/api/settings/gift-certificate-cfg').then(r => r.json());
+    document.getElementById('h-sold').textContent = d.sold_30d;
+    document.getElementById('h-revenue').textContent = '$' + d.revenue_from_gifts_30d.toLocaleString(undefined,{maximumFractionDigits:0});
+    document.getElementById('h-redeemed').textContent = d.redeemed_30d;
+    document.getElementById('h-outstanding').textContent = '$' + d.outstanding_balance.toLocaleString(undefined,{maximumFractionDigits:0});
+    document.getElementById('enabled').checked = d.enabled ?? true;
+    document.getElementById('allow-purchase').checked = d.allow_purchase ?? true;
+    document.getElementById('allow-redemption').checked = d.allow_redemption ?? true;
+    document.getElementById('custom-amount').checked = d.custom_amount_allowed ?? true;
+    document.getElementById('min-amount').value = d.min_amount ?? 10;
+    document.getElementById('max-amount').value = d.max_amount ?? 500;
+    document.getElementById('expiry-months').value = d.expiry_months ?? 24;
+    document.getElementById('send-via').value = d.send_via || 'email';
+    document.getElementById('personalized').checked = d.personalized_message ?? true;
+    document.getElementById('ai-promotes').checked = d.ai_promotes_gift_cards ?? true;
+    document.getElementById('redemption-msg').value = d.redemption_message || '';
+    denomsData = [...(d.denominations || [])];
+    renderDenoms();
+  }
+
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      allow_purchase: document.getElementById('allow-purchase').checked,
+      allow_redemption: document.getElementById('allow-redemption').checked,
+      custom_amount_allowed: document.getElementById('custom-amount').checked,
+      min_amount: parseInt(document.getElementById('min-amount').value) || 10,
+      max_amount: parseInt(document.getElementById('max-amount').value) || 500,
+      expiry_months: parseInt(document.getElementById('expiry-months').value) || 24,
+      send_via: document.getElementById('send-via').value,
+      personalized_message: document.getElementById('personalized').checked,
+      ai_promotes_gift_cards: document.getElementById('ai-promotes').checked,
+      redemption_message: document.getElementById('redemption-msg').value,
+      denominations: denomsData,
+    };
+    await fetch('/api/settings/gift-certificate-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue Trend YoY — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: 1.25rem; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .chart-wrap { height: 260px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue Trend — Year over Year</div>
+  <p class="page-sub">Compare this year's revenue against the prior year by month to track growth momentum.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Current Period</div>
+      <div class="hero-val" id="h-cur" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Prior Period</div>
+      <div class="hero-val" id="h-prior" style="color:var(--muted)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">YoY Growth</div>
+      <div class="hero-val" id="h-growth" style="color:var(--accent)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Monthly Revenue Comparison</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Current Year</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#444"></div>Prior Year</div>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/revenue-trend-yoy');
+    const d = await r.json();
+    const months = d.months || [];
+    const totalCur = months.reduce((s, m) => s + m.current_year, 0);
+    const totalPrior = months.reduce((s, m) => s + m.prior_year, 0);
+    const growth = totalPrior > 0 ? ((totalCur - totalPrior) / totalPrior * 100).toFixed(1) : '—';
+    document.getElementById('h-cur').textContent = '$' + (totalCur/1000).toFixed(1) + 'k';
+    document.getElementById('h-prior').textContent = '$' + (totalPrior/1000).toFixed(1) + 'k';
+    document.getElementById('h-growth').textContent = (growth > 0 ? '+' : '') + growth + '%';
+
+    const svg = document.getElementById('chart');
+    const W=700, H=260, pL=52, pR=20, pT=14, pB=30;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n = months.length;
+    const allVals = months.flatMap(m => [m.current_year, m.prior_year]);
+    const maxV = Math.max(...allVals) * 1.12;
+    const xOf = i => pL + i / (n-1) * cW;
+    const yOf = v => pT + cH - v / maxV * cH;
+
+    // Grid lines
+    [5000, 10000, 15000, 20000].filter(v => v < maxV).forEach(v => {
+      const y = yOf(v);
+      svg.innerHTML += `<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML += `<text x="${pL-5}" y="${y+3.5}" font-size="8.5" fill="#555" text-anchor="end">$${(v/1000).toFixed(0)}k</text>`;
+    });
+
+    // Prior year area + line
+    const priorPts = months.map((m, i) => `${xOf(i)},${yOf(m.prior_year)}`).join(' ');
+    const priorFill = `${xOf(0)},${pT+cH} ` + priorPts + ` ${xOf(n-1)},${pT+cH}`;
+    svg.innerHTML += `<polygon points="${priorFill}" fill="rgba(100,100,100,.08)"/>`;
+    svg.innerHTML += `<polyline points="${priorPts}" fill="none" stroke="rgba(100,100,100,.5)" stroke-width="2" stroke-dasharray="5,3"/>`;
+
+    // Current year area + line
+    const curPts = months.map((m, i) => `${xOf(i)},${yOf(m.current_year)}`).join(' ');
+    const curFill = `${xOf(0)},${pT+cH} ` + curPts + ` ${xOf(n-1)},${pT+cH}`;
+    svg.innerHTML += `<polygon points="${curFill}" fill="rgba(52,211,153,.07)"/>`;
+    svg.innerHTML += `<polyline points="${curPts}" fill="none" stroke="rgba(52,211,153,.85)" stroke-width="2.5"/>`;
+
+    // Dots + labels
+    months.forEach((m, i) => {
+      const cx = xOf(i), cy = yOf(m.current_year), py = yOf(m.prior_year);
+      svg.innerHTML += `<circle cx="${cx}" cy="${py}" r="3" fill="rgba(100,100,100,.7)"/>`;
+      svg.innerHTML += `<circle cx="${cx}" cy="${cy}" r="3.5" fill="var(--green)"/>`;
+      svg.innerHTML += `<text x="${cx}" y="${H-4}" font-size="9" fill="#666" text-anchor="middle">${m.month}</text>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Funnel — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .funnel-stage { display: flex; align-items: center; gap: .75rem; margin-bottom: .55rem; }
+    .stage-label { font-size: .78rem; color: var(--text); width: 170px; flex-shrink: 0; }
+    .stage-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 22px; overflow: hidden; position: relative; }
+    .stage-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: .5rem; }
+    .stage-count { font-size: .7rem; font-weight: 700; color: #fff; }
+    .stage-pct { font-size: .72rem; font-weight: 700; width: 42px; text-align: right; }
+    .drop-badge { font-size: .6rem; font-weight: 700; color: var(--red); background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.2); border-radius: 4px; padding: .1rem .35rem; margin-left: .3rem; }
+    .month-row { display: flex; align-items: flex-end; gap: .4rem; margin-top: .5rem; }
+    .month-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+    .month-bar { width: 100%; border-radius: 3px 3px 0 0; background: var(--green); }
+    .month-lbl { font-size: .6rem; color: var(--muted); }
+    .month-val { font-size: .65rem; font-weight: 700; color: var(--green); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Booking Funnel</div>
+  <p class="page-sub">Track how callers move through the 6-stage booking process — from first contact to confirmed appointment. Identify where drop-off is highest.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Total Calls</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-conv" style="color:var(--green)">—</div><div class="stat-lbl">Overall Conversion</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-drop" style="color:var(--red)">—</div><div class="stat-lbl">Biggest Drop Stage</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Funnel Stages</div>
+    <div id="funnel-stages"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Monthly Conversion Rate</div>
+    <div class="month-row" id="month-chart" style="height:120px;align-items:flex-end"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['#a78bfa','#818cf8','#60a5fa','#34d399','#fbbf24','#34d399'];
+  async function load() {
+    const d = await fetch('/api/analytics/booking-funnel-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.stages[0].count.toLocaleString();
+    document.getElementById('h-conv').textContent = d.overall_conversion_pct.toFixed(1) + '%';
+    document.getElementById('h-drop').textContent = d.biggest_drop_stage;
+    const fs = document.getElementById('funnel-stages');
+    const top = d.stages[0].count;
+    d.stages.forEach((s, i) => {
+      const w = (s.count / top * 100).toFixed(1);
+      const color = COLORS[i] || '#a78bfa';
+      const dropHtml = s.drop_pct != null ? '<span class="drop-badge">−' + s.drop_pct.toFixed(1) + '%</span>' : '';
+      fs.innerHTML += '<div class="funnel-stage"><div class="stage-label">' + s.stage + dropHtml + '</div><div class="stage-track"><div class="stage-fill" style="width:' + w + '%;background:' + color + '"><span class="stage-count">' + s.count.toLocaleString() + '</span></div></div><div class="stage-pct">' + w + '%</div></div>';
+    });
+    const mc = document.getElementById('month-chart');
+    const maxV = Math.max(...d.monthly.map(x => x.conversion_pct));
+    d.monthly.forEach(m => {
+      const h = Math.round((m.conversion_pct / maxV) * 90) + 10;
+      mc.innerHTML += '<div class="month-col"><div class="month-val">' + m.conversion_pct.toFixed(1) + '%</div><div class="month-bar" style="height:' + h + 'px"></div><div class="month-lbl">' + m.month + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Appointment Buffers — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; flex: 1; }
+    input:focus { border-color: var(--accent); }
+    .buf-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .75rem; }
+    .buf-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .65rem .9rem; display: flex; align-items: center; gap: .6rem; }
+    .buf-svc { font-size: .82rem; font-weight: 700; flex: 1; }
+    .buf-mins { font-size: .82rem; color: var(--accent); font-weight: 800; min-width: 60px; text-align: right; }
+    .remove-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }
+    .remove-btn:hover { color: var(--red); }
+    .add-row { display: flex; gap: .4rem; }
+    .add-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--accent); font-size: .78rem; font-weight: 700; padding: .38rem .7rem; cursor: pointer; flex-shrink: 0; }
+    .add-btn:hover { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Appointment Buffers</div>
+  <p class="page-sub">Add breathing room between appointments so stylists have time to clean up, rest, or handle walk-ins. Set global defaults and per-service overrides for services that need more turnaround.</p>
+  <div class="card">
+    <div class="card-title">Buffer Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Buffers</div><div class="row-sub">AI respects gaps between appointments when booking</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div class="row-label">Default Buffer (min)</div>
+      <input type="number" id="default-buf" min="0" max="60" placeholder="10">
+    </div>
+    <div class="row">
+      <div class="row-label">End-of-Day Buffer (min)</div>
+      <input type="number" id="eod-buf" min="0" max="120" placeholder="30">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Allow Back-to-Back</div><div class="row-sub">Override buffer when schedule is fully booked</div></div>
+      <label class="toggle"><input type="checkbox" id="back-to-back"><span class="slider"></span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Per-Service Buffers</div>
+    <div class="buf-list" id="buf-list"></div>
+    <div class="add-row">
+      <input type="text" id="new-svc" placeholder="Service name">
+      <input type="number" id="new-mins" placeholder="min" min="0" max="120" style="width:70px;flex:none">
+      <button class="add-btn" onclick="addBuf()">+ Add</button>
+    </div>
+    <button class="save-btn" onclick="save()">Save Buffer Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let buffers = [];
+  function renderBufs() {
+    const el = document.getElementById('buf-list');
+    el.innerHTML = '';
+    if (!buffers.length) { el.innerHTML = '<div style="font-size:.78rem;color:var(--muted)">No per-service overrides yet.</div>'; return; }
+    buffers.forEach((b, i) => {
+      el.innerHTML += `<div class="buf-item">
+        <div class="buf-svc">${esc(b.service)}</div>
+        <div class="buf-mins">+${b.buffer_minutes} min</div>
+        <button class="remove-btn" onclick="removeBuf(${i})">✕</button>
+      </div>`;
+    });
+  }
+  function addBuf() {
+    const svc = document.getElementById('new-svc').value.trim();
+    const mins = parseInt(document.getElementById('new-mins').value) || 0;
+    if (!svc) return;
+    buffers.push({ service: svc, buffer_minutes: mins });
+    document.getElementById('new-svc').value = '';
+    document.getElementById('new-mins').value = '';
+    renderBufs();
+  }
+  function removeBuf(i) { buffers.splice(i, 1); renderBufs(); }
+  async function load() {
+    const d = await fetch('/api/settings/appointment-buffer-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('default-buf').value = d.default_buffer_minutes ?? 10;
+    document.getElementById('eod-buf').value = d.end_of_day_buffer_minutes ?? 30;
+    document.getElementById('back-to-back').checked = d.allow_back_to_back;
+    buffers = d.buffer_by_service || [];
+    renderBufs();
+  }
+  async function save() {
+    const data = { enabled: document.getElementById('enabled').checked, default_buffer_minutes: parseInt(document.getElementById('default-buf').value) || 10, end_of_day_buffer_minutes: parseInt(document.getElementById('eod-buf').value) || 30, allow_back_to_back: document.getElementById('back-to-back').checked, buffer_by_service: buffers };
+    await fetch('/api/settings/appointment-buffer-cfg', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  load();
+</script>
+</body>
+</html>

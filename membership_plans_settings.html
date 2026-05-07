@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Membership Plans — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 90px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    .plan-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem; margin-bottom: .75rem; position: relative; overflow: hidden; }
+    .plan-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px; }
+    .plan-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .6rem; }
+    .plan-name { font-size: .95rem; font-weight: 800; }
+    .plan-price { font-size: 1.1rem; font-weight: 900; }
+    .plan-price span { font-size: .7rem; color: var(--muted); font-weight: 400; }
+    .plan-meta { display: flex; gap: 1rem; font-size: .72rem; color: var(--muted); margin-bottom: .55rem; }
+    .plan-services { display: flex; flex-wrap: wrap; gap: .3rem; }
+    .svc-chip { background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.2); border-radius: 5px; padding: .12rem .45rem; font-size: .68rem; color: var(--accent); }
+    .rollover-badge { background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.2); border-radius: 5px; padding: .12rem .45rem; font-size: .68rem; color: var(--green); }
+    .plan-inactive { opacity: .45; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Membership Plans</div>
+  <p class="page-sub">Recurring memberships build predictable revenue and keep clients loyal. Your AI can pitch memberships during calls and explain plan perks.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-members" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Total Members</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-mrr" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Monthly MRR</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-visits" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Avg Visits/Month</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-churn" style="color:var(--red)">—</div>
+      <div class="stat-lbl">Churn Rate</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Global Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Memberships</div><div class="row-sub">Offer subscription plans to clients</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Promotes Memberships</div><div class="row-sub">AI mentions plans during booking calls</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-promotes"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Allow Plan Pause</div><div class="row-sub">Members can pause billing temporarily</div></div>
+      <label class="toggle"><input type="checkbox" id="allow-pause"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Pause Duration (months)</div></div>
+      <input type="number" id="pause-limit" min="1" max="12">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Cancellation Notice (days)</div><div class="row-sub">Notice required before cancelling</div></div>
+      <input type="number" id="cancel-notice" min="0" max="90">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Plans</div>
+    <div id="plan-list"></div>
+    <button class="save-btn" onclick="save()">Save Membership Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+
+  async function load() {
+    data = await fetch('/api/settings/membership-plans-cfg').then(r => r.json());
+    document.getElementById('h-members').textContent = data.total_members;
+    document.getElementById('h-mrr').textContent = '$' + data.mrr_from_memberships.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+    document.getElementById('h-visits').textContent = data.avg_member_visits_per_month.toFixed(1);
+    document.getElementById('h-churn').textContent = data.churn_rate_pct.toFixed(1) + '%';
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('ai-promotes').checked = data.ai_promotes_memberships;
+    document.getElementById('allow-pause').checked = data.allow_pause;
+    document.getElementById('pause-limit').value = data.pause_limit_months;
+    document.getElementById('cancel-notice').value = data.cancellation_notice_days;
+    renderPlans();
+  }
+
+  function renderPlans() {
+    const list = document.getElementById('plan-list');
+    list.innerHTML = '';
+    (data.plans || []).forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'plan-card' + (p.active ? '' : ' plan-inactive');
+      card.style.borderLeftColor = p.color;
+      card.innerHTML = `
+        <div class="plan-top">
+          <div class="plan-name" style="color:${p.color}">${p.name}</div>
+          <label class="toggle"><input type="checkbox" class="plan-toggle" data-id="${p.id}" ${p.active ? 'checked' : ''}><span class="slider"></span></label>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:.5rem;margin-bottom:.5rem">
+          <div class="plan-price">$${p.price_monthly}<span>/mo</span></div>
+          <div style="font-size:.72rem;color:var(--muted)">${p.members} member${p.members !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="plan-services">
+          ${(p.services_included || []).map(s => `<span class="svc-chip">${s}</span>`).join('')}
+          ${p.rollover_unused ? '<span class="rollover-badge">Rollover</span>' : ''}
+        </div>
+      `;
+      card.style.setProperty('--plan-color', p.color);
+      const styleEl = document.createElement('style');
+      card.querySelector('.plan-card');
+      list.appendChild(card);
+    });
+    list.querySelectorAll('.plan-toggle').forEach(cb => {
+      cb.addEventListener('change', e => {
+        const id = e.target.dataset.id;
+        const plan = data.plans.find(p => p.id === id);
+        if (plan) { plan.active = e.target.checked; renderPlans(); }
+      });
+    });
+  }
+
+  async function save() {
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      ai_promotes_memberships: document.getElementById('ai-promotes').checked,
+      allow_pause: document.getElementById('allow-pause').checked,
+      pause_limit_months: parseInt(document.getElementById('pause-limit').value) || 2,
+      cancellation_notice_days: parseInt(document.getElementById('cancel-notice').value) || 30,
+    };
+    await fetch('/api/settings/membership-plans-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

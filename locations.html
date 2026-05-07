@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk — Locations</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0a; --surface: #111; --surface2: #161616;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --orange: #f97316; --blue: #60a5fa;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* Header */
+    .header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 1.5rem; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent-light); }
+    .page-tag {
+      background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.25);
+      color: var(--accent-light); font-size: 0.7rem; font-weight: 700;
+      padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .header-nav { display: flex; gap: 1.5rem; align-items: center; }
+    .header-nav a { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
+    .header-nav a:hover { color: var(--text); }
+
+    /* Promo banner */
+    .promo-banner {
+      background: linear-gradient(135deg, rgba(124,58,237,0.2) 0%, rgba(99,102,241,0.15) 100%);
+      border-bottom: 1px solid rgba(124,58,237,0.3);
+      padding: 0.75rem 2rem;
+      display: flex; align-items: center; justify-content: center; gap: 1rem;
+      text-align: center;
+    }
+    .promo-banner .promo-badge {
+      background: var(--accent); color: #fff; font-size: 0.7rem; font-weight: 800;
+      padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+    .promo-banner .promo-text { font-size: 0.875rem; color: #c4b5fd; }
+    .promo-banner .promo-text strong { color: #fff; }
+
+    /* Main layout */
+    .main { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+
+    .section-title {
+      font-size: 1.3rem; font-weight: 800; color: #fff; margin-bottom: 0.35rem;
+    }
+    .section-sub { font-size: 0.875rem; color: var(--muted); margin-bottom: 2rem; }
+
+    /* Location cards grid */
+    .locations-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.25rem; margin-bottom: 3rem;
+    }
+    .location-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.5rem; position: relative;
+      transition: border-color 0.2s;
+    }
+    .location-card:hover { border-color: var(--border2); }
+    .location-card.active { border-color: rgba(34,197,94,0.3); }
+
+    .loc-status {
+      position: absolute; top: 1.25rem; right: 1.25rem;
+      display: flex; align-items: center; gap: 5px;
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .loc-status .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .status-active { color: var(--green); }
+    .status-active .dot { background: var(--green); animation: pulse 2s infinite; }
+    .status-pending { color: var(--orange); }
+    .status-pending .dot { background: var(--orange); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .loc-number { font-size: 0.7rem; color: var(--muted2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+    .loc-name { font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.25rem; }
+    .loc-phone { font-family: monospace; font-size: 0.82rem; color: var(--muted); margin-bottom: 0.75rem; }
+    .loc-address { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.25rem; line-height: 1.4; }
+
+    .loc-ai-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25);
+      color: var(--accent-light); font-size: 0.72rem; font-weight: 600;
+      padding: 4px 10px; border-radius: 20px; margin-bottom: 1.25rem;
+    }
+    .loc-ai-chip::before { content: "🤖"; font-size: 0.8rem; }
+
+    .loc-actions { display: flex; gap: 0.75rem; }
+    .btn-manage {
+      flex: 1; background: var(--accent); color: #fff; border: none;
+      padding: 9px 0; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; text-decoration: none; text-align: center;
+      transition: background 0.2s;
+    }
+    .btn-manage:hover { background: #6d28d9; }
+    .btn-settings {
+      background: var(--surface2); color: var(--muted); border: 1px solid var(--border2);
+      padding: 9px 14px; border-radius: 8px; font-size: 0.85rem;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-settings:hover { color: var(--text); border-color: var(--border); }
+
+    /* Divider */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+    /* Add location form */
+    .add-section {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 2rem;
+    }
+    .add-title { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem; }
+    .add-sub { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.75rem; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    input, select {
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 8px; padding: 10px 13px; color: var(--text);
+      font-size: 0.9rem; font-family: inherit; outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--muted2); }
+    select option { background: #1a1a1a; }
+
+    .btn-add {
+      background: var(--accent); color: #fff; border: none;
+      padding: 11px 28px; border-radius: 8px; font-size: 0.9rem; font-weight: 700;
+      cursor: pointer; margin-top: 1.25rem; transition: background 0.2s;
+    }
+    .btn-add:hover { background: #6d28d9; }
+    .btn-add:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .success-msg {
+      display: none; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3);
+      color: var(--green); padding: 0.75rem 1rem; border-radius: 8px;
+      font-size: 0.85rem; margin-top: 1rem;
+    }
+    .success-msg.show { display: block; }
+
+    /* Empty state */
+    .empty-state {
+      grid-column: 1 / -1; text-align: center; padding: 3rem;
+      color: var(--muted); font-size: 0.875rem;
+    }
+    .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+    @media (max-width: 640px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .main { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <a href="/" class="logo">Ring<span>Desk</span></a>
+    <span class="page-tag">Locations</span>
+  </div>
+  <nav class="header-nav">
+    <a href="/dashboard">Dashboard</a>
+    <a href="/analytics">Analytics</a>
+    <a href="/pricing">Upgrade</a>
+  </nav>
+</div>
+
+<div class="promo-banner">
+  <span class="promo-badge">Growth Plan</span>
+  <span class="promo-text">Add additional locations at <strong>60% off</strong> — $40/mo each (normally $99). Available on Growth plan.</span>
+</div>
+
+<div class="main">
+  <div class="section-title">Your Locations</div>
+  <div class="section-sub">Each location gets its own AI receptionist, dashboard, and phone number.</div>
+
+  <div class="locations-grid" id="locations-grid">
+    <div class="empty-state">
+      <div class="empty-icon">📍</div>
+      Loading locations...
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="add-section">
+    <div class="add-title">Add a New Location</div>
+    <div class="add-sub">Your second location is only $40/mo. Additional locations are $40/mo each.</div>
+
+    <form id="add-form" onsubmit="addLocation(event)">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Business Name</label>
+          <input type="text" id="f-name" placeholder="Kings Cuts — Downtown" required>
+        </div>
+        <div class="form-group">
+          <label>Business Type</label>
+          <select id="f-type">
+            <option value="barbershop">Barbershop</option>
+            <option value="hair_salon">Hair Salon</option>
+            <option value="nail_salon">Nail Salon</option>
+            <option value="spa">Day Spa</option>
+            <option value="tattoo">Tattoo Shop</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="f-phone" placeholder="(786) 555-1234" required>
+        </div>
+        <div class="form-group">
+          <label>Owner Cell (for live transfers)</label>
+          <input type="tel" id="f-owner" placeholder="(786) 555-9999">
+        </div>
+        <div class="form-group full">
+          <label>Address</label>
+          <input type="text" id="f-address" placeholder="123 Main St, Miami, FL 33101" required>
+        </div>
+      </div>
+      <button type="submit" class="btn-add" id="add-btn">Add Location →</button>
+      <div class="success-msg" id="success-msg">Location added! Your new AI receptionist is being configured.</div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const AI_NAMES = {
+    barbershop: 'Alex', hair_salon: 'Aria', nail_salon: 'Sophia',
+    spa: 'Serena', tattoo: 'Jake',
+  };
+
+  async function loadLocations() {
+    try {
+      const res = await fetch('/api/locations');
+      const data = await res.json();
+      renderLocations(data.locations || []);
+    } catch (e) {
+      renderLocations([]);
+    }
+  }
+
+  function renderLocations(locations) {
+    const grid = document.getElementById('locations-grid');
+    if (locations.length === 0) {
+      grid.innerHTML = `<div class="empty-state">
+        <div class="empty-icon">📍</div>
+        No locations yet. Add your first one below!
+      </div>`;
+      return;
+    }
+    grid.innerHTML = locations.map((loc, i) => {
+      const isActive = loc.status === 'active';
+      const statusClass = isActive ? 'status-active' : 'status-pending';
+      const statusLabel = isActive ? 'Active' : 'Pending';
+      return `
+        <div class="location-card ${isActive ? 'active' : ''}">
+          <div class="loc-status ${statusClass}">
+            <div class="dot"></div> ${statusLabel}
+          </div>
+          <div class="loc-number">Location ${i + 1}</div>
+          <div class="loc-name">${loc.name}</div>
+          <div class="loc-phone">${loc.phone}</div>
+          <div class="loc-address">${loc.address || '—'}</div>
+          <div class="loc-ai-chip">AI: ${loc.ai_name || 'Alex'}</div>
+          <div class="loc-actions">
+            <a href="/dashboard?loc=${i}" class="btn-manage">Manage</a>
+            <button class="btn-settings" title="Settings">⚙</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  async function addLocation(e) {
+    e.preventDefault();
+    const btn = document.getElementById('add-btn');
+    btn.textContent = 'Adding...'; btn.disabled = true;
+
+    const type = document.getElementById('f-type').value;
+    const payload = {
+      name: document.getElementById('f-name').value,
+      type,
+      phone: document.getElementById('f-phone').value,
+      owner_phone: document.getElementById('f-owner').value,
+      address: document.getElementById('f-address').value,
+      ai_name: AI_NAMES[type] || 'Alex',
+      status: 'pending',
+    };
+
+    try {
+      const res = await fetch('/api/locations/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        document.getElementById('success-msg').classList.add('show');
+        document.getElementById('add-form').reset();
+        loadLocations();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      btn.textContent = 'Add Location →'; btn.disabled = false;
+    }
+  }
+
+  loadLocations();
+</script>
+</body>
+</html>

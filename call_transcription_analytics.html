@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Transcription Analytics — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .kw-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; }
+    .kw-label { font-size: .82rem; font-weight: 600; width: 110px; flex-shrink: 0; font-family: monospace; color: var(--accent); }
+    .kw-bar-wrap { flex: 1; background: var(--surface2); border-radius: 5px; height: 9px; overflow: hidden; }
+    .kw-bar { height: 100%; border-radius: 5px; background: var(--green); }
+    .kw-count { font-size: .75rem; font-weight: 700; color: var(--muted); width: 40px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Transcription Analytics</div>
+  <p class="page-sub">Understand what clients say on every call. Keyword trends reveal what's driving bookings, cancellations, and questions.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Transcribed</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Accuracy</div>
+      <div class="hero-val" id="h-acc" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Top Keyword</div>
+      <div class="hero-val" id="h-kw" style="color:var(--yellow);font-size:1.1rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Monthly Transcription Volume</div>
+    <svg id="chart" viewBox="0 0 680 200" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+  <div class="card">
+    <div class="card-title">Top Keywords Detected</div>
+    <div id="kw-chart"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/call-transcription').then(r => r.json());
+    document.getElementById('h-total').textContent = (d.total_transcribed||0).toLocaleString();
+    document.getElementById('h-acc').textContent = d.avg_accuracy_pct ? d.avg_accuracy_pct+'%' : '—';
+    document.getElementById('h-kw').textContent = d.top_keyword || '—';
+
+    const months = d.months||[], vals = d.monthly_transcriptions||[];
+    if (months.length) {
+      const W=680,H=200,pL=40,pR=16,pT=20,pB=32;
+      const cW=W-pL-pR, cH=H-pT-pB;
+      const n=months.length, step=n>1?cW/(n-1):cW;
+      const mx=Math.max(...vals)+20;
+      const pts=vals.map((v,i)=>({x:pL+i*step,y:pT+cH-(v/mx)*cH}));
+      const line='M'+pts[0].x+','+pts[0].y+' '+pts.slice(1).map(p=>`L${p.x},${p.y}`).join(' ');
+      const area=line+` L${pts[n-1].x},${pT+cH} L${pts[0].x},${pT+cH} Z`;
+      let dots='',lbls='';
+      pts.forEach((p,i)=>{
+        dots+=`<circle cx="${p.x}" cy="${p.y}" r="4" fill="var(--accent)" stroke="var(--bg)" stroke-width="2"/>`;
+        dots+=`<text x="${p.x}" y="${p.y-9}" text-anchor="middle" fill="var(--accent)" font-size="9" font-weight="700">${vals[i]}</text>`;
+        lbls+=`<text x="${p.x}" y="${H-pB+14}" text-anchor="middle" fill="#555" font-size="9">${esc(months[i])}</text>`;
+      });
+      document.getElementById('chart').innerHTML=
+        `<path d="${area}" fill="rgba(167,139,250,.07)"/>`+
+        `<path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>`+
+        dots+lbls;
+    }
+
+    const kws = d.top_keywords||[];
+    const maxK = Math.max(...kws.map(k=>k.count),1);
+    document.getElementById('kw-chart').innerHTML = kws.map(k=>`
+      <div class="kw-row">
+        <span class="kw-label">${esc(k.word)}</span>
+        <div class="kw-bar-wrap"><div class="kw-bar" style="width:${(k.count/maxK*100).toFixed(1)}%"></div></div>
+        <span class="kw-count">${k.count}</span>
+      </div>
+    `).join('');
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

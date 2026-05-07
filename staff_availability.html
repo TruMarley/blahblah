@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Availability — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .staff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.1rem; }
+    .staff-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.3rem; }
+    .sc-header { display: flex; align-items: center; gap: .6rem; margin-bottom: 1rem; }
+    .sc-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .sc-name { font-size: .95rem; font-weight: 900; }
+    .slots-wrap { display: flex; flex-direction: column; gap: .45rem; }
+    .slot-chip { display: flex; align-items: center; justify-content: space-between; background: var(--surface2); border: 1px solid rgba(52,211,153,.2); border-radius: 8px; padding: .4rem .65rem; }
+    .slot-chip.blocked { border-color: rgba(248,113,113,.2); opacity: .55; }
+    .slot-time { font-size: .78rem; font-weight: 700; color: var(--green); }
+    .slot-chip.blocked .slot-time { color: var(--red); }
+    .slot-date { font-size: .7rem; color: var(--muted); }
+    .slot-reason { font-size: .67rem; color: var(--red); font-style: italic; }
+    .block-btn { font-size: .62rem; font-weight: 800; padding: .15rem .42rem; border-radius: 5px; border: 1px solid rgba(248,113,113,.3); background: rgba(248,113,113,.06); color: var(--red); cursor: pointer; font-family: inherit; flex-shrink: 0; }
+    .block-btn:hover { background: rgba(248,113,113,.15); }
+    .blocked-tag { font-size: .62rem; font-weight: 800; color: var(--red); flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Availability</div>
+  <p class="page-sub">Next available slots per staff member — block time off for breaks, personal appointments, or training.</p>
+  <div class="staff-grid" id="staff-grid"></div>
+</div>
+<script>
+  let staffData = [];
+
+  async function load() {
+    const r = await fetch('/api/staff-availability');
+    const d = await r.json();
+    staffData = d.staff || [];
+    render();
+  }
+
+  function render() {
+    document.getElementById('staff-grid').innerHTML = staffData.map(s => `
+      <div class="staff-card">
+        <div class="sc-header">
+          <div class="sc-dot" style="background:${s.color}"></div>
+          <div class="sc-name">${esc(s.name)}</div>
+        </div>
+        <div class="slots-wrap">
+          ${(s.slots||[]).map(sl => `
+            <div class="slot-chip ${sl.blocked ? 'blocked' : ''}">
+              <div>
+                <div class="slot-time">${sl.blocked ? '✕ Blocked' : esc(sl.start) + ' – ' + esc(sl.end)}</div>
+                <div class="slot-date">${esc(sl.date)}</div>
+                ${sl.block_reason ? `<div class="slot-reason">${esc(sl.block_reason)}</div>` : ''}
+              </div>
+              ${sl.blocked
+                ? '<span class="blocked-tag">Off</span>'
+                : `<button class="block-btn" onclick="blockSlot('${s.staff_id}','${sl.slot_id}')">Block</button>`}
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+  }
+
+  async function blockSlot(staffId, slotId) {
+    const r = await fetch(`/api/staff-availability/${staffId}/block`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({slot_id: slotId, reason: 'Blocked by owner'})
+    });
+    const d = await r.json();
+    const idx = staffData.findIndex(s => s.staff_id === staffId);
+    if (idx >= 0) staffData[idx] = d.staff;
+    render();
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

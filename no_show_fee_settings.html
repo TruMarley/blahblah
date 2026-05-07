@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>No-Show Fee — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-size: .8rem; padding: .55rem .75rem; outline: none; resize: vertical; min-height: 60px; font-family: inherit; line-height: 1.55; margin-top: .45rem; }
+    textarea:focus { border-color: var(--accent); }
+    .warn-box { background: #1f0a0a; border: 1px solid #3a1212; border-radius: 9px; padding: .7rem 1rem; font-size: .78rem; color: var(--red); margin-bottom: 1.1rem; line-height: 1.5; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">No-Show Fee</div>
+  <p class="page-sub">Protect your revenue with automatic no-show fees — charge a flat amount or percentage when clients skip without notice. The AI informs clients of your policy at booking time so there are no surprises.</p>
+  <div class="card">
+    <div class="card-title">Fee Settings</div>
+    <div class="warn-box">Enabling auto-charge requires a card on file. Clients without saved payment methods will be invoiced manually.</div>
+    <div class="row">
+      <div><div class="row-label">Enable No-Show Fee</div><div class="row-sub">Apply fee when client misses without notice</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Fee Type</div></div>
+      <select id="fee-type">
+        <option value="flat">Flat Amount ($)</option>
+        <option value="percent">Percentage (%)</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Fee Amount</div><div class="row-sub">$ value or % of service total</div></div>
+      <input type="number" id="fee-amount" min="0" placeholder="25">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Grace Period (minutes)</div><div class="row-sub">Mark no-show only after this many minutes late</div></div>
+      <input type="number" id="grace-period" min="0" max="60" placeholder="15">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Charge Card on File</div><div class="row-sub">Charge without manual approval</div></div>
+      <label class="toggle"><input type="checkbox" id="auto-charge"><span class="slider"></span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Exceptions &amp; Enforcement</div>
+    <div class="row">
+      <div><div class="row-label">Waive First Offense</div><div class="row-sub">Forgive first no-show per client automatically</div></div>
+      <label class="toggle"><input type="checkbox" id="waive-first"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notify Client Before Charge</div><div class="row-sub">Send warning SMS before processing fee</div></div>
+      <label class="toggle"><input type="checkbox" id="notify-before"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notify Hours Before Charge</div><div class="row-sub">Window to resolve before fee is applied</div></div>
+      <input type="number" id="notify-hours" min="1" max="48" placeholder="2">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Block Booking After No-Shows</div><div class="row-sub">Require staff approval after repeated no-shows</div></div>
+      <label class="toggle"><input type="checkbox" id="block-after"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Block After N No-Shows</div><div class="row-sub">How many no-shows before blocking client</div></div>
+      <input type="number" id="block-count" min="1" max="10" placeholder="2">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Client-Facing Policy Text</div>
+    <div>
+      <textarea id="policy-text" rows="3" placeholder="A no-show fee will be charged if you miss your appointment without 24-hour notice."></textarea>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/settings/no-show-fee-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('fee-type').value = d.fee_type || 'flat';
+    document.getElementById('fee-amount').value = d.fee_amount ?? 25;
+    document.getElementById('grace-period').value = d.grace_period_minutes ?? 15;
+    document.getElementById('auto-charge').checked = d.auto_charge;
+    document.getElementById('waive-first').checked = d.waive_first_offense;
+    document.getElementById('notify-before').checked = d.notify_before_charge;
+    document.getElementById('notify-hours').value = d.notify_hours_before ?? 2;
+    document.getElementById('block-after').checked = d.block_after_noshow;
+    document.getElementById('block-count').value = d.block_after_count ?? 2;
+    document.getElementById('policy-text').value = d.policy_text || '';
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      fee_type: document.getElementById('fee-type').value,
+      fee_amount: parseFloat(document.getElementById('fee-amount').value) || 25,
+      grace_period_minutes: parseInt(document.getElementById('grace-period').value) || 15,
+      auto_charge: document.getElementById('auto-charge').checked,
+      waive_first_offense: document.getElementById('waive-first').checked,
+      notify_before_charge: document.getElementById('notify-before').checked,
+      notify_hours_before: parseInt(document.getElementById('notify-hours').value) || 2,
+      block_after_noshow: document.getElementById('block-after').checked,
+      block_after_count: parseInt(document.getElementById('block-count').value) || 2,
+      policy_text: document.getElementById('policy-text').value
+    };
+    await fetch('/api/settings/no-show-fee-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

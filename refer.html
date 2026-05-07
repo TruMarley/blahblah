@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Refer a Shop — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    nav a.back:hover { color: var(--text); }
+
+    .shell { max-width: 680px; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
+
+    /* Hero */
+    .hero-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .hero-title { font-size: clamp(1.8rem, 5vw, 2.6rem); font-weight: 900; letter-spacing: -.04em; line-height: 1.1; margin-bottom: .75rem; }
+    .hero-title em { font-style: normal; color: var(--green); }
+    .hero-sub { font-size: .9rem; color: var(--muted); margin-bottom: 2.5rem; max-width: 500px; line-height: 1.7; }
+
+    /* Stat pills */
+    .stat-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2.5rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: .5rem 1.1rem; font-size: .82rem; color: var(--muted); display: flex; align-items: center; gap: .5rem; }
+    .stat-pill strong { color: var(--text); }
+
+    /* Link generator */
+    .gen-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.75rem; margin-bottom: 1.5rem; }
+    .gen-card h2 { font-size: 1rem; font-weight: 800; margin-bottom: 1rem; }
+    .gen-row { display: flex; gap: .75rem; }
+    .gen-input { flex: 1; background: #0d0d0d; border: 1px solid var(--border); color: var(--text); font-size: .88rem; padding: .65rem .9rem; border-radius: 9px; outline: none; }
+    .gen-input::placeholder { color: #444; }
+    .gen-input:focus { border-color: var(--accent); }
+    .btn { padding: .65rem 1.1rem; border-radius: 9px; font-size: .82rem; font-weight: 700; border: none; cursor: pointer; transition: opacity .15s; white-space: nowrap; }
+    .btn:hover { opacity: .85; }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-ghost { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+
+    .link-display { display: none; margin-top: 1rem; }
+    .link-display.show { display: block; }
+    .link-box { display: flex; align-items: center; gap: .6rem; background: #0d0d0d; border: 1px solid var(--border); border-radius: 9px; padding: .6rem .9rem; }
+    .link-box code { flex: 1; font-family: "SF Mono", "Fira Code", monospace; font-size: .78rem; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .copy-btn { padding: .4rem .8rem; border-radius: 7px; font-size: .72rem; font-weight: 700; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; flex-shrink: 0; }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .copy-btn.copied { border-color: var(--green); color: var(--green); }
+
+    /* Share message */
+    .share-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.75rem; margin-bottom: 1.5rem; }
+    .share-card h2 { font-size: 1rem; font-weight: 800; margin-bottom: 1rem; }
+    .share-bubble { background: var(--surface2); border-radius: 12px 12px 4px 12px; padding: 1rem 1.25rem; font-size: .85rem; color: var(--muted); line-height: 1.7; margin-bottom: 1rem; border: 1px solid var(--border); }
+    .share-bubble .ref-link { color: var(--accent); font-family: monospace; font-size: .8rem; }
+    .copy-msg-btn { display: flex; align-items: center; gap: .5rem; font-size: .8rem; }
+
+    /* Terms */
+    .terms-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.75rem; }
+    .terms-card h2 { font-size: 1rem; font-weight: 800; margin-bottom: 1rem; }
+    .terms-list { list-style: none; display: flex; flex-direction: column; gap: .65rem; }
+    .terms-list li { display: flex; align-items: flex-start; gap: .75rem; font-size: .82rem; color: var(--muted); }
+    .terms-list li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: .05rem; }
+    .terms-list li strong { color: var(--text); }
+
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--green); color: #000; padding: .65rem 1.1rem; border-radius: 9px; font-weight: 700; font-size: .8rem; opacity: 0; transform: translateY(8px); transition: all .2s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+
+<div class="shell">
+  <div class="hero-icon">💸</div>
+  <h1 class="hero-title">Earn <em>$50 credit</em><br>for every shop you refer.</h1>
+  <p class="hero-sub">Know another barbershop or salon that's tired of missing calls? Refer them to RingDesk and earn $50 in account credit for every shop that signs up and pays for their first month.</p>
+
+  <div class="stat-row">
+    <div class="stat-pill">💵 <strong>$50 credit</strong> per referral</div>
+    <div class="stat-pill">♾️ <strong>No limit</strong> on referrals</div>
+    <div class="stat-pill">📅 <strong>90-day</strong> attribution window</div>
+    <div class="stat-pill">⚡ <strong>Instant</strong> account credit</div>
+  </div>
+
+  <!-- Link generator -->
+  <div class="gen-card">
+    <h2>Generate your referral link</h2>
+    <div class="gen-row">
+      <input class="gen-input" id="shop-name" placeholder="Your shop name (e.g. Crown & Blade)" oninput="generateLink()">
+      <button class="btn btn-ghost" onclick="generateLink()">Generate</button>
+    </div>
+    <div class="link-display" id="link-display">
+      <div class="link-box">
+        <code id="ref-link-text"></code>
+        <button class="copy-btn" id="copy-link-btn" onclick="copyLink()">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share message -->
+  <div class="share-card">
+    <h2>Ready-to-send message</h2>
+    <div class="share-bubble" id="share-bubble">
+      Hey, I've been using RingDesk to answer my shop's calls with AI — it's $99/mo and I haven't missed a booking since. No setup fee, cancel anytime. Here's my link: <span class="ref-link" id="bubble-link">https://ringdesk.ai/?ref=your-shop</span>
+    </div>
+    <button class="btn btn-ghost copy-msg-btn" onclick="copyMessage()">
+      <span id="copy-msg-label">📋 Copy message</span>
+    </button>
+  </div>
+
+  <!-- Program terms -->
+  <div class="terms-card">
+    <h2>Referral program terms</h2>
+    <ul class="terms-list">
+      <li><strong>$50 account credit</strong> — paid when the referred shop completes their first paid month</li>
+      <li><strong>No cash payouts</strong> — credit applies to your RingDesk subscription (1–6 months depending on plan)</li>
+      <li><strong>No referral limit</strong> — refer 10 shops, earn $500 in credit</li>
+      <li><strong>90-day window</strong> — the referred shop must sign up within 90 days of clicking your link</li>
+      <li><strong>Self-referrals don't count</strong> — the referred account must be a different business</li>
+      <li><strong>Credit stacks</strong> — multiple referral credits apply automatically to future invoices</li>
+    </ul>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let refUrl = 'https://ringdesk.ai/?ref=your-shop';
+
+  function slugify(name) {
+    return name.toLowerCase().trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+  }
+
+  function generateLink() {
+    const name = document.getElementById('shop-name').value.trim();
+    if (!name) return;
+    const slug = slugify(name);
+    refUrl = `https://ringdesk.ai/?ref=${slug}`;
+    document.getElementById('ref-link-text').textContent = refUrl;
+    document.getElementById('link-display').classList.add('show');
+    document.getElementById('bubble-link').textContent = refUrl;
+    // Reset copy button
+    const cb = document.getElementById('copy-link-btn');
+    cb.textContent = 'Copy';
+    cb.classList.remove('copied');
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText(refUrl).then(() => {
+      const btn = document.getElementById('copy-link-btn');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      showToast('Link copied to clipboard');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  function copyMessage() {
+    const msg = `Hey, I've been using RingDesk to answer my shop's calls with AI — it's $99/mo and I haven't missed a booking since. No setup fee, cancel anytime. Here's my link: ${refUrl}`;
+    navigator.clipboard.writeText(msg).then(() => {
+      document.getElementById('copy-msg-label').textContent = '✓ Copied!';
+      showToast('Message copied — paste into SMS or email');
+      setTimeout(() => { document.getElementById('copy-msg-label').textContent = '📋 Copy message'; }, 2500);
+    });
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  // Auto-generate if shop name is pre-filled (e.g. from config)
+  document.getElementById('shop-name').addEventListener('keydown', e => {
+    if (e.key === 'Enter') generateLink();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Subscription — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .plan-card { background: var(--surface); border: 2px solid rgba(167,139,250,.4); border-radius: 16px; padding: 1.75rem; margin-bottom: 1.25rem; position: relative; overflow: hidden; }
+    .plan-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), #818cf8); }
+    .plan-badge { display: inline-block; font-size: .65rem; font-weight: 800; padding: .2rem .6rem; border-radius: 99px; background: rgba(167,139,250,.15); color: var(--accent); border: 1px solid rgba(167,139,250,.35); margin-bottom: .75rem; text-transform: uppercase; letter-spacing: .08em; }
+    .plan-name { font-size: 1.6rem; font-weight: 900; letter-spacing: -.02em; margin-bottom: .2rem; }
+    .plan-price { font-size: 2.4rem; font-weight: 900; color: var(--accent); }
+    .plan-price span { font-size: .9rem; font-weight: 400; color: var(--muted); }
+    .plan-divider { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+    .feature-list { display: flex; flex-direction: column; gap: .6rem; }
+    .feature-item { display: flex; align-items: center; gap: .6rem; font-size: .83rem; }
+    .feature-check { color: var(--green); font-size: 1rem; flex-shrink: 0; }
+    .billing-row { display: flex; justify-content: space-between; align-items: center; font-size: .82rem; margin-bottom: .5rem; }
+    .billing-label { color: var(--muted); }
+    .billing-val { font-weight: 700; }
+    .card-small { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    /* Upgrade card */
+    .upgrade-card { background: linear-gradient(135deg, rgba(167,139,250,.08), rgba(129,140,248,.05)); border: 1px solid rgba(167,139,250,.2); border-radius: 16px; padding: 1.5rem; }
+    .upgrade-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
+    .upgrade-name { font-size: 1.1rem; font-weight: 900; }
+    .upgrade-price-wrap { text-align: right; }
+    .upgrade-price { font-size: 1.5rem; font-weight: 900; color: var(--accent); }
+    .upgrade-price span { font-size: .8rem; font-weight: 400; color: var(--muted); }
+    .upgrade-features { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1.25rem; }
+    .upgrade-feat { display: flex; align-items: center; gap: .5rem; font-size: .8rem; color: var(--muted); }
+    .upgrade-btn { width: 100%; padding: .7rem; border-radius: 10px; border: none; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+    .upgrade-btn:hover { opacity: .85; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; margin-right: .4rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Subscription</div>
+  <p class="page-sub">Manage your RingDesk plan, billing, and account details.</p>
+
+  <!-- Current plan -->
+  <div class="plan-card">
+    <div class="plan-badge" id="plan-badge">Current Plan</div>
+    <div class="plan-name" id="plan-name">—</div>
+    <div class="plan-price" id="plan-price">—<span>/mo</span></div>
+    <hr class="plan-divider">
+    <div class="feature-list" id="feature-list"></div>
+  </div>
+
+  <!-- Billing info -->
+  <div class="card-small">
+    <div class="card-title">Billing Details</div>
+    <div class="billing-row">
+      <span class="billing-label">Status</span>
+      <span class="billing-val"><span class="status-dot"></span>Active</span>
+    </div>
+    <div class="billing-row">
+      <span class="billing-label">Billing Cycle</span>
+      <span class="billing-val" id="b-cycle">—</span>
+    </div>
+    <div class="billing-row">
+      <span class="billing-label">Next Billing</span>
+      <span class="billing-val" id="b-next">—</span>
+    </div>
+    <div class="billing-row">
+      <span class="billing-label">Payment Method</span>
+      <span class="billing-val" id="b-card">—</span>
+    </div>
+  </div>
+
+  <!-- Upgrade CTA -->
+  <div class="upgrade-card">
+    <div class="card-title">Upgrade Your Plan</div>
+    <div class="upgrade-header">
+      <div>
+        <div class="upgrade-name" id="up-name">—</div>
+        <div style="font-size:.75rem;color:var(--muted);margin-top:.2rem">Everything in your current plan, plus:</div>
+      </div>
+      <div class="upgrade-price-wrap">
+        <div class="upgrade-price" id="up-price">—<span>/mo</span></div>
+      </div>
+    </div>
+    <div class="upgrade-features" id="up-features"></div>
+    <button class="upgrade-btn" id="up-btn">Upgrade to <span id="up-btn-name">Studio</span></button>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/subscription');
+    const d = await r.json();
+    document.getElementById('plan-badge').textContent = d.plan + ' Plan — Active';
+    document.getElementById('plan-name').textContent = d.plan;
+    document.getElementById('plan-price').innerHTML = `$${d.amount}<span>/mo</span>`;
+    document.getElementById('b-cycle').textContent = d.billing_cycle || 'Monthly';
+    document.getElementById('b-next').textContent = d.next_billing_date || '—';
+    document.getElementById('b-card').textContent = `Visa •••• ${d.card_last4}`;
+
+    document.getElementById('feature-list').innerHTML = (d.features_included || []).map(f =>
+      `<div class="feature-item"><span class="feature-check">✓</span><span>${esc(f)}</span></div>`
+    ).join('');
+
+    document.getElementById('up-name').textContent = d.next_plan || 'Studio';
+    document.getElementById('up-price').innerHTML = `$${d.next_plan_price || 249}<span>/mo</span>`;
+    document.getElementById('up-btn-name').textContent = d.next_plan || 'Studio';
+    document.getElementById('up-btn').querySelector('span').textContent = d.next_plan || 'Studio';
+
+    document.getElementById('up-features').innerHTML = (d.next_plan_features || []).map(f =>
+      `<div class="upgrade-feat"><span style="color:var(--accent)">✦</span><span>${esc(f)}</span></div>`
+    ).join('');
+
+    document.getElementById('up-btn').addEventListener('click', () => {
+      document.getElementById('up-btn').textContent = 'Contact sales to upgrade';
+      document.getElementById('up-btn').disabled = true;
+      document.getElementById('up-btn').style.opacity = '.5';
+    });
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

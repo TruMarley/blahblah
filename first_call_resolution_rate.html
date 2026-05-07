@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>First Call Resolution Rate — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: 1.25rem; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+    .chart-wrap { height: 260px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">First Call Resolution Rate</div>
+  <p class="page-sub">Percentage of calls fully handled by the AI without transferring to a human — higher is better, aim for 85%+.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Latest FCR</div>
+      <div class="hero-val" id="h-latest" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">8-Week Avg</div>
+      <div class="hero-val" id="h-avg" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Transfers (latest wk)</div>
+      <div class="hero-val" id="h-xfer" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">FCR &amp; Call Volume by Week</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(167,139,250,.45)"></div>Total Calls</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(248,113,113,.6)"></div>Transferred</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green);border-radius:50%"></div>FCR %</div>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/first-call-resolution-rate');
+    const d = await r.json();
+    const weeks = d.weeks || [];
+    const last = weeks[weeks.length-1] || {};
+    const avg = (weeks.reduce((s,w)=>s+w.fcr_pct,0)/weeks.length).toFixed(1);
+    document.getElementById('h-latest').textContent = last.fcr_pct + '%';
+    document.getElementById('h-latest').style.color = last.fcr_pct >= 85 ? 'var(--green)' : last.fcr_pct >= 70 ? 'var(--yellow)' : 'var(--red)';
+    document.getElementById('h-avg').textContent = avg + '%';
+    document.getElementById('h-xfer').textContent = last.transferred_calls ?? '—';
+
+    const svg = document.getElementById('chart');
+    const W=700,H=260,pL=44,pR=50,pT=14,pB=28;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n=weeks.length, barW=cW/n*0.5, xStep=cW/n;
+    const maxC=Math.max(...weeks.map(w=>w.total_calls))*1.2;
+    const xOf=i=>pL+i*xStep+xStep/2;
+    const yOfC=v=>pT+cH-v/maxC*cH;
+    const yOfR=v=>pT+cH-v/100*cH;
+
+    [10,20,30,40,50].filter(v=>v<maxC).forEach(v=>{
+      const y=yOfC(v);
+      svg.innerHTML+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML+=`<text x="${pL-4}" y="${y+3.5}" font-size="8" fill="#555" text-anchor="end">${v}</text>`;
+    });
+    [70,80,90,100].forEach(v=>{
+      svg.innerHTML+=`<text x="${W-pR+4}" y="${yOfR(v)+3.5}" font-size="8" fill="#666">${v}%</text>`;
+    });
+
+    weeks.forEach((w,i)=>{
+      const cx=xOf(i);
+      const bh=cH*w.total_calls/maxC;
+      const xh=cH*w.transferred_calls/maxC;
+      svg.innerHTML+=`<rect x="${cx-barW/2}" y="${pT+cH-bh}" width="${barW}" height="${bh-xh}" rx="0" fill="rgba(167,139,250,.42)"/>`;
+      svg.innerHTML+=`<rect x="${cx-barW/2}" y="${pT+cH-xh}" width="${barW}" height="${xh}" rx="0 0 4 4" fill="rgba(248,113,113,.55)"/>`;
+      svg.innerHTML+=`<text x="${cx}" y="${H-4}" font-size="8.5" fill="#555" text-anchor="middle">${esc(w.week)}</text>`;
+    });
+
+    const pts=weeks.map((w,i)=>`${xOf(i)},${yOfR(w.fcr_pct)}`).join(' ');
+    svg.innerHTML+=`<polyline points="${pts}" fill="none" stroke="rgba(52,211,153,.9)" stroke-width="2.5"/>`;
+    weeks.forEach((w,i)=>{
+      svg.innerHTML+=`<circle cx="${xOf(i)}" cy="${yOfR(w.fcr_pct)}" r="3.5" fill="var(--green)"/>`;
+      svg.innerHTML+=`<text x="${xOf(i)}" y="${yOfR(w.fcr_pct)-7}" font-size="8" fill="#34d399" text-anchor="middle">${w.fcr_pct}%</text>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

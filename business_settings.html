@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Business Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .section-title { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin: 1.75rem 0 .9rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .35rem; }
+    input, select { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: .85rem; font-family: inherit; padding: .6rem .85rem; border-radius: 8px; outline: none; transition: border-color .15s; }
+    input:focus, select:focus { border-color: rgba(167,139,250,.5); }
+    select option { background: var(--surface); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .save-row { margin-top: 2rem; display: flex; justify-content: flex-end; }
+    .save-btn { background: var(--accent); color: #fff; border: none; font-size: .85rem; font-weight: 700; padding: .6rem 1.5rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+    .save-btn:hover { opacity: .85; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(80px); background: #1a1a1a; border: 1px solid rgba(52,211,153,.3); color: var(--green); font-size: .82rem; font-weight: 700; padding: .65rem 1.4rem; border-radius: 10px; transition: transform .3s; z-index: 999; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Business Settings</div>
+  <p class="page-sub">Your shop profile — used by the AI and displayed to clients.</p>
+
+  <div class="section-title">Contact Info</div>
+  <div class="form-row">
+    <div class="form-group"><label>Shop Name</label><input id="shop_name" type="text"></div>
+    <div class="form-group"><label>Owner Name</label><input id="owner_name" type="text"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Phone</label><input id="phone" type="tel"></div>
+    <div class="form-group"><label>Email</label><input id="email" type="email"></div>
+  </div>
+
+  <div class="section-title">Location</div>
+  <div class="form-group"><label>Address</label><input id="address" type="text"></div>
+  <div class="form-group"><label>Website</label><input id="website" type="url"></div>
+
+  <div class="section-title">Preferences</div>
+  <div class="form-row">
+    <div class="form-group">
+      <label>Timezone</label>
+      <select id="timezone">
+        <option>America/New_York</option>
+        <option>America/Chicago</option>
+        <option>America/Denver</option>
+        <option>America/Los_Angeles</option>
+        <option>America/Phoenix</option>
+        <option>Pacific/Honolulu</option>
+        <option>America/Anchorage</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Currency</label>
+      <select id="currency">
+        <option value="USD">USD — US Dollar</option>
+        <option value="CAD">CAD — Canadian Dollar</option>
+        <option value="GBP">GBP — British Pound</option>
+        <option value="EUR">EUR — Euro</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="save-row">
+    <button class="save-btn" onclick="save()">Save Changes</button>
+  </div>
+</div>
+<div class="toast" id="toast">Settings saved</div>
+<script>
+  const FIELDS = ['shop_name','owner_name','phone','email','address','website','timezone','currency'];
+
+  async function load() {
+    const r = await fetch('/api/settings/business');
+    const d = await r.json();
+    FIELDS.forEach(f => {
+      const el = document.getElementById(f);
+      if (el && d[f] !== undefined) el.value = d[f];
+    });
+  }
+
+  async function save() {
+    const payload = {};
+    FIELDS.forEach(f => {
+      const el = document.getElementById(f);
+      if (el) payload[f] = el.value;
+    });
+    await fetch('/api/settings/business', {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  load();
+</script>
+</body>
+</html>

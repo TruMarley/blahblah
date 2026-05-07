@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vendor Contacts — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .top-bar { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
+    .add-btn { font-size: .8rem; font-weight: 800; padding: .45rem 1.1rem; border-radius: 8px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; }
+    .add-btn:hover { background: rgba(167,139,250,.2); }
+    .vendor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+    .vendor-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; }
+    .vc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: .6rem; }
+    .vc-name { font-size: .95rem; font-weight: 900; }
+    .cat-badge { font-size: .62rem; font-weight: 800; padding: .12rem .38rem; border-radius: 4px; background: rgba(167,139,250,.12); color: var(--accent); }
+    .vc-row { font-size: .78rem; color: var(--muted); margin-bottom: .25rem; }
+    .vc-row strong { color: var(--text); }
+    .vc-notes { font-size: .72rem; color: var(--muted); font-style: italic; margin-top: .5rem; border-top: 1px solid var(--border); padding-top: .5rem; }
+    .del-btn { font-size: .6rem; font-weight: 800; padding: .14rem .4rem; border-radius: 4px; border: 1px solid rgba(248,113,113,.3); background: rgba(248,113,113,.07); color: var(--red); cursor: pointer; font-family: inherit; margin-top: .6rem; }
+    .del-btn:hover { background: rgba(248,113,113,.18); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Vendor Contacts</div>
+  <p class="page-sub">Suppliers, equipment vendors, and product contacts — all in one place.</p>
+  <div class="top-bar">
+    <button class="add-btn" onclick="showAdd()">+ Add Vendor</button>
+  </div>
+  <div class="vendor-grid" id="vendor-grid"></div>
+</div>
+<script>
+  let data = {vendors:[]};
+  async function load() {
+    const r = await fetch('/api/vendor-contacts');
+    data = await r.json();
+    render();
+  }
+  function render() {
+    document.getElementById('vendor-grid').innerHTML = (data.vendors||[]).map(v => `
+      <div class="vendor-card">
+        <div class="vc-header">
+          <div class="vc-name">${esc(v.name)}</div>
+          <span class="cat-badge">${esc(v.category)}</span>
+        </div>
+        <div class="vc-row"><strong>Contact:</strong> ${esc(v.contact||'—')}</div>
+        <div class="vc-row"><strong>Phone:</strong> ${esc(v.phone||'—')}</div>
+        <div class="vc-row"><strong>Email:</strong> ${esc(v.email||'—')}</div>
+        ${v.notes ? `<div class="vc-notes">${esc(v.notes)}</div>` : ''}
+        <button class="del-btn" onclick="del('${v.vendor_id}')">Remove</button>
+      </div>`).join('');
+  }
+  async function del(id) {
+    await fetch(`/api/vendor-contacts/${id}`, {method:'DELETE'});
+    load();
+  }
+  function showAdd() {
+    const name = prompt('Vendor name:'); if (!name) return;
+    const cat = prompt('Category (Equipment/Supplies/Color Products/Sanitation):', 'Supplies');
+    const contact = prompt('Contact person:');
+    const phone = prompt('Phone:');
+    const email = prompt('Email:');
+    const notes = prompt('Notes (optional):');
+    fetch('/api/vendor-contacts', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name, category: cat||'Supplies', contact: contact||'', phone: phone||'', email: email||'', notes: notes||''})
+    }).then(() => load());
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

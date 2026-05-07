@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Volume — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem .9rem; text-align: center; }
+    .hero-label { font-size: .6rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.3rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Volume</div>
+  <p class="page-sub">See exactly when your phone rings most — by day of week, hour of day, and week-over-week trend. Use this to staff appropriately and identify gaps the AI is covering for you.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Calls (7d)</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg / Day</div>
+      <div class="hero-val" id="h-avg" style="color:var(--text)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Peak Day</div>
+      <div class="hero-val" id="h-day" style="color:var(--green);font-size:1.1rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Peak Hour</div>
+      <div class="hero-val" id="h-hour" style="color:var(--yellow);font-size:1.1rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Calls by Day of Week</div>
+    <svg id="day-chart" viewBox="0 0 680 130" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+  <div class="card">
+    <div class="card-title">Calls by Hour (24h)</div>
+    <svg id="hour-chart" viewBox="0 0 680 90" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+  <div class="card">
+    <div class="card-title">6-Week Trend</div>
+    <svg id="trend-chart" viewBox="0 0 680 120" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+</div>
+<script>
+  const DAY_COLORS = ['#a78bfa','#818cf8','#60a5fa','#34d399','#fbbf24','#f87171','#c084fc'];
+  async function load() {
+    const d = await fetch('/api/analytics/call-volume-stats').then(r => r.json());
+    const monthly = d.monthly || [];
+    const byHourArr = d.by_hour || [];
+    const peakMonth = monthly.reduce((b,m) => m.total_calls > (b ? b.total_calls : 0) ? m : b, null);
+    const peakHourSlot = byHourArr.reduce((b,s) => s.calls > (b ? b.calls : 0) ? s : b, null);
+    const fmtHour = h => h === 0 ? '12AM' : h < 12 ? h+'AM' : h === 12 ? '12PM' : (h-12)+'PM';
+
+    document.getElementById('h-total').textContent = d.total_calls_30d != null ? d.total_calls_30d.toLocaleString() : '—';
+    document.getElementById('h-avg').textContent = d.total_calls_30d ? (d.total_calls_30d / 30).toFixed(1) : '—';
+    document.getElementById('h-day').textContent = peakMonth ? peakMonth.month : '—';
+    document.getElementById('h-hour').textContent = peakHourSlot ? fmtHour(peakHourSlot.hour) : '—';
+
+    // Monthly bar chart (replaces by_day)
+    {
+      const W=680,H=130,pL=28,pR=10,pT=12,pB=24;
+      const n = monthly.length;
+      const cW=W-pL-pR, cH=H-pT-pB;
+      const vals = monthly.map(m => m.total_calls);
+      const mx = Math.max(...vals)*1.1||1;
+      const bW=(cW/n)*0.6, gap=cW/n;
+      let svg='';
+      monthly.forEach((m,i)=>{
+        const v=m.total_calls, bH=(v/mx)*cH;
+        const x=pL+i*gap+(gap-bW)/2, y=pT+cH-bH;
+        svg+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bW.toFixed(1)}" height="${bH.toFixed(1)}" rx="3" fill="${DAY_COLORS[i%DAY_COLORS.length]}"/>`;
+        svg+=`<text x="${(x+bW/2).toFixed(1)}" y="${(y-4).toFixed(1)}" text-anchor="middle" fill="#888" font-size="8">${v}</text>`;
+        svg+=`<text x="${(x+bW/2).toFixed(1)}" y="${H-pB+13}" text-anchor="middle" fill="#555" font-size="9">${m.month}</text>`;
+      });
+      document.getElementById('day-chart').innerHTML=svg;
+    }
+
+    // Hour bar chart — by_hour is [{hour, calls}]
+    {
+      const W=680,H=90,pL=16,pR=8,pT=10,pB=18;
+      const cW=W-pL-pR, cH=H-pT-pB;
+      const mx=Math.max(...byHourArr.map(s=>s.calls))*1.1||1;
+      const n=12; // hours 8-19
+      const bW=(cW/n)*0.72, gap=cW/n;
+      let svg='';
+      byHourArr.forEach((s,i)=>{
+        const v=s.calls, bH=(v/mx)*cH;
+        const x=pL+i*gap+(gap-bW)/2, y=pT+cH-bH;
+        const alpha=0.3+0.7*(v/mx);
+        svg+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bW.toFixed(1)}" height="${Math.max(bH,1).toFixed(1)}" rx="2" fill="rgba(167,139,250,${alpha.toFixed(2)})"/>`;
+        if(i%2===0) svg+=`<text x="${(x+bW/2).toFixed(1)}" y="${H-pB+11}" text-anchor="middle" fill="#444" font-size="7.5">${fmtHour(s.hour)}</text>`;
+      });
+      document.getElementById('hour-chart').innerHTML=svg;
+    }
+
+    // Monthly trend line
+    {
+      const weekly = monthly.map(m => m.total_calls);
+      const n=weekly.length;
+      if(n>1){
+        const W=680,H=120,pL=36,pR=16,pT=14,pB=22;
+        const cW=W-pL-pR, cH=H-pT-pB;
+        const mx=Math.max(...weekly)*1.1||1;
+        const pts=weekly.map((v,i)=>({x:pL+i*(cW/(n-1)),y:pT+cH-(v/mx)*cH,v,lbl:monthly[i].month}));
+        const path=pts.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+        const bot=pT+cH;
+        const fill=path+' L'+pts[n-1].x.toFixed(1)+','+bot+' L'+pL+','+bot+' Z';
+        let svg=`<path d="${fill}" fill="rgba(167,139,250,.07)"/>`;
+        svg+=`<path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>`;
+        pts.forEach(p=>{
+          svg+=`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="var(--accent)"/>`;
+          svg+=`<text x="${p.x.toFixed(1)}" y="${(p.y-6).toFixed(1)}" text-anchor="middle" fill="#aaa" font-size="7.5">${p.v}</text>`;
+          svg+=`<text x="${p.x.toFixed(1)}" y="${H-pB+13}" text-anchor="middle" fill="#555" font-size="8.5">${p.lbl}</text>`;
+        });
+        document.getElementById('trend-chart').innerHTML=svg;
+      }
+    }
+  }
+  load();
+</script>
+</body>
+</html>

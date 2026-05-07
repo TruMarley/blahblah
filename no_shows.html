@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>No-Shows — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .kpi-row { display: grid; grid-template-columns: repeat(3,1fr); gap: .75rem; margin-bottom: 1.5rem; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; }
+    .kpi-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .35rem; }
+    .kpi-val { font-size: 1.75rem; font-weight: 900; letter-spacing: -.04em; }
+    .kpi-sub { font-size: .72rem; color: var(--muted); margin-top: .2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1.25rem; }
+    /* Sparkline */
+    .sparkline-wrap { overflow-x: auto; }
+    /* Hour bars */
+    .hour-bars { display: flex; align-items: flex-end; gap: 3px; height: 80px; overflow-x: auto; }
+    .hb { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 28px; gap: 2px; }
+    .hb-fill { width: 100%; border-radius: 3px 3px 0 0; background: var(--red); opacity: .75; min-height: 2px; }
+    .hb-label { font-size: .58rem; color: var(--muted); }
+    /* Table */
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .6rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .75rem 1rem; font-size: .83rem; vertical-align: middle; }
+    .name-cell { font-weight: 800; }
+    .phone-cell { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+    .count-badge { display: inline-block; font-size: .72rem; font-weight: 800; padding: .15rem .55rem; border-radius: 99px; background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+    .last-cell { font-size: .72rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">No-Show Analytics</div>
+  <p class="page-sub">Missed appointments over the last 30 days — patterns and repeat offenders.</p>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Total No-Shows</div><div class="kpi-val" id="k-total" style="color:var(--red)">—</div><div class="kpi-sub">last 30 days</div></div>
+    <div class="kpi"><div class="kpi-label">No-Show Rate</div><div class="kpi-val" id="k-rate" style="color:var(--yellow)">—</div><div class="kpi-sub">% of appointments</div></div>
+    <div class="kpi"><div class="kpi-label">Avg / Week</div><div class="kpi-val" id="k-avg" style="color:var(--accent)">—</div><div class="kpi-sub">over past 4 weeks</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">30-Day Trend</div>
+    <div class="sparkline-wrap">
+      <svg id="sparkline" width="100%" style="display:block;overflow:visible"></svg>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">By Hour of Day</div>
+    <div class="hour-bars" id="hour-bars"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Top Offenders</div>
+    <table>
+      <thead><tr><th>Client</th><th>No-Shows</th><th>Last Missed</th></tr></thead>
+      <tbody id="offender-body"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  function fmtHour(h) {
+    if (h === 0) return '12a'; if (h < 12) return h+'a'; if (h === 12) return '12p'; return (h-12)+'p';
+  }
+
+  async function load() {
+    const r = await fetch('/api/analytics/no-shows');
+    const d = await r.json();
+
+    document.getElementById('k-total').textContent = d.total_no_shows;
+    document.getElementById('k-rate').textContent = d.no_show_rate_pct + '%';
+    document.getElementById('k-avg').textContent = d.avg_per_week;
+
+    // Sparkline SVG
+    const days = d.by_day || [];
+    const W = 800, H = 80, PAD = 8;
+    const maxC = Math.max(...days.map(x => x.count), 1);
+    const pts = days.map((x, i) => {
+      const px = PAD + i * (W - PAD*2) / (days.length - 1);
+      const py = H - PAD - (x.count / maxC) * (H - PAD*2);
+      return `${px},${py}`;
+    });
+    const areaPath = `M${pts[0]} ` + pts.slice(1).map(p => 'L'+p).join(' ') + ` L${800-PAD},${H} L${PAD},${H} Z`;
+    const linePath = `M${pts[0]} ` + pts.slice(1).map(p => 'L'+p).join(' ');
+    const svg = document.getElementById('sparkline');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('height', H);
+    svg.innerHTML = `<defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f87171" stop-opacity=".25"/><stop offset="100%" stop-color="#f87171" stop-opacity="0"/></linearGradient></defs>
+      <path d="${areaPath}" fill="url(#sg)"/>
+      <path d="${linePath}" fill="none" stroke="#f87171" stroke-width="2" stroke-linejoin="round"/>`;
+
+    // Hour bars
+    const byHour = d.by_hour || [];
+    const maxH = Math.max(...byHour.map(x => x.count), 1);
+    document.getElementById('hour-bars').innerHTML = byHour.map(h => {
+      const pct = Math.max(4, Math.round(h.count / maxH * 70));
+      return `<div class="hb"><div class="hb-fill" style="height:${pct}px" title="${fmtHour(h.hour)}: ${h.count}"></div><div class="hb-label">${fmtHour(h.hour)}</div></div>`;
+    }).join('');
+
+    // Offenders
+    document.getElementById('offender-body').innerHTML = (d.top_offenders || []).map(o => `
+      <tr>
+        <td><div class="name-cell">${esc(o.client_name)}</div><div class="phone-cell">${esc(o.phone)}</div></td>
+        <td><span class="count-badge">${o.count}×</span></td>
+        <td class="last-cell">${esc(o.last_no_show)}</td>
+      </tr>`).join('');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

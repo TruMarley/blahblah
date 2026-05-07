@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Heatmap — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #555; --accent: #a78bfa; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    nav a.back:hover { color: #888; }
+
+    .main { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; overflow-x: auto; }
+    .card-title { font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .09em; margin-bottom: 1.25rem; }
+
+    .heatmap-wrap { display: inline-block; min-width: 600px; }
+    .hm-row { display: flex; align-items: center; gap: 3px; margin-bottom: 3px; }
+    .hm-label { width: 72px; font-size: .72rem; color: var(--muted); text-align: right; padding-right: 10px; flex-shrink: 0; }
+    .hm-cell { width: 28px; height: 22px; border-radius: 3px; cursor: pointer; transition: transform .1s; position: relative; flex-shrink: 0; }
+    .hm-cell:hover { transform: scale(1.25); z-index: 10; }
+    .hm-header-row { display: flex; align-items: center; gap: 3px; margin-bottom: 6px; }
+    .hm-header-label { width: 72px; flex-shrink: 0; }
+    .hm-hour-label { width: 28px; font-size: .6rem; color: var(--muted); text-align: center; flex-shrink: 0; overflow: hidden; }
+
+    .legend { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; }
+    .legend-label { font-size: .72rem; color: var(--muted); }
+    .legend-cells { display: flex; gap: 3px; }
+    .legend-cell { width: 22px; height: 16px; border-radius: 2px; }
+
+    .tooltip { position: fixed; background: #1c1c1c; border: 1px solid var(--border); border-radius: 8px; padding: .45rem .7rem; font-size: .75rem; pointer-events: none; z-index: 999; display: none; white-space: nowrap; }
+    .tooltip strong { color: var(--accent); display: block; }
+
+    .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1.5rem; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; }
+    .kpi-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .35rem; }
+    .kpi-val { font-size: 1.6rem; font-weight: 900; letter-spacing: -.04em; color: var(--accent); }
+    .kpi-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Volume Heatmap</div>
+  <p class="page-sub">When your clients are calling — by day and hour. Use this to optimize your AI's greeting and staffing.</p>
+
+  <div class="kpi-row" id="kpis">
+    <div class="kpi"><div class="kpi-label">Peak Day</div><div class="kpi-val" id="k-day">—</div><div class="kpi-sub" id="k-day-sub">highest volume</div></div>
+    <div class="kpi"><div class="kpi-label">Peak Hour</div><div class="kpi-val" id="k-hr">—</div><div class="kpi-sub">busiest time slot</div></div>
+    <div class="kpi"><div class="kpi-label">Quiet Window</div><div class="kpi-val" id="k-quiet">—</div><div class="kpi-sub">lowest call volume</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Calls by Day × Hour (last 90 days)</div>
+    <div class="heatmap-wrap" id="heatmap"></div>
+    <div class="legend">
+      <span class="legend-label">Less</span>
+      <div class="legend-cells" id="legend"></div>
+      <span class="legend-label">More</span>
+    </div>
+  </div>
+</div>
+<div class="tooltip" id="tip"></div>
+
+<script>
+  const HOUR_LABELS = ['12a','1a','2a','3a','4a','5a','6a','7a','8a','9a','10a','11a','12p','1p','2p','3p','4p','5p','6p','7p','8p','9p','10p','11p'];
+  const ACCENT = [167, 139, 250]; // --accent rgb
+
+  function cellColor(val, maxVal) {
+    if (val === 0) return 'rgba(255,255,255,0.04)';
+    const t = Math.pow(val / maxVal, 0.6);
+    const r = Math.round(ACCENT[0] * t);
+    const g = Math.round(ACCENT[1] * t);
+    const b = Math.round(ACCENT[2] * t);
+    return `rgba(${r},${g},${b},${0.15 + t * 0.85})`;
+  }
+
+  async function load() {
+    const r = await fetch('/api/analytics/heatmap');
+    const d = await r.json();
+    const { heatmap, days, max } = d;
+
+    // KPIs
+    const dayTotals = heatmap.map(row => row.reduce((s, v) => s + v, 0));
+    const peakDayIdx = dayTotals.indexOf(Math.max(...dayTotals));
+    document.getElementById('k-day').textContent = days[peakDayIdx];
+
+    const hourTotals = Array.from({length:24}, (_, h) => heatmap.reduce((s, row) => s + row[h], 0));
+    const peakHrIdx = hourTotals.indexOf(Math.max(...hourTotals));
+    document.getElementById('k-hr').textContent = HOUR_LABELS[peakHrIdx];
+
+    const nonZero = hourTotals.map((v,i) => ({v,i})).filter(x => x.v > 0);
+    const quietIdx = nonZero.reduce((m, x) => x.v < m.v ? x : m, nonZero[0] || {v:0,i:0}).i;
+    document.getElementById('k-quiet').textContent = HOUR_LABELS[quietIdx];
+
+    // Header row
+    const wrap = document.getElementById('heatmap');
+    let html = '<div class="hm-header-row"><div class="hm-header-label"></div>';
+    HOUR_LABELS.forEach((lbl, h) => {
+      html += `<div class="hm-hour-label">${h % 3 === 0 ? lbl : ''}</div>`;
+    });
+    html += '</div>';
+
+    // Data rows
+    days.forEach((day, di) => {
+      html += `<div class="hm-row"><div class="hm-label">${day.slice(0,3)}</div>`;
+      heatmap[di].forEach((val, hi) => {
+        const col = cellColor(val, max);
+        html += `<div class="hm-cell" style="background:${col}" data-day="${day}" data-hr="${HOUR_LABELS[hi]}" data-val="${val}"></div>`;
+      });
+      html += '</div>';
+    });
+    wrap.innerHTML = html;
+
+    // Legend
+    const steps = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
+    document.getElementById('legend').innerHTML = steps.map(t =>
+      `<div class="legend-cell" style="background:${cellColor(Math.round(t * max), max)}"></div>`
+    ).join('');
+
+    // Tooltip
+    const tip = document.getElementById('tip');
+    wrap.querySelectorAll('.hm-cell').forEach(el => {
+      el.addEventListener('mousemove', e => {
+        tip.style.display = 'block';
+        tip.style.left = (e.clientX + 14) + 'px';
+        tip.style.top  = (e.clientY - 40) + 'px';
+        tip.innerHTML  = `<strong>${el.dataset.val} calls</strong>${el.dataset.day} · ${el.dataset.hr}`;
+      });
+      el.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+    });
+  }
+
+  load();
+</script>
+</body>
+</html>

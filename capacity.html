@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Capacity — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .kpi-row { display: grid; grid-template-columns: repeat(3,1fr); gap: .75rem; margin-bottom: 2rem; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; }
+    .kpi-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .35rem; }
+    .kpi-val { font-size: 1.75rem; font-weight: 900; letter-spacing: -.04em; color: var(--green); }
+    .kpi-sub { font-size: .72rem; color: var(--muted); margin-top: .2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1.25rem; }
+    .chart-wrap { overflow-x: auto; }
+    svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .legend { display: flex; gap: 1.25rem; margin-top: .75rem; flex-wrap: wrap; }
+    .leg-item { display: flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--muted); }
+    .leg-dot { width: 10px; height: 10px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Capacity Utilization</div>
+  <p class="page-sub">How full your chairs are — by hour of day and day of week.</p>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Peak Hour</div><div class="kpi-val" id="k-peak">—</div><div class="kpi-sub">busiest time of day</div></div>
+    <div class="kpi"><div class="kpi-label">Busiest Day</div><div class="kpi-val" id="k-day" style="font-size:1.3rem">—</div><div class="kpi-sub">highest avg utilization</div></div>
+    <div class="kpi"><div class="kpi-label">Avg Utilization</div><div class="kpi-val" id="k-avg">—</div><div class="kpi-sub">across open hours</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Hourly Utilization (today's pattern)</div>
+    <div class="chart-wrap"><svg id="hour-chart" width="820" height="180"></svg></div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(52,211,153,.7)"></div>&lt;60% — comfortable</div>
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(251,191,36,.8)"></div>60–85% — busy</div>
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(248,113,113,.8)"></div>&gt;85% — near capacity</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Average Utilization by Day of Week</div>
+    <div class="chart-wrap"><svg id="day-chart" width="500" height="180"></svg></div>
+  </div>
+</div>
+<script>
+  function barColor(pct) {
+    if (pct >= 85) return 'rgba(248,113,113,.8)';
+    if (pct >= 60) return 'rgba(251,191,36,.8)';
+    return 'rgba(52,211,153,.7)';
+  }
+
+  function fmt12(h) {
+    if (h === 0) return '12a'; if (h < 12) return h+'a'; if (h === 12) return '12p'; return (h-12)+'p';
+  }
+
+  async function load() {
+    const r = await fetch('/api/capacity');
+    const d = await r.json();
+
+    document.getElementById('k-peak').textContent = fmt12(d.peak_hour) + (d.peak_hour < 12 ? 'm' : 'm');
+    document.getElementById('k-day').textContent = d.busiest_day;
+    document.getElementById('k-avg').textContent = d.avg_daily_utilization + '%';
+
+    // Hourly chart
+    const open = d.by_hour.filter(h => h.capacity > 0);
+    const W = 820, H = 180, pad = 30, bw = Math.floor((W - pad*2) / open.length) - 2;
+    const svg = document.getElementById('hour-chart');
+    const maxH = H - 40;
+    svg.innerHTML = open.map((h, i) => {
+      const x = pad + i * (bw + 2);
+      const barH = Math.max(2, Math.round(h.utilization_pct / 100 * maxH));
+      const y = H - 20 - barH;
+      const color = barColor(h.utilization_pct);
+      const label = i % 2 === 0 ? `<text x="${x + bw/2}" y="${H - 5}" text-anchor="middle" font-size="9" fill="#555">${fmt12(h.hour)}</text>` : '';
+      const tooltip = `${fmt12(h.hour)} — ${h.utilization_pct}% (${h.booked}/${h.capacity})`;
+      return `<g>
+        <rect x="${x}" y="${y}" width="${bw}" height="${barH}" rx="3" fill="${color}">
+          <title>${tooltip}</title>
+        </rect>
+        ${label}
+      </g>`;
+    }).join('');
+
+    // Day chart
+    const days = d.by_day;
+    const DW = 500, DH = 180, dpad = 40, dbw = Math.floor((DW - dpad*2) / days.length) - 6;
+    const dsvg = document.getElementById('day-chart');
+    const dmaxH = DH - 40;
+    dsvg.innerHTML = days.map((day, i) => {
+      const x = dpad + i * (dbw + 6);
+      const barH = Math.max(2, Math.round(day.avg_utilization / 100 * dmaxH));
+      const y = DH - 20 - barH;
+      const color = barColor(day.avg_utilization);
+      return `<g>
+        <rect x="${x}" y="${y}" width="${dbw}" height="${barH}" rx="3" fill="${color}">
+          <title>${day.day} — ${day.avg_utilization}%</title>
+        </rect>
+        <text x="${x + dbw/2}" y="${DH - 5}" text-anchor="middle" font-size="10" fill="#666">${day.day}</text>
+        <text x="${x + dbw/2}" y="${y - 4}" text-anchor="middle" font-size="9" fill="${color}">${day.avg_utilization}%</text>
+      </g>`;
+    }).join('');
+  }
+
+  load();
+</script>
+</body>
+</html>

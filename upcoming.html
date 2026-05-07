@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Upcoming — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .day-group { margin-bottom: 2rem; }
+    .day-label { font-size: .72rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .75rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
+    .appt-list { display: flex; flex-direction: column; gap: .5rem; }
+    .appt-row { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: .9rem 1.2rem; display: flex; align-items: center; gap: 1rem; transition: background .1s; }
+    .appt-row:hover { background: var(--surface2); }
+    .appt-time { font-size: .85rem; font-weight: 800; font-variant-numeric: tabular-nums; width: 56px; flex-shrink: 0; color: var(--accent); }
+    .appt-info { flex: 1; }
+    .appt-name { font-weight: 700; font-size: .88rem; }
+    .appt-meta { font-size: .75rem; color: var(--muted); margin-top: .15rem; }
+    .appt-actions { display: flex; gap: .5rem; flex-shrink: 0; }
+    .action-icon { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 1rem; cursor: pointer; transition: all .15s; text-decoration: none; }
+    .action-icon:hover { border-color: var(--accent); color: var(--accent); }
+    .status-chip { font-size: .68rem; font-weight: 800; padding: .15rem .5rem; border-radius: 99px; flex-shrink: 0; }
+    .s-confirmed { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .s-pending { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+    .s-canceled { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+    .spinner { text-align: center; padding: 3rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Upcoming Appointments</div>
+  <p class="page-sub">Next 10 scheduled appointments, grouped by day.</p>
+  <div id="content"><div class="spinner">Loading…</div></div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/bookings/upcoming');
+    const d = await r.json();
+    const bookings = d.bookings || [];
+
+    // Group by date
+    const groups = {};
+    bookings.forEach(b => {
+      const dt = new Date(b.start_time);
+      const key = dt.toDateString();
+      if (!groups[key]) groups[key] = { label: fmtDay(dt), items: [] };
+      groups[key].items.push(b);
+    });
+
+    document.getElementById('content').innerHTML = Object.values(groups).map(g => `
+      <div class="day-group">
+        <div class="day-label">${g.label}</div>
+        <div class="appt-list">${g.items.map(b => {
+          const dt = new Date(b.start_time);
+          const sc = b.status === 'confirmed' ? 's-confirmed' : b.status === 'pending' ? 's-pending' : 's-canceled';
+          return `<div class="appt-row">
+            <div class="appt-time">${fmtTime(dt)}</div>
+            <div class="appt-info">
+              <div class="appt-name">${esc(b.client_name)}</div>
+              <div class="appt-meta">${esc(b.service)} · ${esc(b.staff)} · ${esc(b.phone)}</div>
+            </div>
+            <span class="status-chip ${sc}">${b.status.charAt(0).toUpperCase()+b.status.slice(1)}</span>
+            <div class="appt-actions">
+              <a class="action-icon" href="tel:${b.phone.replace(/\D/g,'')}" title="Call">📞</a>
+              <a class="action-icon" href="sms:${b.phone.replace(/\D/g,'')}" title="SMS">💬</a>
+            </div>
+          </div>`;
+        }).join('')}</div>
+      </div>`).join('');
+  }
+
+  function fmtDay(dt) {
+    const now = new Date();
+    if (dt.toDateString() === now.toDateString()) return 'Today — ' + dt.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
+    const tom = new Date(now); tom.setDate(now.getDate()+1);
+    if (dt.toDateString() === tom.toDateString()) return 'Tomorrow — ' + dt.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
+    return dt.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
+  }
+  function fmtTime(dt) {
+    return dt.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

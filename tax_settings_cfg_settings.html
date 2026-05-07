@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tax Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number], input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    input[type=number] { width: 90px; }
+    input[type=text] { width: 160px; }
+    input:focus { border-color: var(--accent); }
+    .suffix { font-size: .78rem; color: var(--muted); margin-left: .35rem; }
+    .info-box { background: #1a1a0a; border: 1px solid #2a2a1a; border-radius: 10px; padding: .75rem 1rem; font-size: .75rem; color: var(--yellow); line-height: 1.55; margin-bottom: 1.25rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Tax Settings</div>
+  <p class="page-sub">Configure sales tax rates for services, products, and gift cards. Set your tax label, display preferences, and whether tax is included in displayed prices or added at checkout.</p>
+  <div class="card">
+    <div class="card-title">Tax Configuration</div>
+    <div class="info-box">Consult a tax professional to confirm rates and applicability for your jurisdiction. RingDesk applies tax based on your settings — compliance is your responsibility.</div>
+    <div class="row">
+      <div><div class="row-label">Enable Tax Collection</div><div class="row-sub">Apply tax to applicable transactions</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Tax Rate</div><div class="row-sub">Percentage applied to taxable items</div></div>
+      <div style="display:flex;align-items:center">
+        <input type="number" id="tax-rate" min="0" max="20" step="0.1">
+        <span class="suffix">%</span>
+      </div>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Tax Label</div><div class="row-sub">Name shown on receipts (e.g. "Sales Tax")</div></div>
+      <input type="text" id="tax-label" placeholder="Sales Tax">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Tax ID / EIN</div><div class="row-sub">Your business tax ID shown on invoices</div></div>
+      <input type="text" id="tax-id" placeholder="XX-XXXXXXX">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Applicability</div>
+    <div class="row">
+      <div><div class="row-label">Apply to Services</div><div class="row-sub">Tax added to service bookings</div></div>
+      <label class="toggle"><input type="checkbox" id="apply-services"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Apply to Products</div><div class="row-sub">Tax added to retail product sales</div></div>
+      <label class="toggle"><input type="checkbox" id="apply-products"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Apply to Gift Cards</div><div class="row-sub">Tax added at gift card purchase</div></div>
+      <label class="toggle"><input type="checkbox" id="apply-gift-cards"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Tax Included in Price</div><div class="row-sub">Displayed price includes tax (tax-inclusive)</div></div>
+      <label class="toggle"><input type="checkbox" id="included-in-price"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Round to Nearest Cent</div><div class="row-sub">Round tax amount to 2 decimal places</div></div>
+      <label class="toggle"><input type="checkbox" id="round-cent"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Show Tax on Receipt</div><div class="row-sub">Itemize tax separately on printed/emailed receipt</div></div>
+      <label class="toggle"><input type="checkbox" id="show-on-receipt"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/settings/tax-settings-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('tax-rate').value = d.tax_rate_pct || 8.5;
+    document.getElementById('tax-label').value = d.tax_label || 'Sales Tax';
+    document.getElementById('tax-id').value = d.tax_id || '';
+    document.getElementById('apply-services').checked = d.apply_to_services;
+    document.getElementById('apply-products').checked = d.apply_to_products;
+    document.getElementById('apply-gift-cards').checked = d.apply_to_gift_cards;
+    document.getElementById('included-in-price').checked = d.include_tax_in_price;
+    document.getElementById('round-cent').checked = d.round_to_nearest_cent;
+    document.getElementById('show-on-receipt').checked = d.display_tax_on_receipt;
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      tax_rate_pct: parseFloat(document.getElementById('tax-rate').value)||8.5,
+      tax_label: document.getElementById('tax-label').value,
+      tax_id: document.getElementById('tax-id').value,
+      apply_to_services: document.getElementById('apply-services').checked,
+      apply_to_products: document.getElementById('apply-products').checked,
+      apply_to_gift_cards: document.getElementById('apply-gift-cards').checked,
+      include_tax_in_price: document.getElementById('included-in-price').checked,
+      round_to_nearest_cent: document.getElementById('round-cent').checked,
+      display_tax_on_receipt: document.getElementById('show-on-receipt').checked
+    };
+    await fetch('/api/settings/tax-settings-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

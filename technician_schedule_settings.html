@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Technician Schedule — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    .staff-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1.1rem; margin-bottom: .6rem; }
+    .staff-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+    .staff-name { font-size: .9rem; font-weight: 800; }
+    .staff-hours { font-size: .72rem; color: var(--accent); font-weight: 700; }
+    .day-pills { display: flex; flex-wrap: wrap; gap: .3rem; }
+    .day-pill { font-size: .62rem; font-weight: 700; border-radius: 4px; padding: .12rem .42rem; }
+    .day-on { background: rgba(167,139,250,.15); color: var(--accent); border: 1px solid rgba(167,139,250,.3); }
+    .day-off { background: var(--surface); color: #444; border: 1px solid var(--border); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Technician Schedule</div>
+  <p class="page-sub">The AI only offers bookings with technicians who are scheduled to work. Keep schedules current to prevent phantom availability and client confusion.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-staff" style="color:var(--accent)">—</div><div class="stat-lbl">Staff Members</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-avail" style="color:var(--green)">—</div><div class="stat-lbl">Show Available Only</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Schedule Options</div>
+    <div class="row">
+      <div><div class="row-label">AI Respects Schedule</div></div>
+      <label class="toggle"><input type="checkbox" id="respects"><span class="slider"></span></label>
+    </div>
+    <div class="row" style="margin-bottom:0">
+      <div><div class="row-label">Show Available Technicians Only</div></div>
+      <label class="toggle"><input type="checkbox" id="avail-only"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Schedule Settings</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Staff Schedules</div>
+    <div id="staff-list"></div>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  const ALL_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/technician-schedule-cfg').then(r => r.json());
+    document.getElementById('h-staff').textContent = data.staff_count;
+    document.getElementById('h-avail').textContent = data.show_available_only ? 'On' : 'Off';
+    document.getElementById('respects').checked = data.ai_respects_schedule;
+    document.getElementById('avail-only').checked = data.show_available_only;
+    const sl = document.getElementById('staff-list');
+    (data.staff || []).forEach(s => {
+      const pills = ALL_DAYS.map(d => '<span class="day-pill ' + (s.days_on.includes(d) ? 'day-on' : 'day-off') + '">' + d + '</span>').join('');
+      sl.innerHTML += '<div class="staff-card"><div class="staff-top"><div class="staff-name">' + s.name + '</div><div class="staff-hours">' + s.start + ' – ' + s.end + '</div></div><div class="day-pills">' + pills + '</div></div>';
+    });
+  }
+  async function save() {
+    const payload = { ...data,
+      ai_respects_schedule: document.getElementById('respects').checked,
+      show_available_only: document.getElementById('avail-only').checked,
+    };
+    await fetch('/api/settings/technician-schedule-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

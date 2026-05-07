@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI vs Human Booking — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .legend { display: flex; gap: 1.5rem; margin-bottom: .75rem; font-size: .75rem; }
+    .leg-item { display: flex; align-items: center; gap: .4rem; font-weight: 700; }
+    .leg-box { width: 14px; height: 10px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI vs Human Booking</div>
+  <p class="page-sub">How many appointments are booked by the AI vs manually by staff — 8-week trend.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">AI Booking %</div>
+      <div class="hero-val" style="color:var(--accent)" id="h-ai-pct">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">AI This Week</div>
+      <div class="hero-val" style="color:var(--accent)" id="h-ai-cnt">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Staff This Week</div>
+      <div class="hero-val" style="color:var(--green)" id="h-human-cnt">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">8-Week Stacked Area Trend</div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-box" style="background:#a78bfa;opacity:.8"></div><span style="color:#a78bfa">AI Booked</span></div>
+      <div class="leg-item"><div class="leg-box" style="background:#34d399;opacity:.8"></div><span style="color:#34d399">Staff Booked</span></div>
+    </div>
+    <svg id="chart" width="100%" style="display:block;overflow:visible"></svg>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/ai-vs-human-booking');
+    const d = await r.json();
+    document.getElementById('h-ai-pct').textContent    = d.current_ai_pct + '%';
+    document.getElementById('h-ai-cnt').textContent    = d.this_week_ai;
+    document.getElementById('h-human-cnt').textContent = d.this_week_human;
+
+    const trend = d.trend || [];
+    const W=660, H=160, PL=6, PR=6, PT=12, PB=28, cW=W-PL-PR, cH=H-PT-PB, n=trend.length;
+    const maxStack = Math.max(...trend.map(t=>t.total), 1);
+    const xOf = i => PL + i * cW / (n-1);
+    const yOf = (v, base=0) => PT + cH - ((v+base)/maxStack)*cH;
+
+    const aiPts     = trend.map((t,i)=>`${xOf(i)},${yOf(t.ai)}`).join(' ');
+    const humanBase = trend.map((t,i)=>`${xOf(i)},${yOf(t.human, t.ai)}`).join(' ');
+    const baseline  = `${xOf(n-1)},${PT+cH} ${xOf(0)},${PT+cH}`;
+    const aiArea    = aiPts + ` ${xOf(n-1)},${PT+cH} ${xOf(0)},${PT+cH}`;
+    const humanArea = humanBase + ' ' + aiPts.split(' ').reverse().join(' ');
+    const labels    = trend.map((t,i)=>`<text x="${xOf(i)}" y="${H-6}" text-anchor="middle" font-size="9" fill="#444">${esc(t.week)}</text>`).join('');
+
+    const svg = document.getElementById('chart');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('height', H);
+    svg.innerHTML = `
+      <polygon points="${humanArea}" fill="#34d399" opacity=".25"/>
+      <polygon points="${aiArea}"    fill="#a78bfa" opacity=".25"/>
+      <polyline points="${aiPts}"    fill="none" stroke="#a78bfa" stroke-width="2" opacity=".9"/>
+      <polyline points="${humanBase}" fill="none" stroke="#34d399" stroke-width="2" opacity=".9"/>
+      ${labels}`;
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

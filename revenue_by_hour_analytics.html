@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue by Hour — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .hour-row { display: grid; grid-template-columns: 40px 1fr 90px; gap: .75rem; align-items: center; margin-bottom: .6rem; }
+    .hour-lbl { font-size: .78rem; color: var(--muted); }
+    .hour-bar-wrap { background: var(--surface2); border-radius: 4px; height: 9px; overflow: hidden; }
+    .hour-bar { height: 100%; border-radius: 4px; background: var(--accent); }
+    .hour-meta { text-align: right; }
+    .hour-rev { font-size: .78rem; font-weight: 800; color: var(--accent); }
+    .hour-appts { font-size: .62rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue by Hour</div>
+  <p class="page-sub">See which hours of the day generate the most revenue. Use this to optimize pricing, staff scheduling, and to identify slow hours worth targeting with same-day promotions.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-peak" style="color:var(--accent)">—</div><div class="stat-lbl">Peak Hour</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-avg" style="color:var(--green)">—</div><div class="stat-lbl">Avg Revenue/Hour</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-ops" style="color:var(--muted)">—</div><div class="stat-lbl">Operating Hours (30d)</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Hourly Revenue Breakdown</div>
+    <div id="hour-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/revenue-by-hour-breakdown-stats').then(r => r.json());
+    document.getElementById('h-peak').textContent = d.peak_revenue_hour;
+    document.getElementById('h-avg').textContent = '$' + d.avg_revenue_per_hour.toLocaleString();
+    document.getElementById('h-ops').textContent = d.total_operating_hours_30d + 'h';
+    const hl = document.getElementById('hour-list');
+    const maxRev = Math.max(...d.hours.map(h => h.revenue));
+    d.hours.forEach(h => {
+      const w = (h.revenue / maxRev * 100).toFixed(1);
+      hl.innerHTML += '<div class="hour-row"><div class="hour-lbl">' + h.hour + '</div><div class="hour-bar-wrap"><div class="hour-bar" style="width:' + w + '%"></div></div><div class="hour-meta"><div class="hour-rev">$' + h.revenue.toLocaleString() + '</div><div class="hour-appts">' + h.appts + ' appts</div></div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

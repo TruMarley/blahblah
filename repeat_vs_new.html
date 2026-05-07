@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Repeat vs New Clients — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .legend { display: flex; gap: 1.5rem; margin-bottom: .75rem; }
+    .leg-item { display: flex; align-items: center; gap: .4rem; font-size: .78rem; font-weight: 700; }
+    .leg-line { width: 24px; height: 3px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Repeat vs New Clients</div>
+  <p class="page-sub">8-week trend comparing first-time visitors vs returning clients.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">New This Week</div>
+      <div class="hero-val" style="color:var(--accent)" id="h-new">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Repeat This Week</div>
+      <div class="hero-val" style="color:var(--green)" id="h-repeat">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Repeat Rate</div>
+      <div class="hero-val" id="h-rate">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">8-Week Trend</div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-line" style="background:#a78bfa"></div><span style="color:#a78bfa">New Clients</span></div>
+      <div class="leg-item"><div class="leg-line" style="background:#34d399"></div><span style="color:#34d399">Repeat Clients</span></div>
+    </div>
+    <svg id="chart" width="100%" style="display:block;overflow:visible"></svg>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/repeat-vs-new');
+    const d = await r.json();
+    document.getElementById('h-new').textContent = d.this_week_new;
+    document.getElementById('h-repeat').textContent = d.this_week_repeat;
+    document.getElementById('h-rate').textContent = d.repeat_rate + '%';
+
+    const trend = d.trend || [];
+    const W=660, H=160, PL=8, PR=8, PT=12, PB=28, cW=W-PL-PR, cH=H-PT-PB, n=trend.length;
+    const allVals = trend.flatMap(t=>[t.new, t.repeat]);
+    const maxVal = Math.max(...allVals, 1);
+    const xOf = i => PL + i * cW / (n-1);
+    const yOf = v => PT + cH - (v / maxVal) * cH;
+
+    const newPts    = trend.map((t,i)=>`${xOf(i)},${yOf(t.new)}`).join(' ');
+    const repeatPts = trend.map((t,i)=>`${xOf(i)},${yOf(t.repeat)}`).join(' ');
+    const baseline  = `${xOf(n-1)},${PT+cH} ${xOf(0)},${PT+cH}`;
+    const labels    = trend.map((t,i)=>`<text x="${xOf(i)}" y="${H-6}" text-anchor="middle" font-size="9" fill="#444">${esc(t.week)}</text>`).join('');
+
+    const svg = document.getElementById('chart');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('height', H);
+    svg.innerHTML = `
+      <polygon points="${repeatPts} ${baseline}" fill="#34d399" opacity=".15"/>
+      <polygon points="${newPts} ${baseline}" fill="#a78bfa" opacity=".12"/>
+      <polyline points="${newPts}" fill="none" stroke="#a78bfa" stroke-width="2" opacity=".9"/>
+      <polyline points="${repeatPts}" fill="none" stroke="#34d399" stroke-width="2" opacity=".9"/>
+      ${labels}`;
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

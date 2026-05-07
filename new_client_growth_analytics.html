@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New Client Growth — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .hero-sub { font-size: .65rem; color: var(--muted); margin-top: .25rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .source-list { display: flex; flex-direction: column; gap: .65rem; }
+    .source-row { display: flex; align-items: center; gap: .75rem; }
+    .source-name { font-size: .8rem; font-weight: 600; width: 130px; flex-shrink: 0; }
+    .source-bar-wrap { flex: 1; background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+    .source-bar { height: 100%; border-radius: 4px; background: var(--accent); }
+    .source-pct { font-size: .75rem; color: var(--muted); width: 34px; text-align: right; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">New Client Growth</div>
+  <p class="page-sub">Track how many first-time clients you're bringing in each month, your best-performing acquisition channel, and overall growth trajectory.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total New Clients</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+      <div class="hero-sub">last 12 months</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg / Month</div>
+      <div class="hero-val" id="h-avg" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Best Month</div>
+      <div class="hero-val" id="h-best" style="color:var(--yellow);font-size:1.1rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Growth Rate</div>
+      <div class="hero-val" id="h-growth" style="color:var(--green)">—</div>
+      <div class="hero-sub">vs. prior period</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">New Clients by Month</div>
+    <svg id="chart" viewBox="0 0 680 180" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+  <div class="card">
+    <div class="card-title">Acquisition Source Breakdown</div>
+    <div class="source-list" id="sources"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/new-client-growth').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_new_clients || '—';
+    document.getElementById('h-avg').textContent = d.avg_monthly_new_clients || '—';
+    document.getElementById('h-best').textContent = d.best_month || '—';
+    document.getElementById('h-growth').textContent = d.growth_rate_pct ? d.growth_rate_pct+'%' : '—';
+
+    const months = d.months || [], counts = d.monthly_counts || [];
+    if (months.length) {
+      const W=680,H=180,pL=32,pR=16,pT=20,pB=32,n=months.length;
+      const cW=W-pL-pR, cH=H-pT-pB;
+      const bW=Math.floor(cW/n)-4;
+      const mx=Math.max(...counts,1);
+      let bars='',lbls='';
+      counts.forEach((v,i)=>{
+        const x=pL+i*(cW/n)+(cW/n-bW)/2, bH=(v/mx)*cH, y=pT+cH-bH;
+        const alpha=0.3+0.7*(v/mx);
+        bars+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bW}" height="${bH.toFixed(1)}" fill="rgba(52,211,153,${alpha.toFixed(2)})" rx="3"/>`;
+        bars+=`<text x="${(x+bW/2).toFixed(1)}" y="${(y-5).toFixed(1)}" text-anchor="middle" fill="var(--green)" font-size="8" font-weight="700">${v}</text>`;
+        lbls+=`<text x="${(x+bW/2).toFixed(1)}" y="${H-pB+14}" text-anchor="middle" fill="#555" font-size="8">${esc(months[i])}</text>`;
+      });
+      document.getElementById('chart').innerHTML = bars+lbls;
+    }
+
+    const sources = d.acquisition_sources || [];
+    const total = sources.reduce((a,s)=>a+s.count,0)||1;
+    const el = document.getElementById('sources');
+    sources.forEach(s => {
+      const pct = Math.round(s.count/total*100);
+      el.innerHTML += `<div class="source-row"><div class="source-name">${esc(s.source)}</div><div class="source-bar-wrap"><div class="source-bar" style="width:${pct}%"></div></div><div class="source-pct">${pct}%</div></div>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

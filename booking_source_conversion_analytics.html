@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Source Conversion — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .src-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .5rem; }
+    .src-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .55rem; }
+    .src-name { font-size: .85rem; font-weight: 700; }
+    .src-conv { font-size: .9rem; font-weight: 900; }
+    .src-bar { background: var(--surface); border-radius: 4px; height: 6px; overflow: hidden; }
+    .src-fill { height: 100%; border-radius: 4px; }
+    .src-meta { display: flex; gap: 1rem; margin-top: .4rem; font-size: .68rem; color: var(--muted); }
+    .best-badge { font-size: .6rem; font-weight: 700; background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); border-radius: 4px; padding: .1rem .35rem; margin-left: .4rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Booking Source Conversion</div>
+  <p class="page-sub">Compare how well each booking channel converts leads into confirmed appointments. High-volume low-conversion sources are leaky funnels worth fixing.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Total Bookings (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-best" style="color:var(--green)">—</div><div class="stat-lbl">Best Converting Source</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-best-pct" style="color:var(--green)">—</div><div class="stat-lbl">Best Conv Rate</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Conversion by Source</div>
+    <div id="src-list"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['var(--accent)','var(--green)','var(--yellow)','#60a5fa','var(--red)'];
+  async function load() {
+    const d = await fetch('/api/analytics/booking-source-conversion-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_bookings_30d;
+    document.getElementById('h-best').textContent = d.best_converting_source;
+    document.getElementById('h-best-pct').textContent = d.best_conv_pct.toFixed(1) + '%';
+    const sl = document.getElementById('src-list');
+    d.sources.forEach((s, i) => {
+      const col = COLORS[i % COLORS.length];
+      const best = s.source === d.best_converting_source ? '<span class="best-badge">Best</span>' : '';
+      sl.innerHTML += '<div class="src-card"><div class="src-top"><div class="src-name">' + s.source + best + '</div><div class="src-conv" style="color:' + col + '">' + s.conv_pct.toFixed(1) + '%</div></div><div class="src-bar"><div class="src-fill" style="width:' + s.conv_pct + '%;background:' + col + '"></div></div><div class="src-meta"><span>' + s.leads + ' leads</span><span>' + s.bookings + ' bookings</span></div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

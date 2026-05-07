@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Churn Prediction — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .risk-table { width: 100%; border-collapse: collapse; }
+    .risk-table th { font-size: .68rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .5rem .75rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .risk-table td { padding: .75rem; border-bottom: 1px solid rgba(30,30,30,.5); font-size: .85rem; }
+    .risk-table tr:last-child td { border-bottom: none; }
+    .client-name { font-weight: 700; }
+    .last-service { color: var(--muted); font-size: .78rem; }
+    .days-badge { font-size: .72rem; font-weight: 700; color: var(--muted); }
+    .risk-badge { font-size: .72rem; font-weight: 800; padding: .18rem .55rem; border-radius: 6px; white-space: nowrap; }
+    .risk-high { background: rgba(248,113,113,.15); color: var(--red); }
+    .risk-med { background: rgba(251,191,36,.1); color: var(--yellow); }
+    .risk-low { background: rgba(52,211,153,.1); color: var(--green); }
+    .action-btn { font-size: .7rem; font-weight: 800; padding: .2rem .55rem; border-radius: 6px; border: 1px solid rgba(167,139,250,.3); background: rgba(167,139,250,.08); color: var(--accent); cursor: pointer; font-family: inherit; }
+    .action-btn:hover { background: rgba(167,139,250,.18); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Churn Prediction</div>
+  <p class="page-sub">AI-predicted churn risk for clients who haven't returned recently — reach out before you lose them.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">At-Risk Clients</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">High Risk (70%+)</div>
+      <div class="hero-val" id="h-high" style="color:var(--red)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">At-Risk Client List — Sorted by Churn Probability</div>
+    <table class="risk-table" id="risk-table">
+      <thead>
+        <tr>
+          <th>Client</th>
+          <th>Last Service</th>
+          <th>Days Since Visit</th>
+          <th>Churn Risk</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="risk-body"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/client-churn-prediction');
+    const d = await r.json();
+    document.getElementById('h-total').textContent = (d.clients || []).length;
+    document.getElementById('h-high').textContent = d.high_risk_count || 0;
+
+    document.getElementById('risk-body').innerHTML = (d.clients || []).map(c => {
+      const p = c.predicted_churn_probability;
+      const cls = p >= 70 ? 'risk-high' : p >= 50 ? 'risk-med' : 'risk-low';
+      return `<tr>
+        <td><div class="client-name">${esc(c.name)}</div></td>
+        <td><span class="last-service">${esc(c.last_service)}</span></td>
+        <td><span class="days-badge">${c.days_since_last_visit}d ago</span></td>
+        <td><span class="risk-badge ${cls}">${p}%</span></td>
+        <td><button class="action-btn">Send Win-Back</button></td>
+      </tr>`;
+    }).join('');
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

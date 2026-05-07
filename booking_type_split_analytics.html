@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Type Split — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .split-bar { display: flex; border-radius: 8px; overflow: hidden; height: 32px; margin-bottom: 1.25rem; }
+    .split-seg { display: flex; align-items: center; justify-content: center; font-size: .68rem; font-weight: 800; transition: opacity .2s; }
+    .type-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .7rem; }
+    .type-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .type-label { font-size: .82rem; font-weight: 600; flex: 1; }
+    .type-count { font-size: .75rem; color: var(--muted); width: 55px; text-align: right; }
+    .type-pct { font-size: .82rem; font-weight: 800; width: 42px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Booking Type Split</div>
+  <p class="page-sub">Break down bookings by client type — returning clients, new clients, walk-ins, and group bookings. The mix reveals acquisition vs. retention health and informs where to focus growth efforts.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Total Bookings (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-top" style="color:var(--green)">—</div><div class="stat-lbl">Largest Segment</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Booking Mix</div>
+    <div class="split-bar" id="split-bar"></div>
+    <div id="type-list"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['var(--green)','var(--accent)','var(--yellow)','#60a5fa'];
+  async function load() {
+    const d = await fetch('/api/analytics/booking-type-split-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_bookings_30d;
+    const top = d.types.reduce((a,b) => b.pct > a.pct ? b : a, d.types[0]);
+    document.getElementById('h-top').textContent = top.label;
+    const bar = document.getElementById('split-bar');
+    d.types.forEach((t, i) => {
+      const txt = t.pct >= 12 ? t.pct.toFixed(0) + '%' : '';
+      bar.innerHTML += '<div class="split-seg" style="width:' + t.pct + '%;background:' + COLORS[i] + ';color:#000">' + txt + '</div>';
+    });
+    const tl = document.getElementById('type-list');
+    d.types.forEach((t, i) => {
+      tl.innerHTML += '<div class="type-row"><div class="type-dot" style="background:' + COLORS[i] + '"></div><div class="type-label">' + t.label + '</div><div class="type-count">' + t.count + ' appts</div><div class="type-pct" style="color:' + COLORS[i] + '">' + t.pct.toFixed(1) + '%</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

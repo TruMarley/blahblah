@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Appointment Type Split — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .two-col { display: grid; grid-template-columns: 220px 1fr; gap: 1.25rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .donut-wrap { display: flex; justify-content: center; align-items: center; flex-direction: column; gap: .75rem; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .5rem .85rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th:not(:first-child) { text-align: center; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .65rem .85rem; font-size: .82rem; text-align: center; }
+    tbody td:first-child { text-align: left; font-weight: 700; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Appointment Type Split</div>
+  <p class="page-sub">How appointments are distributed across booking types — new, recurring, walk-in, and rescheduled.</p>
+
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Appointments</div>
+      <div class="hero-val" id="h-total">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total Revenue</div>
+      <div class="hero-val" id="h-rev" style="color:var(--green)">—</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Type Split</div>
+      <div class="donut-wrap">
+        <svg id="donut" width="160" height="160" viewBox="0 0 160 160">
+          <circle cx="80" cy="80" r="60" fill="none" stroke="#1e1e1e" stroke-width="26"/>
+        </svg>
+        <div id="legend" style="display:flex;flex-direction:column;gap:.4rem"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Revenue by Type</div>
+      <table>
+        <thead><tr><th>Type</th><th>Count</th><th>Share</th><th>Revenue</th></tr></thead>
+        <tbody id="type-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+  const COLORS = ['#a78bfa','#34d399','#60a5fa','#fbbf24'];
+
+  async function load() {
+    const r = await fetch('/api/analytics/appointment-type-split');
+    const d = await r.json();
+    document.getElementById('h-total').textContent = d.total_appointments;
+    document.getElementById('h-rev').textContent = '$' + Number(d.total_revenue).toLocaleString();
+
+    const types = d.types || [];
+    const total = types.reduce((s, t) => s + t.count, 0);
+    const circ = 2 * Math.PI * 60;
+    const svg = document.getElementById('donut');
+    let offset = circ * 0.25;
+
+    types.forEach((t, i) => {
+      const arc = circ * (t.count / total);
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx','80'); c.setAttribute('cy','80'); c.setAttribute('r','60');
+      c.setAttribute('fill','none'); c.setAttribute('stroke', COLORS[i % COLORS.length]);
+      c.setAttribute('stroke-width','26');
+      c.setAttribute('stroke-dasharray', `${arc} ${circ - arc}`);
+      c.setAttribute('stroke-dashoffset', -offset);
+      svg.appendChild(c);
+      offset -= arc;
+    });
+
+    document.getElementById('legend').innerHTML = types.map((t,i) =>
+      `<div style="display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--muted)">
+        <span style="width:9px;height:9px;border-radius:50%;background:${COLORS[i%COLORS.length]};flex-shrink:0;display:inline-block"></span>
+        ${esc(t.type)}
+      </div>`).join('');
+
+    document.getElementById('type-tbody').innerHTML = types.map((t,i) => `
+      <tr>
+        <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${COLORS[i%COLORS.length]};margin-right:.35rem"></span>${esc(t.type)}</td>
+        <td>${t.count}</td>
+        <td>${t.pct}%</td>
+        <td style="font-weight:800;color:${COLORS[i%COLORS.length]}">$${Number(t.revenue).toLocaleString()}</td>
+      </tr>`).join('');
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

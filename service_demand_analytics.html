@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Demand — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .svc-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: .9rem 1.1rem; margin-bottom: .55rem; border-left: 4px solid transparent; }
+    .svc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .55rem; }
+    .svc-name { font-size: .9rem; font-weight: 800; flex: 1; }
+    .svc-badges { display: flex; gap: .35rem; }
+    .badge { font-size: .62rem; font-weight: 700; padding: .1rem .4rem; border-radius: 5px; }
+    .badge-top-book { background: rgba(167,139,250,.12); color: var(--accent); border: 1px solid rgba(167,139,250,.25); }
+    .badge-top-rev { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .badge-fastest { background: rgba(251,191,36,.12); color: var(--yellow); border: 1px solid rgba(251,191,36,.25); }
+    .svc-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; }
+    .svc-metric { font-size: .7rem; }
+    .svc-metric-val { font-weight: 800; font-size: .85rem; }
+    .svc-metric-lbl { color: var(--muted); font-size: .62rem; margin-top: .1rem; }
+    .growth-pos { color: var(--green); }
+    .growth-neg { color: var(--red); }
+    .monthly-bar-row { display: flex; align-items: flex-end; gap: 3px; height: 80px; margin-top: .5rem; }
+    .monthly-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .monthly-bar { width: 100%; border-radius: 3px 3px 0 0; background: var(--accent); opacity: .65; min-height: 2px; }
+    .monthly-bar-lbl { font-size: .55rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Service Demand Analytics</div>
+  <p class="page-sub">Track which services drive bookings and revenue, identify your fastest-growing offerings, and optimize your menu based on client demand patterns.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-total" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Total Booked (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-top-bookings" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Top by Bookings</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-top-revenue" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Top by Revenue</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-fastest" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Fastest Growing</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Services by Demand</div>
+    <div id="svc-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Volume Trend</div>
+    <div class="monthly-bar-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/service-demand-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = data.total_services_booked_30d;
+    document.getElementById('h-top-bookings').textContent = data.top_by_bookings;
+    document.getElementById('h-top-revenue').textContent = data.top_by_revenue;
+    document.getElementById('h-fastest').textContent = data.fastest_growing;
+
+    const list = document.getElementById('svc-list');
+    (data.services || []).forEach(s => {
+      const isTopBook = s.name === data.top_by_bookings;
+      const isTopRev = s.name === data.top_by_revenue;
+      const isFastest = s.name === data.fastest_growing;
+      const growthClass = s.growth_pct >= 0 ? 'growth-pos' : 'growth-neg';
+      const growthSign = s.growth_pct >= 0 ? '+' : '';
+      const badges = [
+        isTopBook ? '<span class="badge badge-top-book">Top Bookings</span>' : '',
+        isTopRev ? '<span class="badge badge-top-rev">Top Revenue</span>' : '',
+        isFastest ? '<span class="badge badge-fastest">Fastest Growing</span>' : '',
+      ].join('');
+      const row = document.createElement('div');
+      row.className = 'svc-row';
+      row.style.borderLeftColor = s.color;
+      row.innerHTML = `
+        <div class="svc-top">
+          <div class="svc-name">${s.name}</div>
+          <div class="svc-badges">${badges}</div>
+        </div>
+        <div class="svc-metrics">
+          <div class="svc-metric">
+            <div class="svc-metric-val" style="color:${s.color}">${s.bookings_30d}</div>
+            <div class="svc-metric-lbl">Bookings (30d)</div>
+          </div>
+          <div class="svc-metric">
+            <div class="svc-metric-val">$${s.revenue_30d.toFixed(0)}</div>
+            <div class="svc-metric-lbl">Revenue (30d)</div>
+          </div>
+          <div class="svc-metric">
+            <div class="svc-metric-val">$${s.avg_ticket.toFixed(0)}</div>
+            <div class="svc-metric-lbl">Avg Ticket</div>
+          </div>
+          <div class="svc-metric">
+            <div class="svc-metric-val ${growthClass}">${growthSign}${s.growth_pct.toFixed(1)}%</div>
+            <div class="svc-metric-lbl">Growth</div>
+          </div>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    // monthly bars
+    const monthly = data.monthly || [];
+    const maxRev = Math.max(...monthly.map(m => m.total_revenue), 1);
+    const barsEl = document.getElementById('monthly-bars');
+    monthly.forEach(m => {
+      const h = Math.max((m.total_revenue / maxRev * 72).toFixed(0), 2);
+      barsEl.innerHTML += `
+        <div class="monthly-bar-col">
+          <div class="monthly-bar" style="height:${h}px" title="${m.month}: $${m.total_revenue.toFixed(0)}"></div>
+          <div class="monthly-bar-lbl">${m.month.slice(0,3)}</div>
+        </div>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

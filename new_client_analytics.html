@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New Clients — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { display: flex; align-items: flex-end; gap: .5rem; height: 80px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .18rem; }
+    .bar-new { border-radius: 3px 3px 0 0; background: var(--accent); opacity: .85; width: 100%; }
+    .bar-ret { border-radius: 3px 3px 0 0; background: var(--green); opacity: .4; width: 100%; }
+    .bar-lbl { font-size: .6rem; color: var(--muted); }
+    .src-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; }
+    .src-label { font-size: .78rem; width: 110px; flex-shrink: 0; }
+    .src-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 9px; overflow: hidden; }
+    .src-fill { height: 100%; border-radius: 4px; }
+    .src-pct { font-size: .73rem; font-weight: 700; width: 40px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">New Clients</div>
+  <p class="page-sub">Track how many new clients your AI is bringing in each month, where they come from, and how many convert into returning regulars.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-new" style="color:var(--accent)">—</div><div class="stat-lbl">New Clients (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-prev" style="color:var(--muted)">—</div><div class="stat-lbl">Prior 30d</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-change" style="color:var(--green)">—</div><div class="stat-lbl">MoM Change</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-conv" style="color:var(--yellow)">—</div><div class="stat-lbl">Return Conversion</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">New vs Returning (6 months)</div>
+    <div style="display:flex;gap:.6rem;margin-bottom:.75rem">
+      <span style="font-size:.68rem;color:var(--accent)">▪ New</span>
+      <span style="font-size:.68rem;color:var(--green)">▪ Returning</span>
+    </div>
+    <div class="chart-wrap" id="chart"></div>
+    <div class="chart-wrap" id="chart-lbls" style="height:auto;margin-top:.2rem"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">New Client Acquisition Sources</div>
+    <div id="src-list"></div>
+  </div>
+</div>
+<script>
+  const SRC_COLORS = ['var(--accent)','#60a5fa','var(--green)','var(--yellow)','var(--muted)'];
+  async function load() {
+    const d = await fetch('/api/analytics/new-client-stats').then(r => r.json());
+    document.getElementById('h-new').textContent = d.new_clients_30d;
+    document.getElementById('h-prev').textContent = d.new_clients_prev_30d;
+    const ch = d.mom_change_pct;
+    document.getElementById('h-change').textContent = (ch >= 0 ? '+' : '') + ch.toFixed(1) + '%';
+    document.getElementById('h-change').style.color = ch >= 0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('h-conv').textContent = d.conversion_to_return_pct.toFixed(1) + '%';
+    const maxV = Math.max(...d.monthly.map(m => m.new_clients + m.returning_clients));
+    const chart = document.getElementById('chart');
+    const lbls = document.getElementById('chart-lbls');
+    d.monthly.forEach(m => {
+      const hn = Math.max(2, (m.new_clients / maxV * 74)).toFixed(0);
+      const hr = Math.max(2, (m.returning_clients / maxV * 74)).toFixed(0);
+      chart.innerHTML += '<div class="bar-col"><div class="bar-new" style="height:' + hn + 'px"></div><div class="bar-ret" style="height:' + hr + 'px"></div></div>';
+      lbls.innerHTML += '<div class="bar-col"><div class="bar-lbl">' + m.month + '</div></div>';
+    });
+    const sl = document.getElementById('src-list');
+    const maxP = Math.max(...d.acquisition_sources.map(s => s.pct));
+    d.acquisition_sources.forEach((s, i) => {
+      const w = (s.pct / maxP * 100).toFixed(1);
+      sl.innerHTML += '<div class="src-row"><div class="src-label">' + s.source + '</div><div class="src-track"><div class="src-fill" style="width:' + w + '%;background:' + SRC_COLORS[i] + '"></div></div><div class="src-pct" style="color:' + SRC_COLORS[i] + '">' + s.pct.toFixed(1) + '%</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

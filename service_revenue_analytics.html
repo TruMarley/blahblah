@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Revenue — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .heroes { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem; }
+    .hero-label { font-size: .67rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-value { font-size: 1.7rem; font-weight: 900; letter-spacing: -.03em; }
+    .hero-sub { font-size: .72rem; color: var(--muted); margin-top: .2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .service-row { display: flex; align-items: center; gap: .85rem; padding: .7rem 0; border-bottom: 1px solid var(--border); }
+    .service-row:last-child { border-bottom: none; }
+    .service-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .service-name { font-size: .85rem; font-weight: 600; flex: 1; }
+    .service-bar-wrap { flex: 2; }
+    .service-bar-bg { background: var(--surface2); border-radius: 5px; height: 7px; overflow: hidden; }
+    .service-bar-fill { height: 100%; border-radius: 5px; }
+    .service-stats { display: flex; gap: 1rem; flex-shrink: 0; text-align: right; }
+    .s-stat-val { font-size: .82rem; font-weight: 700; }
+    .s-stat-lbl { font-size: .63rem; color: var(--muted); }
+    .growth-pos { color: var(--green); font-size: .72rem; font-weight: 700; }
+    .growth-neg { color: var(--red); font-size: .72rem; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    th { text-align: left; font-size: .67rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding-bottom: .6rem; border-bottom: 1px solid var(--border); }
+    td { padding: .5rem 0; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    td.num { font-weight: 700; }
+    td.green { color: var(--green); }
+    td.red { color: var(--red); }
+    @media (max-width: 600px) { .heroes { grid-template-columns: 1fr 1fr; } .service-stats { display: none; } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Service Revenue</div>
+  <p class="page-sub">Revenue breakdown by service type over the last 30 days, with month-over-month growth comparison.</p>
+
+  <div class="heroes">
+    <div class="hero">
+      <div class="hero-label">Total Revenue (30d)</div>
+      <div class="hero-value" id="h-total" style="color:var(--green)">—</div>
+      <div class="hero-sub">all services</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Top Service</div>
+      <div class="hero-value" id="h-top" style="font-size:1.2rem;color:var(--accent)">—</div>
+      <div class="hero-sub" id="h-top-rev">—</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Avg Ticket</div>
+      <div class="hero-value" id="h-ticket">—</div>
+      <div class="hero-sub">all services</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Revenue by Service</div>
+    <div id="service-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Service Detail Table</div>
+    <table>
+      <thead><tr><th>Service</th><th>Revenue</th><th>Bookings</th><th>Avg Ticket</th><th>vs Prior</th></tr></thead>
+      <tbody id="service-table"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/service-revenue-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = '$' + d.total_revenue_30d.toLocaleString(undefined, {maximumFractionDigits:0});
+    document.getElementById('h-top').textContent = d.top_service;
+    document.getElementById('h-top-rev').textContent = '$' + d.top_service_revenue.toLocaleString(undefined, {maximumFractionDigits:0}) + ' revenue';
+    document.getElementById('h-ticket').textContent = '$' + d.avg_ticket_all_services.toFixed(2);
+
+    const maxRev = Math.max(...d.services.map(s => s.revenue_30d));
+    const list = document.getElementById('service-list');
+    d.services.sort((a, b) => b.revenue_30d - a.revenue_30d).forEach(s => {
+      const pct = maxRev > 0 ? (s.revenue_30d / maxRev * 100) : 0;
+      const row = document.createElement('div');
+      row.className = 'service-row';
+      const growthClass = s.growth_pct >= 0 ? 'growth-pos' : 'growth-neg';
+      const growthSign = s.growth_pct >= 0 ? '+' : '';
+      row.innerHTML = `
+        <div class="service-dot" style="background:${s.color}"></div>
+        <div class="service-name">${s.service}</div>
+        <div class="service-bar-wrap">
+          <div class="service-bar-bg"><div class="service-bar-fill" style="width:${pct}%;background:${s.color}"></div></div>
+        </div>
+        <div class="service-stats">
+          <div><div class="s-stat-val">$${s.revenue_30d.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div class="s-stat-lbl">revenue</div></div>
+          <div><div class="s-stat-val ${growthClass}">${growthSign}${s.growth_pct}%</div><div class="s-stat-lbl">vs prior</div></div>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    const tbody = document.getElementById('service-table');
+    d.services.forEach(s => {
+      const growthClass = s.growth_pct >= 0 ? 'green' : 'red';
+      const growthSign = s.growth_pct >= 0 ? '+' : '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${s.color};margin-right:.5rem"></span>${s.service}</td>
+        <td class="num">$${s.revenue_30d.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+        <td class="num">${s.bookings_30d}</td>
+        <td class="num">$${s.avg_ticket.toFixed(2)}</td>
+        <td class="num ${growthClass}">${growthSign}${s.growth_pct}%</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+  load();
+</script>
+</body>
+</html>

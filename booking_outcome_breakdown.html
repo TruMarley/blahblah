@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Outcome Breakdown — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .donut-wrap { display: flex; gap: 2rem; align-items: center; }
+    svg.donut { flex-shrink: 0; }
+    .outcome-list { flex: 1; }
+    .outcome-row { display: flex; align-items: center; gap: .65rem; padding: .5rem 0; border-bottom: 1px solid var(--border); }
+    .outcome-row:last-child { border-bottom: none; }
+    .outcome-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .outcome-label { font-size: .85rem; font-weight: 700; flex: 1; }
+    .outcome-pct { font-size: .9rem; font-weight: 900; }
+    .outcome-count { font-size: .7rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Booking Outcome Breakdown</div>
+  <p class="page-sub">How calls resolve — new bookings and rebooks are revenue; watch cancellations and modifications for friction signals.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Outcomes</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">New + Rebook %</div>
+      <div class="hero-val" id="h-positive" style="color:var(--green)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Outcome Distribution</div>
+    <div class="donut-wrap">
+      <svg class="donut" id="donut" viewBox="0 0 140 140" width="140" height="140"></svg>
+      <div class="outcome-list" id="outcome-list"></div>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/booking-outcome-breakdown');
+    const d = await r.json();
+    const outcomes = d.outcomes || [];
+    document.getElementById('h-total').textContent = d.total || '—';
+    const posKeys = ['new','rebook'];
+    const posPct = outcomes.filter(o=>posKeys.includes(o.key)).reduce((s,o)=>s+o.pct,0).toFixed(0);
+    document.getElementById('h-positive').textContent = posPct + '%';
+
+    // donut chart
+    const svg = document.getElementById('donut');
+    const cx=70, cy=70, r=52, r2=34;
+    let startAngle = -Math.PI/2;
+    outcomes.forEach(o => {
+      const angle = (o.pct/100) * Math.PI * 2;
+      const endAngle = startAngle + angle;
+      const x1=cx+r*Math.cos(startAngle), y1=cy+r*Math.sin(startAngle);
+      const x2=cx+r*Math.cos(endAngle), y2=cy+r*Math.sin(endAngle);
+      const x3=cx+r2*Math.cos(endAngle), y3=cy+r2*Math.sin(endAngle);
+      const x4=cx+r2*Math.cos(startAngle), y4=cy+r2*Math.sin(startAngle);
+      const large = angle > Math.PI ? 1 : 0;
+      svg.innerHTML += `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} L ${x3} ${y3} A ${r2} ${r2} 0 ${large} 0 ${x4} ${y4} Z" fill="${o.color}" opacity="0.9"/>`;
+      startAngle = endAngle;
+    });
+    svg.innerHTML += `<circle cx="${cx}" cy="${cy}" r="${r2-1}" fill="var(--surface)"/>`;
+
+    // list
+    const list = document.getElementById('outcome-list');
+    outcomes.forEach(o => {
+      list.innerHTML += `
+        <div class="outcome-row">
+          <div class="outcome-swatch" style="background:${o.color}"></div>
+          <div class="outcome-label">${esc(o.label)}</div>
+          <div style="text-align:right">
+            <div class="outcome-pct" style="color:${o.color}">${o.pct}%</div>
+            <div class="outcome-count">${o.count}</div>
+          </div>
+        </div>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

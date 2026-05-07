@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Campaigns — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-top: .25rem; }
+    .new-btn { background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: .55rem 1.1rem; font-size: .83rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+    /* New campaign form */
+    .new-form { background: var(--surface); border: 1px solid rgba(167,139,250,.2); border-radius: 12px; padding: 1.25rem 1.4rem; margin-bottom: 2rem; display: none; }
+    .new-form.open { display: block; }
+    .form-row { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: .85rem; align-items: flex-end; }
+    .fld { flex: 1; min-width: 160px; }
+    .fld-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .35rem; }
+    .fld-input, .fld-select { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-size: .84rem; padding: .55rem .9rem; border-radius: 8px; font-family: inherit; outline: none; }
+    .fld-input:focus, .fld-select:focus { border-color: var(--accent); }
+    .form-footer { display: flex; justify-content: flex-end; gap: .6rem; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: .45rem .9rem; font-size: .8rem; cursor: pointer; font-family: inherit; }
+    .btn-create { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: .45rem 1rem; font-size: .8rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+    /* Campaign cards */
+    .camps { display: flex; flex-direction: column; gap: .85rem; }
+    .camp-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.2rem 1.4rem; display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
+    .camp-icon { font-size: 1.8rem; flex-shrink: 0; }
+    .camp-info { flex: 1; min-width: 160px; }
+    .camp-name { font-size: .95rem; font-weight: 800; margin-bottom: .2rem; }
+    .camp-trigger { font-size: .75rem; color: var(--muted); }
+    .camp-stats { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+    .stat-item { text-align: center; }
+    .stat-val { font-size: .95rem; font-weight: 800; }
+    .stat-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+    .camp-actions { display: flex; align-items: center; gap: .75rem; flex-shrink: 0; }
+    .status-chip { font-size: .68rem; font-weight: 800; padding: .18rem .55rem; border-radius: 99px; }
+    .s-active { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .s-paused { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+    .s-draft  { background: rgba(100,100,100,.1); color: var(--muted); border: 1px solid var(--border); }
+    .toggle { position: relative; width: 38px; height: 22px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #333; border-radius: 99px; cursor: pointer; transition: background .2s; }
+    .slider::before { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s; }
+    .toggle input:checked + .slider { background: var(--accent); }
+    .toggle input:checked + .slider::before { transform: translateX(16px); }
+    .last-run { font-size: .72rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="header-row">
+    <div>
+      <div class="page-title">SMS Campaigns</div>
+      <div class="page-sub">Automated messages triggered by client behavior.</div>
+    </div>
+    <button class="new-btn" onclick="toggleForm()">+ New Campaign</button>
+  </div>
+
+  <div class="new-form" id="new-form">
+    <div class="form-row">
+      <div class="fld">
+        <div class="fld-label">Campaign Name</div>
+        <input class="fld-input" id="f-name" placeholder="e.g. Birthday Discount">
+      </div>
+      <div class="fld">
+        <div class="fld-label">Trigger</div>
+        <select class="fld-select" id="f-trigger">
+          <option value="post-visit">✅ Post-Visit</option>
+          <option value="lapsed">💤 Lapsed Client</option>
+          <option value="birthday">🎂 Birthday</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-footer">
+      <button class="btn-ghost" onclick="toggleForm()">Cancel</button>
+      <button class="btn-create" onclick="createCampaign()">Create Campaign</button>
+    </div>
+  </div>
+
+  <div class="camps" id="camps"></div>
+</div>
+<script>
+  let camps = [];
+  const ICONS = {'post-visit':'✅','lapsed':'💤','birthday':'🎂'};
+  const TRIGGERS = {'post-visit':'Triggered after each completed visit','lapsed':'Triggered when client hasn\'t visited in 60 days','birthday':'Triggered on client birthday'};
+
+  async function load() {
+    const r = await fetch('/api/campaigns');
+    const d = await r.json();
+    camps = d.campaigns || [];
+    render();
+  }
+
+  function render() {
+    document.getElementById('camps').innerHTML = camps.map(c => {
+      const sc = c.status === 'active' ? 's-active' : c.status === 'paused' ? 's-paused' : 's-draft';
+      const canToggle = c.status !== 'draft';
+      return `<div class="camp-card">
+        <div class="camp-icon">${ICONS[c.trigger]||'📢'}</div>
+        <div class="camp-info">
+          <div class="camp-name">${esc(c.name)}</div>
+          <div class="camp-trigger">${TRIGGERS[c.trigger]||c.trigger}</div>
+        </div>
+        <div class="camp-stats">
+          <div class="stat-item"><div class="stat-val">${c.sent_count.toLocaleString()}</div><div class="stat-label">Sent</div></div>
+          <div class="stat-item"><div class="stat-val" style="color:var(--accent)">${c.open_rate > 0 ? Math.round(c.open_rate*100)+'%' : '—'}</div><div class="stat-label">Open</div></div>
+          <div class="stat-item"><div class="stat-val" style="color:var(--green)">${c.conversion_rate > 0 ? Math.round(c.conversion_rate*100)+'%' : '—'}</div><div class="stat-label">Convert</div></div>
+        </div>
+        <div class="camp-actions">
+          <span class="status-chip ${sc}">${c.status.charAt(0).toUpperCase()+c.status.slice(1)}</span>
+          ${canToggle ? `<label class="toggle"><input type="checkbox" ${c.status==='active'?'checked':''} onchange="toggleCamp('${c.id}')"><span class="slider"></span></label>` : ''}
+        </div>
+        ${c.last_run ? `<div class="last-run" style="width:100%;text-align:right">Last run ${relTime(c.last_run)}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function toggleForm() { document.getElementById('new-form').classList.toggle('open'); }
+
+  async function createCampaign() {
+    const name = document.getElementById('f-name').value.trim();
+    if (!name) return;
+    await fetch('/api/campaigns', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, trigger: document.getElementById('f-trigger').value})});
+    document.getElementById('f-name').value = '';
+    document.getElementById('new-form').classList.remove('open');
+    load();
+  }
+
+  async function toggleCamp(id) {
+    await fetch('/api/campaigns/' + id + '/toggle', {method:'PUT'});
+    const c = camps.find(x => x.id === id);
+    if (c) c.status = c.status === 'active' ? 'paused' : 'active';
+    render();
+  }
+
+  function relTime(iso) {
+    const diff = Math.floor((new Date() - new Date(iso)) / 60000);
+    if (diff < 60) return diff + 'm ago';
+    if (diff < 1440) return Math.floor(diff/60) + 'h ago';
+    return Math.floor(diff/1440) + 'd ago';
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

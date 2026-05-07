@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Persona — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 200px; }
+    input[type=text]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; min-width: 160px; }
+    select:focus { border-color: var(--accent); }
+    .persona-preview { background: #0e0b18; border: 1px solid rgba(167,139,250,.2); border-radius: 12px; padding: 1.1rem 1.2rem; margin-top: .5rem; }
+    .preview-label { font-size: .6rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .6rem; }
+    .preview-name { font-size: .95rem; font-weight: 800; color: var(--accent); margin-bottom: .3rem; }
+    .preview-line { font-size: .82rem; color: var(--muted); line-height: 1.5; }
+    .preview-greeting { font-size: .85rem; color: var(--text); margin-top: .5rem; font-style: italic; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Persona</div>
+  <p class="page-sub">Customize your AI receptionist's name, voice, and personality. Clients never know it's AI — they just experience a professional, friendly front desk that represents your brand perfectly.</p>
+
+  <div class="card">
+    <div class="card-title">Identity</div>
+    <div class="row">
+      <div class="row-label">AI Name</div>
+      <input type="text" id="ai-name" placeholder="Alex" oninput="updatePreview()">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Voice</div><div class="row-sub">Affects tone synthesis on calls</div></div>
+      <select id="ai-voice" onchange="updatePreview()">
+        <option value="female_warm">Female — Warm</option>
+        <option value="female_professional">Female — Professional</option>
+        <option value="male_warm">Male — Warm</option>
+        <option value="male_professional">Male — Professional</option>
+      </select>
+    </div>
+    <div class="row">
+      <div class="row-label">Language</div>
+      <select id="language">
+        <option value="en">English</option>
+        <option value="es">Spanish</option>
+        <option value="fr">French</option>
+        <option value="pt">Portuguese</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Personality</div>
+    <div class="row">
+      <div><div class="row-label">Greeting Style</div><div class="row-sub">How the AI opens every call</div></div>
+      <select id="greeting-style" onchange="updatePreview()">
+        <option value="friendly">Friendly</option>
+        <option value="professional">Professional</option>
+        <option value="casual">Casual</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Verbosity</div><div class="row-sub">How much the AI says per response</div></div>
+      <select id="verbosity" onchange="updatePreview()">
+        <option value="concise">Concise</option>
+        <option value="detailed">Detailed</option>
+      </select>
+    </div>
+    <div class="row" style="margin-bottom:.6rem">
+      <div><div class="row-label">Enable Upsells</div><div class="row-sub">AI suggests upgrades and add-ons during calls</div></div>
+      <label class="toggle"><input type="checkbox" id="upsell"><span class="slider"></span></label>
+    </div>
+    <div class="persona-preview">
+      <div class="preview-label">Call Preview</div>
+      <div class="preview-name" id="prev-name">Alex</div>
+      <div class="preview-line" id="prev-desc">Female — Warm · Friendly · Concise</div>
+      <div class="preview-greeting" id="prev-greeting">"Hi! Thank you for calling. This is Alex. How can I help you today?"</div>
+    </div>
+    <button class="save-btn" onclick="save()">Save AI Persona</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  const GREETINGS = {
+    friendly_concise: 'Hi! Thank you for calling. This is {name}. How can I help you today?',
+    friendly_detailed: 'Hi there! Thank you so much for calling. My name is {name} and I\'m here to help you with anything you need — whether that\'s booking an appointment, checking on pricing, or anything else. What can I do for you?',
+    professional_concise: 'Thank you for calling. You\'ve reached {name}. How may I assist you?',
+    professional_detailed: 'Good day, and thank you for calling. My name is {name}. I\'m here to assist you with scheduling, service inquiries, and any other questions you may have. How may I be of service?',
+    casual_concise: 'Hey! Thanks for calling. I\'m {name} — what can I help you with?',
+    casual_detailed: 'Hey, what\'s up! Thanks for hitting us up. I\'m {name} and I\'ve got you covered today. What are you looking for?',
+  };
+  const VOICE_LABELS = { female_warm: 'Female — Warm', female_professional: 'Female — Professional', male_warm: 'Male — Warm', male_professional: 'Male — Professional' };
+
+  function updatePreview() {
+    const name = document.getElementById('ai-name').value || 'Alex';
+    const voice = document.getElementById('ai-voice').value;
+    const style = document.getElementById('greeting-style').value;
+    const verb = document.getElementById('verbosity').value;
+    document.getElementById('prev-name').textContent = name;
+    document.getElementById('prev-desc').textContent = `${VOICE_LABELS[voice] || voice} · ${style.charAt(0).toUpperCase()+style.slice(1)} · ${verb.charAt(0).toUpperCase()+verb.slice(1)}`;
+    const key = `${style}_${verb}`;
+    const greeting = (GREETINGS[key] || GREETINGS['friendly_concise']).replace('{name}', name);
+    document.getElementById('prev-greeting').textContent = `"${greeting}"`;
+  }
+
+  async function load() {
+    const d = await fetch('/api/settings/ai-persona-cfg').then(r => r.json());
+    document.getElementById('ai-name').value = d.ai_name || 'Alex';
+    document.getElementById('ai-voice').value = d.ai_voice || 'female_warm';
+    document.getElementById('greeting-style').value = d.greeting_style || 'friendly';
+    document.getElementById('verbosity').value = d.verbosity || 'concise';
+    document.getElementById('upsell').checked = d.upsell_enabled ?? true;
+    document.getElementById('language').value = d.language || 'en';
+    updatePreview();
+  }
+
+  async function save() {
+    const data = { ai_name: document.getElementById('ai-name').value, ai_voice: document.getElementById('ai-voice').value, greeting_style: document.getElementById('greeting-style').value, verbosity: document.getElementById('verbosity').value, upsell_enabled: document.getElementById('upsell').checked, language: document.getElementById('language').value };
+    await fetch('/api/settings/ai-persona-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  load();
+</script>
+</body>
+</html>

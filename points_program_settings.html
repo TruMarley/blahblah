@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loyalty Points — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.2rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number], input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    input[type=number]:focus, input[type=text]:focus { border-color: var(--accent); }
+    input[type=number] { width: 90px; }
+    .tier-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: .65rem; display: flex; align-items: center; gap: 1rem; }
+    .tier-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+    .tier-info { flex: 1; }
+    .tier-name { font-size: .9rem; font-weight: 700; }
+    .tier-min { font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+    .tier-perks { font-size: .72rem; color: var(--muted); margin-top: .2rem; font-style: italic; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Loyalty Points</div>
+  <p class="page-sub">Reward clients for repeat visits. Your AI announces point balances during calls, nudges clients to redeem, and highlights milestones — keeping clients engaged between appointments.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-members" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Members</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-issued" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Points Issued (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-redeemed" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Pts Redeemed</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-value" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Redemption $</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Program Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Loyalty Points</div><div class="row-sub">Allow clients to earn and redeem</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Program Name</div></div>
+      <input type="text" id="program-name" style="width:140px">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Points per $1 Spent</div></div>
+      <input type="number" id="pts-per-dollar" min="1" max="100">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Redeem Threshold (pts)</div><div class="row-sub">Points needed before redemption</div></div>
+      <input type="number" id="redeem-threshold" min="100" max="5000">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Redemption Value ($)</div><div class="row-sub">Dollar value of the threshold</div></div>
+      <input type="number" id="redeem-value" min="1" max="100" step="0.5">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Points Expire</div><div class="row-sub">Expire after inactivity</div></div>
+      <label class="toggle"><input type="checkbox" id="pts-expire"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Expiry (months)</div></div>
+      <input type="number" id="expire-months" min="3" max="36">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Bonus Events</div>
+    <div class="row">
+      <div><div class="row-label">Birthday Bonus</div><div class="row-sub" id="birthday-pts-sub">— bonus points</div></div>
+      <label class="toggle"><input type="checkbox" id="birthday-enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Birthday Points</div></div>
+      <input type="number" id="birthday-pts" min="50" max="1000">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Referral Bonus</div><div class="row-sub" id="referral-pts-sub">— bonus points per referral</div></div>
+      <label class="toggle"><input type="checkbox" id="referral-enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Referral Points</div></div>
+      <input type="number" id="referral-pts" min="50" max="1000">
+    </div>
+    <div class="row">
+      <div><div class="row-label">First Visit Bonus</div><div class="row-sub" id="firstvisit-pts-sub">— bonus points</div></div>
+      <label class="toggle"><input type="checkbox" id="firstvisit-enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">First Visit Points</div></div>
+      <input type="number" id="firstvisit-pts" min="25" max="500">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">AI Behavior</div>
+    <div class="row">
+      <div><div class="row-label">AI Mentions Points</div><div class="row-sub">Announces points earned after booking</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-mentions"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Mentions Balance</div><div class="row-sub">Reads point balance to returning callers</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-balance"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Balance in Confirmations</div><div class="row-sub">Include balance in SMS/email confirmations</div></div>
+      <label class="toggle"><input type="checkbox" id="show-balance"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Tiers</div>
+    <div id="tiers-list"></div>
+    <button class="save-btn" onclick="save()">Save Loyalty Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+
+  async function load() {
+    data = await fetch('/api/settings/points-program-cfg').then(r => r.json());
+    document.getElementById('h-members').textContent = data.total_members.toLocaleString();
+    document.getElementById('h-issued').textContent = data.points_issued_30d.toLocaleString();
+    document.getElementById('h-redeemed').textContent = data.points_redeemed_30d.toLocaleString();
+    document.getElementById('h-value').textContent = '$' + data.redemption_value_30d.toFixed(0);
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('program-name').value = data.program_name;
+    document.getElementById('pts-per-dollar').value = data.points_per_dollar;
+    document.getElementById('redeem-threshold').value = data.redeem_threshold;
+    document.getElementById('redeem-value').value = data.redeem_value_dollars;
+    document.getElementById('pts-expire').checked = data.points_expire_enabled;
+    document.getElementById('expire-months').value = data.points_expire_months;
+    document.getElementById('birthday-enabled').checked = data.birthday_bonus_enabled;
+    document.getElementById('birthday-pts').value = data.birthday_bonus_points;
+    document.getElementById('birthday-pts-sub').textContent = data.birthday_bonus_points + ' bonus points';
+    document.getElementById('referral-enabled').checked = data.referral_bonus_enabled;
+    document.getElementById('referral-pts').value = data.referral_bonus_points;
+    document.getElementById('referral-pts-sub').textContent = data.referral_bonus_points + ' bonus points per referral';
+    document.getElementById('firstvisit-enabled').checked = data.first_visit_bonus_enabled;
+    document.getElementById('firstvisit-pts').value = data.first_visit_bonus_points;
+    document.getElementById('firstvisit-pts-sub').textContent = data.first_visit_bonus_points + ' bonus points';
+    document.getElementById('ai-mentions').checked = data.ai_mentions_points;
+    document.getElementById('ai-balance').checked = data.ai_mentions_balance;
+    document.getElementById('show-balance').checked = data.show_balance_in_confirmations;
+    renderTiers();
+  }
+
+  function renderTiers() {
+    const list = document.getElementById('tiers-list');
+    list.innerHTML = '';
+    (data.tiers || []).forEach(t => {
+      const b = document.createElement('div');
+      b.className = 'tier-block';
+      b.innerHTML = `<div class="tier-dot" style="background:${t.color}"></div><div class="tier-info"><div class="tier-name">${t.name}</div><div class="tier-min">${t.min_points.toLocaleString()} pts minimum</div><div class="tier-perks">${t.perks}</div></div>`;
+      list.appendChild(b);
+    });
+  }
+
+  async function save() {
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      program_name: document.getElementById('program-name').value,
+      points_per_dollar: parseInt(document.getElementById('pts-per-dollar').value) || 10,
+      redeem_threshold: parseInt(document.getElementById('redeem-threshold').value) || 500,
+      redeem_value_dollars: parseFloat(document.getElementById('redeem-value').value) || 5,
+      points_expire_enabled: document.getElementById('pts-expire').checked,
+      points_expire_months: parseInt(document.getElementById('expire-months').value) || 12,
+      birthday_bonus_enabled: document.getElementById('birthday-enabled').checked,
+      birthday_bonus_points: parseInt(document.getElementById('birthday-pts').value) || 200,
+      referral_bonus_enabled: document.getElementById('referral-enabled').checked,
+      referral_bonus_points: parseInt(document.getElementById('referral-pts').value) || 300,
+      first_visit_bonus_enabled: document.getElementById('firstvisit-enabled').checked,
+      first_visit_bonus_points: parseInt(document.getElementById('firstvisit-pts').value) || 100,
+      ai_mentions_points: document.getElementById('ai-mentions').checked,
+      ai_mentions_balance: document.getElementById('ai-balance').checked,
+      show_balance_in_confirmations: document.getElementById('show-balance').checked,
+    };
+    await fetch('/api/settings/points-program-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clients — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-top: .2rem; }
+    .client-count { font-size: .8rem; color: var(--muted); font-weight: 600; }
+    .controls { display: flex; gap: .75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .search-wrap { flex: 1; min-width: 220px; position: relative; }
+    .search-icon { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); font-size: .85rem; pointer-events: none; }
+    .search-input { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: .85rem; padding: .55rem .75rem .55rem 2.1rem; border-radius: 8px; font-family: inherit; outline: none; }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--muted); }
+    .tag-filters { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
+    .tag-btn { background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: .72rem; font-weight: 700; padding: .3rem .7rem; border-radius: 99px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .tag-btn.active { background: rgba(167,139,250,.12); color: var(--accent); border-color: rgba(167,139,250,.3); }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .7rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th.right { text-align: right; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; cursor: pointer; text-decoration: none; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .85rem 1.25rem; font-size: .82rem; vertical-align: middle; }
+    tbody td.right { text-align: right; }
+    .client-cell { display: flex; align-items: center; gap: .75rem; }
+    .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #7c3aed); display: flex; align-items: center; justify-content: center; font-size: .85rem; font-weight: 900; color: #fff; flex-shrink: 0; }
+    .client-name { font-weight: 800; font-size: .88rem; }
+    .client-phone { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+    .visits-val { font-weight: 700; }
+    .spent-val { color: var(--green); font-weight: 800; }
+    .last-visit { color: var(--muted); font-size: .75rem; }
+    .tags-cell { display: flex; gap: .3rem; flex-wrap: wrap; }
+    .tag-pill { font-size: .65rem; font-weight: 700; padding: .12rem .5rem; border-radius: 99px; background: rgba(167,139,250,.08); color: var(--accent); border: 1px solid rgba(167,139,250,.15); }
+    .load-more { display: block; width: 100%; margin-top: 1.5rem; padding: .75rem; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: .85rem; font-weight: 700; border-radius: 10px; cursor: pointer; font-family: inherit; transition: all .15s; text-align: center; }
+    .load-more:hover { color: var(--text); border-color: #3e3e3e; }
+    .load-more:disabled { opacity: .4; cursor: default; }
+    .empty { text-align: center; color: var(--muted); padding: 3rem; font-size: .85rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="header-row">
+    <div>
+      <div class="page-title">Clients</div>
+      <div class="page-sub">Your complete client directory.</div>
+    </div>
+    <div class="client-count" id="client-count"></div>
+  </div>
+
+  <div class="controls">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="search" placeholder="Search by name or phone..." oninput="onSearch()">
+    </div>
+    <div class="tag-filters" id="tag-filters">
+      <button class="tag-btn active" data-tag="" onclick="setTag('',this)">All</button>
+      <button class="tag-btn" data-tag="VIP" onclick="setTag('VIP',this)">VIP</button>
+      <button class="tag-btn" data-tag="Regular" onclick="setTag('Regular',this)">Regular</button>
+      <button class="tag-btn" data-tag="Color Client" onclick="setTag('Color Client',this)">Color Client</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Client</th>
+        <th>Tags</th>
+        <th class="right">Visits</th>
+        <th class="right">Total Spent</th>
+        <th class="right">Last Visit</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <button class="load-more" id="load-more" onclick="loadMore()" style="display:none">Load More</button>
+</div>
+<script>
+  let allClients = [];
+  let page = 1;
+  let hasMore = false;
+  let currentSearch = '';
+  let currentTag = '';
+  let searchTimer;
+
+  function onSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      currentSearch = document.getElementById('search').value.trim();
+      page = 1; allClients = [];
+      load(true);
+    }, 300);
+  }
+
+  function setTag(tag, btn) {
+    currentTag = tag;
+    document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    page = 1; allClients = [];
+    load(true);
+  }
+
+  async function load(reset = false) {
+    if (reset) { allClients = []; page = 1; }
+    let url = `/api/clients?page=${page}&limit=20`;
+    if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
+    if (currentTag) url += `&tag=${encodeURIComponent(currentTag)}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    allClients = reset ? d.clients : [...allClients, ...(d.clients || [])];
+    hasMore = d.has_more;
+    document.getElementById('client-count').textContent = `${d.total.toLocaleString()} clients`;
+    render();
+  }
+
+  function loadMore() { page++; load(); }
+
+  function render() {
+    const tbody = document.getElementById('tbody');
+    if (!allClients.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No clients found.</td></tr>';
+      document.getElementById('load-more').style.display = 'none';
+      return;
+    }
+    tbody.innerHTML = allClients.map(c => {
+      const initial = (c.name || '?').charAt(0).toUpperCase();
+      const lastVisit = c.last_visit ? new Date(c.last_visit).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : 'Never';
+      const tagsHtml = (c.tags || []).map(t => `<span class="tag-pill">${esc(t)}</span>`).join('');
+      return `<tr onclick="location.href='/clients/${esc(c.id)}'">
+        <td>
+          <div class="client-cell">
+            <div class="avatar">${initial}</div>
+            <div>
+              <div class="client-name">${esc(c.name)}</div>
+              <div class="client-phone">${esc(c.phone || '')}</div>
+            </div>
+          </div>
+        </td>
+        <td><div class="tags-cell">${tagsHtml || '<span style="color:var(--border)">—</span>'}</div></td>
+        <td class="right visits-val">${c.visit_count || 0}</td>
+        <td class="right spent-val">$${(c.total_spent || 0).toLocaleString()}</td>
+        <td class="right last-visit">${lastVisit}</td>
+      </tr>`;
+    }).join('');
+    const btn = document.getElementById('load-more');
+    btn.style.display = hasMore ? 'block' : 'none';
+    btn.disabled = false;
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load(true);
+</script>
+</body>
+</html>

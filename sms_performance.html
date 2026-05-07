@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMS Performance — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 920px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: .75rem; margin-bottom: 1.5rem; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; }
+    .kpi-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .3rem; }
+    .kpi-val { font-size: 1.6rem; font-weight: 900; }
+    .kpi-sub { font-size: .7rem; color: var(--muted); margin-top: .15rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    /* Type table */
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .55rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th:not(:first-child) { text-align: right; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td { padding: .75rem 1rem; font-size: .82rem; }
+    tbody td:not(:first-child) { text-align: right; }
+    .mini-track { display: inline-block; width: 80px; height: 6px; background: var(--surface2); border-radius: 3px; vertical-align: middle; overflow: hidden; margin-left: .5rem; }
+    .mini-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+    /* Trend */
+    .chart-scroll { overflow-x: auto; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">SMS Performance</div>
+  <p class="page-sub">Delivery, open, and response rates for all outbound SMS messages.</p>
+  <div class="kpi-row" id="kpi-row"></div>
+  <div class="card">
+    <div class="card-title">By Message Type</div>
+    <table>
+      <thead><tr><th>Type</th><th>Sent</th><th>Delivered</th><th>Responses</th><th>Resp Rate</th></tr></thead>
+      <tbody id="type-tbody"></tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-title">8-Week Trend — Sent vs Responses</div>
+    <div class="chart-scroll">
+      <svg id="trend-chart" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/sms-performance');
+    const d = await r.json();
+
+    document.getElementById('kpi-row').innerHTML = [
+      { label: 'Delivery Rate', val: d.delivery_rate_pct + '%', color: 'var(--green)', sub: 'messages delivered' },
+      { label: 'Open Rate',     val: d.open_rate_pct + '%',    color: 'var(--accent)', sub: 'estimated opens' },
+      { label: 'Response Rate', val: d.response_rate_pct + '%', color: 'var(--yellow)', sub: 'replied back' },
+      { label: 'Opt-Out Rate',  val: d.opt_out_rate_pct + '%',  color: 'var(--muted)', sub: 'unsubscribed' },
+    ].map(k => `<div class="kpi"><div class="kpi-label">${k.label}</div><div class="kpi-val" style="color:${k.color}">${k.val}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
+
+    const maxSent = Math.max(...(d.by_type||[]).map(t => t.sent), 1);
+    document.getElementById('type-tbody').innerHTML = (d.by_type||[]).map(t => {
+      const rr = t.sent ? ((t.responses/t.sent)*100).toFixed(1) : '0.0';
+      const pct = Math.round(t.sent/maxSent*100);
+      return `<tr>
+        <td><strong>${esc(t.type)}</strong></td>
+        <td>${t.sent}<span class="mini-track"><span class="mini-fill" style="width:${pct}%"></span></span></td>
+        <td>${t.delivered}</td>
+        <td>${t.responses}</td>
+        <td>${rr}%</td>
+      </tr>`;
+    }).join('');
+
+    // Grouped bar chart
+    const weeks = d.trend || [];
+    const W=840, H=160, PL=8, PR=8, PT=20, PB=28;
+    const cW=W-PL-PR, cH=H-PT-PB, n=weeks.length;
+    const gW = cW/n, bW = Math.floor(gW*0.28), gap=4;
+    const maxV = Math.max(...weeks.flatMap(w=>[w.sent,w.responses]), 1);
+    let bars='', labels='';
+    weeks.forEach((w,wi) => {
+      const gx = PL + wi*gW + gW*0.1;
+      const cx = gx + bW;
+      labels += `<text x="${cx}" y="${H-4}" text-anchor="middle" font-size="9" fill="#555">${w.week}</text>`;
+      const bH1 = Math.max(2,(w.sent/maxV)*cH), bH2 = Math.max(2,(w.responses/maxV)*cH);
+      bars += `<rect x="${gx}" y="${PT+cH-bH1}" width="${bW}" height="${bH1}" fill="#a78bfa" opacity=".75" rx="2">
+        <title>${w.week} Sent: ${w.sent}</title></rect>`;
+      bars += `<rect x="${gx+bW+gap}" y="${PT+cH-bH2}" width="${bW}" height="${bH2}" fill="#34d399" opacity=".75" rx="2">
+        <title>${w.week} Responses: ${w.responses}</title></rect>`;
+    });
+    const svg = document.getElementById('trend-chart');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('width','100%');
+    svg.setAttribute('height', H);
+    svg.innerHTML = bars + labels +
+      `<rect x="0" y="${H-14}" width="10" height="10" fill="#a78bfa" opacity=".75" rx="2"/>
+       <text x="14" y="${H-5}" font-size="9" fill="#666">Sent</text>
+       <rect x="50" y="${H-14}" width="10" height="10" fill="#34d399" opacity=".75" rx="2"/>
+       <text x="64" y="${H-5}" font-size="9" fill="#666">Responses</text>`;
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

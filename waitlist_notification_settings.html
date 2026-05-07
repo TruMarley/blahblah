@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Waitlist Notifications — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-size: .8rem; padding: .55rem .75rem; outline: none; resize: vertical; min-height: 52px; font-family: inherit; line-height: 1.5; margin-top: .45rem; }
+    textarea:focus { border-color: var(--accent); }
+    .var-bar { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .35rem; }
+    .var-chip { background: #1e1e1e; border-radius: 4px; padding: .1rem .32rem; font-size: .64rem; color: var(--accent); font-family: monospace; cursor: pointer; border: 1px solid #2a2a2a; }
+    .var-chip:hover { border-color: var(--accent); }
+    .msg-label { font-size: .78rem; font-weight: 600; color: var(--muted); margin-bottom: .1rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Waitlist Notifications</div>
+  <p class="page-sub">Configure how the AI notifies waitlisted clients when a slot opens — SMS, AI callback, or email. Set response windows, priority order, and what happens when they don't respond in time.</p>
+  <div class="card">
+    <div class="card-title">Notification Channels</div>
+    <div class="row">
+      <div><div class="row-label">Enable Waitlist Notifications</div><div class="row-sub">Alert clients automatically when a slot opens</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notify via SMS</div><div class="row-sub">Text message with reply-YES booking</div></div>
+      <label class="toggle"><input type="checkbox" id="via-sms"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notify via AI Callback</div><div class="row-sub">AI calls the client to offer the open slot</div></div>
+      <label class="toggle"><input type="checkbox" id="via-ai"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notify via Email</div><div class="row-sub">Email link to confirm the booking</div></div>
+      <label class="toggle"><input type="checkbox" id="via-email"><span class="slider"></span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Response &amp; Booking Rules</div>
+    <div class="row">
+      <div><div class="row-label">Response Window (minutes)</div><div class="row-sub">Time to claim slot before next person notified</div></div>
+      <input type="number" id="response-window" min="5" max="120" placeholder="30">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Notifications per Slot</div><div class="row-sub">How many clients notified before cancelling</div></div>
+      <input type="number" id="max-notifs" min="1" max="10" placeholder="3">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Book on No Response</div><div class="row-sub">Book automatically if first client doesn't reply</div></div>
+      <label class="toggle"><input type="checkbox" id="auto-book"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Priority Order</div><div class="row-sub">Who gets notified first</div></div>
+      <select id="priority">
+        <option value="signup_time">Signup Time (FIFO)</option>
+        <option value="vip_first">VIP Clients First</option>
+        <option value="longest_wait">Longest Wait</option>
+        <option value="preferred_staff">Preferred Staff Match</option>
+      </select>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Message Templates</div>
+    <div style="margin-bottom:1rem">
+      <div class="msg-label">Slot Available Message</div>
+      <textarea id="notify-msg" rows="2"></textarea>
+      <div class="var-bar">
+        <span class="var-chip" onclick="ins('notify-msg','{name}')">{name}</span>
+        <span class="var-chip" onclick="ins('notify-msg','{date}')">{date}</span>
+        <span class="var-chip" onclick="ins('notify-msg','{time}')">{time}</span>
+        <span class="var-chip" onclick="ins('notify-msg','{business}')">{business}</span>
+      </div>
+    </div>
+    <div>
+      <div class="msg-label">Slot Expired Message</div>
+      <textarea id="expiry-msg" rows="2"></textarea>
+      <div class="var-bar">
+        <span class="var-chip" onclick="ins('expiry-msg','{name}')">{name}</span>
+        <span class="var-chip" onclick="ins('expiry-msg','{business}')">{business}</span>
+      </div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  function ins(id, v) {
+    const ta = document.getElementById(id);
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    ta.value = ta.value.slice(0,s)+v+ta.value.slice(e);
+    ta.selectionStart = ta.selectionEnd = s+v.length;
+    ta.focus();
+  }
+  async function load() {
+    const d = await fetch('/api/settings/waitlist-notification-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('via-sms').checked = d.notify_via_sms;
+    document.getElementById('via-ai').checked = d.notify_ai_callback;
+    document.getElementById('via-email').checked = d.notify_via_email;
+    document.getElementById('response-window').value = d.response_window_minutes ?? 30;
+    document.getElementById('max-notifs').value = d.max_notifications_per_slot ?? 3;
+    document.getElementById('auto-book').checked = d.auto_book_on_no_response;
+    document.getElementById('priority').value = d.priority_order || 'signup_time';
+    document.getElementById('notify-msg').value = d.notify_message || '';
+    document.getElementById('expiry-msg').value = d.expiry_message || '';
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      notify_via_sms: document.getElementById('via-sms').checked,
+      notify_ai_callback: document.getElementById('via-ai').checked,
+      notify_via_email: document.getElementById('via-email').checked,
+      response_window_minutes: parseInt(document.getElementById('response-window').value) || 30,
+      max_notifications_per_slot: parseInt(document.getElementById('max-notifs').value) || 3,
+      auto_book_on_no_response: document.getElementById('auto-book').checked,
+      priority_order: document.getElementById('priority').value,
+      notify_message: document.getElementById('notify-msg').value,
+      expiry_message: document.getElementById('expiry-msg').value
+    };
+    await fetch('/api/settings/waitlist-notification-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

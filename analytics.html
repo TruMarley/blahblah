@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk — Analytics</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0a; --surface: #111; --border: #1e1e1e;
+      --text: #e8e8e8; --muted: #666;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --orange: #f97316; --red: #f87171; --blue: #60a5fa;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Header ── */
+    .header {
+      background: #111; border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 1.5rem; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent-light); }
+    .page-tag {
+      background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.25);
+      color: var(--accent-light); font-size: 0.7rem; font-weight: 700;
+      padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .header-right { display: flex; align-items: center; gap: 1rem; }
+    .header-right a { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
+    .header-right a:hover { color: var(--text); }
+    .live-dot-wrap { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--green); }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ── KPI row ── */
+    .kpi-row {
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      gap: 1rem; padding: 1.5rem 2rem;
+    }
+    .kpi {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.25rem 1.5rem;
+    }
+    .kpi .label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+    .kpi .value { font-size: 2rem; font-weight: 800; color: #fff; line-height: 1; }
+    .kpi .delta { font-size: 0.72rem; margin-top: 4px; }
+    .delta.up { color: var(--green); }
+    .delta.down { color: var(--red); }
+
+    /* ── Charts grid ── */
+    .charts-grid {
+      display: grid; grid-template-columns: 2fr 1fr;
+      gap: 1.5rem; padding: 0 2rem 1.5rem;
+    }
+    .charts-grid-bottom {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 1.5rem; padding: 0 2rem 2rem;
+    }
+    .chart-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.5rem; overflow: hidden;
+    }
+    .chart-card .card-title {
+      font-size: 0.8rem; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1.25rem;
+    }
+    .chart-card .canvas-wrap { position: relative; }
+    .chart-card canvas { display: block; }
+
+    /* ── Service table ── */
+    .service-list { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.5rem; }
+    .service-row { display: flex; align-items: center; gap: 10px; }
+    .service-bar-wrap { flex: 1; height: 6px; background: #1e1e1e; border-radius: 3px; overflow: hidden; }
+    .service-bar { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.8s ease; }
+    .service-name { font-size: 0.8rem; color: #bbb; width: 120px; }
+    .service-count { font-size: 0.8rem; color: var(--muted); width: 30px; text-align: right; }
+
+    /* ── Missed vs Booked donut ── */
+    .ratio-center {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .ratio-center .big { font-size: 1.8rem; font-weight: 800; color: #fff; }
+    .ratio-center .small { font-size: 0.7rem; color: var(--muted); }
+
+    .loading-state { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 2rem; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <a href="/" class="logo">Ring<span>Desk</span></a>
+    <span class="page-tag">Analytics</span>
+  </div>
+  <div class="header-right">
+    <a href="/dashboard">Dashboard</a>
+    <a href="/">Landing</a>
+    <div class="live-dot-wrap">
+      <div class="live-dot"></div> Live
+    </div>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="label">Total Booked</div>
+    <div class="value" id="kpi-total">—</div>
+    <div class="delta up" id="kpi-total-d"></div>
+  </div>
+  <div class="kpi">
+    <div class="label">This Week</div>
+    <div class="value" id="kpi-week">—</div>
+    <div class="delta up" id="kpi-week-d"></div>
+  </div>
+  <div class="kpi">
+    <div class="label">Today</div>
+    <div class="value" id="kpi-today">—</div>
+    <div class="delta" id="kpi-today-d"></div>
+  </div>
+  <div class="kpi">
+    <div class="label">Missed Today</div>
+    <div class="value" id="kpi-missed" style="color:var(--red)">—</div>
+    <div class="delta" id="kpi-missed-d"></div>
+  </div>
+  <div class="kpi">
+    <div class="label">Capture Rate</div>
+    <div class="value" id="kpi-capture" style="color:var(--green)">—</div>
+    <div class="delta up" id="kpi-capture-d">calls answered by AI</div>
+  </div>
+</div>
+
+<!-- Top row charts -->
+<div class="charts-grid">
+  <!-- Bookings by day (14-day bar chart) -->
+  <div class="chart-card">
+    <div class="card-title">Bookings — Last 14 Days</div>
+    <div class="canvas-wrap">
+      <canvas id="chart-bookings" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- Service breakdown -->
+  <div class="chart-card">
+    <div class="card-title">Service Breakdown</div>
+    <div class="service-list" id="service-list">
+      <div class="loading-state">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom row charts -->
+<div class="charts-grid-bottom">
+  <!-- Peak hours heatmap (bar chart) -->
+  <div class="chart-card">
+    <div class="card-title">Peak Call Hours</div>
+    <div class="canvas-wrap">
+      <canvas id="chart-hours" height="180"></canvas>
+    </div>
+  </div>
+
+  <!-- Missed vs Booked donut -->
+  <div class="chart-card">
+    <div class="card-title">Answered vs Missed</div>
+    <div class="canvas-wrap" style="position:relative;height:180px;display:flex;align-items:center;justify-content:center;">
+      <canvas id="chart-donut" style="max-height:180px;max-width:180px;"></canvas>
+      <div class="ratio-center">
+        <div class="big" id="donut-pct">—</div>
+        <div class="small">answered</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  Chart.defaults.color = '#666';
+  Chart.defaults.borderColor = '#1e1e1e';
+
+  const PURPLE = 'rgba(124,58,237,0.8)';
+  const PURPLE_LIGHT = 'rgba(167,139,250,0.8)';
+  const GREEN = 'rgba(34,197,94,0.8)';
+  const RED = 'rgba(248,113,113,0.8)';
+  const BLUE = 'rgba(96,165,250,0.8)';
+  const ORANGE = 'rgba(249,115,22,0.8)';
+
+  let bookingsChart, hoursChart, donutChart;
+
+  function initCharts() {
+    // Bookings chart (placeholder data until API loads)
+    const bCtx = document.getElementById('chart-bookings').getContext('2d');
+    bookingsChart = new Chart(bCtx, {
+      type: 'bar',
+      data: { labels: [], datasets: [{ label: 'Bookings', data: [], backgroundColor: PURPLE, borderRadius: 5 }] },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: '#1a1a1a' }, ticks: { font: { size: 11 } } },
+          y: { grid: { color: '#1a1a1a' }, ticks: { precision: 0, font: { size: 11 } } },
+        },
+        animation: { duration: 600 },
+      },
+    });
+
+    // Hours chart
+    const hCtx = document.getElementById('chart-hours').getContext('2d');
+    hoursChart = new Chart(hCtx, {
+      type: 'bar',
+      data: { labels: [], datasets: [{ label: 'Calls', data: [], backgroundColor: BLUE, borderRadius: 4 }] },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: '#1a1a1a' }, ticks: { font: { size: 10 } } },
+          y: { grid: { color: '#1a1a1a' }, ticks: { precision: 0, font: { size: 10 } } },
+        },
+        animation: { duration: 600 },
+      },
+    });
+
+    // Donut chart
+    const dCtx = document.getElementById('chart-donut').getContext('2d');
+    donutChart = new Chart(dCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Answered', 'Missed'],
+        datasets: [{
+          data: [0, 0],
+          backgroundColor: [GREEN, RED],
+          borderWidth: 0,
+          hoverOffset: 4,
+        }],
+      },
+      options: {
+        cutout: '72%',
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 16 } } },
+        animation: { duration: 800 },
+      },
+    });
+  }
+
+  async function loadAnalytics() {
+    try {
+      const res = await fetch('/api/analytics');
+      const d = await res.json();
+
+      // KPIs
+      document.getElementById('kpi-total').textContent = d.total_booked;
+      document.getElementById('kpi-week').textContent = d.week_booked;
+      document.getElementById('kpi-today').textContent = d.today_booked;
+      document.getElementById('kpi-missed').textContent = d.missed_today;
+
+      const total = d.total_booked + d.total_missed;
+      const pct = total > 0 ? Math.round((d.total_booked / total) * 100) : 100;
+      document.getElementById('kpi-capture').textContent = pct + '%';
+      document.getElementById('donut-pct').textContent = pct + '%';
+
+      // Bookings by day
+      const days = d.bookings_by_day || [];
+      bookingsChart.data.labels = days.map(r => {
+        const dt = new Date(r.date + 'T00:00:00');
+        return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      });
+      bookingsChart.data.datasets[0].data = days.map(r => r.count);
+      bookingsChart.update();
+
+      // Peak hours
+      const hours = d.peak_hours || [];
+      const hourMap = {};
+      hours.forEach(r => { hourMap[r.hour] = r.count; });
+      const hourLabels = Array.from({length: 13}, (_, i) => {
+        const h = i + 8; // 8am-8pm
+        return h === 12 ? '12pm' : h > 12 ? `${h-12}pm` : `${h}am`;
+      });
+      hoursChart.data.labels = hourLabels;
+      hoursChart.data.datasets[0].data = hourLabels.map((_, i) => hourMap[i + 8] || 0);
+      hoursChart.update();
+
+      // Donut
+      donutChart.data.datasets[0].data = [d.total_booked, d.total_missed];
+      donutChart.update();
+
+      // Service breakdown
+      const services = d.service_breakdown || [];
+      const maxCount = services.length > 0 ? Math.max(...services.map(s => s.count)) : 1;
+      const serviceColors = [PURPLE, BLUE, GREEN, ORANGE, PURPLE_LIGHT];
+      const serviceList = document.getElementById('service-list');
+      if (services.length === 0) {
+        serviceList.innerHTML = '<div class="loading-state">No data yet</div>';
+      } else {
+        serviceList.innerHTML = services.slice(0, 7).map((s, i) => `
+          <div class="service-row">
+            <div class="service-name">${s.service}</div>
+            <div class="service-bar-wrap">
+              <div class="service-bar" style="width:${Math.round((s.count/maxCount)*100)}%;background:${serviceColors[i % serviceColors.length]}"></div>
+            </div>
+            <div class="service-count">${s.count}</div>
+          </div>
+        `).join('');
+      }
+
+    } catch (err) {
+      console.error('Analytics load failed:', err);
+    }
+  }
+
+  initCharts();
+  loadAnalytics();
+  setInterval(loadAnalytics, 60000); // refresh every minute
+</script>
+</body>
+</html>

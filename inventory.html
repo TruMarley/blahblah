@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inventory — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .filter-row { display: flex; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .filter-btn { font-size: .72rem; font-weight: 700; padding: .25rem .75rem; border-radius: 99px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-family: inherit; transition: all .15s; }
+    .filter-btn.active { background: rgba(167,139,250,.12); border-color: rgba(167,139,250,.4); color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .55rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .65rem 1rem; font-size: .82rem; }
+    .badge { display: inline-block; font-size: .65rem; font-weight: 800; padding: .15rem .5rem; border-radius: 99px; }
+    .badge-ok  { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .badge-low { background: rgba(251,191,36,.1);  color: var(--yellow); border: 1px solid rgba(251,191,36,.25); }
+    .badge-out { background: rgba(248,113,113,.12); color: var(--red); border: 1px solid rgba(248,113,113,.25); }
+    .reorder-btn { font-size: .72rem; font-weight: 800; padding: .25rem .75rem; border-radius: 7px; border: 1px solid rgba(52,211,153,.3); background: rgba(52,211,153,.07); color: var(--green); cursor: pointer; font-family: inherit; transition: all .15s; }
+    .reorder-btn:hover { background: rgba(52,211,153,.15); }
+    .reorder-btn:disabled { opacity: .4; cursor: default; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Inventory</div>
+  <p class="page-sub">Track product and supply stock levels — reorder items running low.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Items</div>
+      <div class="hero-val" id="h-total">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Low / Out of Stock</div>
+      <div class="hero-val" style="color:var(--red)" id="h-low">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">In Stock</div>
+      <div class="hero-val" style="color:var(--green)" id="h-ok">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">All Items</div>
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('low',this)">Low</button>
+      <button class="filter-btn" onclick="setFilter('out',this)">Out of Stock</button>
+      <button class="filter-btn" onclick="setFilter('ok',this)">In Stock</button>
+    </div>
+    <table>
+      <thead><tr><th>Item</th><th>Category</th><th>Qty</th><th>Reorder At</th><th>Unit Cost</th><th>Status</th><th></th></tr></thead>
+      <tbody id="inv-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  let allItems = [];
+  let activeFilter = 'all';
+
+  async function load() {
+    const r = await fetch('/api/inventory');
+    const d = await r.json();
+    allItems = d.items || [];
+    document.getElementById('h-total').textContent = d.total;
+    document.getElementById('h-low').textContent   = d.low_count;
+    document.getElementById('h-ok').textContent    = d.total - d.low_count;
+    render();
+  }
+
+  function setFilter(f, btn) {
+    activeFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  }
+
+  function render() {
+    const items = activeFilter === 'all' ? allItems : allItems.filter(i => i.status === activeFilter);
+    document.getElementById('inv-tbody').innerHTML = items.map(item => {
+      const needsReorder = item.status !== 'ok';
+      return `<tr>
+        <td style="font-weight:800">${esc(item.name)}</td>
+        <td style="color:var(--muted)">${esc(item.category)}</td>
+        <td style="font-weight:800">${item.qty}</td>
+        <td style="color:var(--muted)">${item.reorder_at}</td>
+        <td style="color:var(--muted)">$${item.unit_cost.toFixed(2)}</td>
+        <td><span class="badge badge-${item.status}">${item.status}</span></td>
+        <td>${needsReorder
+          ? `<button class="reorder-btn" id="rb-${item.id}" onclick="reorder('${item.id}')">Reorder</button>`
+          : ''}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function reorder(id) {
+    const btn = document.getElementById('rb-' + id);
+    if (btn) { btn.disabled = true; btn.textContent = '…'; }
+    const r = await fetch(`/api/inventory/${id}/reorder`, {method:'POST'});
+    const updated = await r.json();
+    const idx = allItems.findIndex(i => i.id === id);
+    if (idx >= 0) allItems[idx] = updated;
+    render();
+    document.getElementById('h-low').textContent = allItems.filter(i => i.status !== 'ok').length;
+    document.getElementById('h-ok').textContent  = allItems.filter(i => i.status === 'ok').length;
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

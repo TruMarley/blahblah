@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Appointment Source Attribution — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: center; }
+    .donut-wrap { display: flex; justify-content: center; }
+    .legend-list { display: flex; flex-direction: column; gap: .65rem; }
+    .legend-item { display: flex; align-items: center; gap: .6rem; }
+    .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+    .legend-name { font-size: .8rem; color: var(--text); flex: 1; }
+    .legend-pct { font-size: .8rem; font-weight: 800; color: var(--muted); }
+    .legend-count { font-size: .72rem; color: #444; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Appointment Source Attribution</div>
+  <p class="page-sub">Where your bookings come from — use this to double-down on your strongest channels and fix under-performing ones.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Top Source</div>
+      <div class="hero-val" id="h-top" style="color:var(--accent);font-size:1rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total Appointments</div>
+      <div class="hero-val" id="h-total" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">AI-Booked %</div>
+      <div class="hero-val" id="h-ai" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Booking Sources Breakdown</div>
+    <div class="chart-row">
+      <div class="donut-wrap">
+        <svg id="donut" viewBox="0 0 200 200" width="200" height="200"></svg>
+      </div>
+      <div class="legend-list" id="legend"></div>
+    </div>
+  </div>
+</div>
+<script>
+  const COLORS = ['rgba(167,139,250,.85)','rgba(52,211,153,.8)','rgba(251,191,36,.8)','rgba(248,113,113,.75)','rgba(96,165,250,.8)'];
+
+  async function load() {
+    const r = await fetch('/api/analytics/appointment-source-attribution');
+    const d = await r.json();
+    const sources = d.sources || [];
+    const total = d.total || 1;
+    const topSrc = sources.reduce((a,b)=>b.count>a.count?b:a, sources[0]);
+    const aiSrc = sources.find(s=>s.source==='Phone AI');
+    document.getElementById('h-top').textContent = topSrc ? topSrc.source : '—';
+    document.getElementById('h-total').textContent = total;
+    document.getElementById('h-ai').textContent = aiSrc ? aiSrc.pct + '%' : '—';
+
+    // donut chart
+    const svg = document.getElementById('donut');
+    const cx=100,cy=100,R=80,r=50,tau=Math.PI*2;
+    let angle=-Math.PI/2;
+    sources.forEach((s,i)=>{
+      const sweep=tau*(s.count/total);
+      const x1=cx+R*Math.cos(angle), y1=cy+R*Math.sin(angle);
+      const x2=cx+R*Math.cos(angle+sweep), y2=cy+R*Math.sin(angle+sweep);
+      const ix1=cx+r*Math.cos(angle), iy1=cy+r*Math.sin(angle);
+      const ix2=cx+r*Math.cos(angle+sweep), iy2=cy+r*Math.sin(angle+sweep);
+      const large=sweep>Math.PI?1:0;
+      svg.innerHTML+=`<path d="M${x1},${y1} A${R},${R} 0 ${large},1 ${x2},${y2} L${ix2},${iy2} A${r},${r} 0 ${large},0 ${ix1},${iy1} Z" fill="${COLORS[i%COLORS.length]}"/>`;
+      angle+=sweep;
+    });
+    svg.innerHTML+=`<circle cx="${cx}" cy="${cy}" r="35" fill="var(--surface)"/>`;
+    svg.innerHTML+=`<text x="${cx}" y="${cy-6}" font-size="11" fill="#666" text-anchor="middle">Total</text>`;
+    svg.innerHTML+=`<text x="${cx}" y="${cy+10}" font-size="16" font-weight="800" fill="var(--text)" text-anchor="middle">${total}</text>`;
+
+    document.getElementById('legend').innerHTML = sources.map((s,i)=>`
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:${COLORS[i%COLORS.length]}"></div>
+        <div class="legend-name">${esc(s.source)}</div>
+        <div class="legend-count">${s.count}</div>
+        <div class="legend-pct">${s.pct}%</div>
+      </div>`).join('');
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

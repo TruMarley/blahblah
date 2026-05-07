@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Message Templates — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .tpl-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; margin-bottom: .6rem; }
+    .tpl-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+    .tpl-name { font-size: .85rem; font-weight: 800; }
+    .tpl-badge { font-size: .6rem; font-weight: 700; background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); border-radius: 4px; padding: .1rem .35rem; }
+    .tpl-body { font-size: .73rem; color: var(--muted); line-height: 1.45; font-family: monospace; }
+    .toggle { position: relative; width: 38px; height: 22px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 22px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(16px); background: #fff; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Message Templates</div>
+  <p class="page-sub">Customise the SMS and email messages clients receive at each touchpoint — confirmations, reminders, and follow-ups. Use {name}, {service}, {date}, {time}, and {link} as placeholders.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-sent" style="color:var(--accent)">—</div><div class="stat-lbl">Messages Sent (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-open" style="color:var(--green)">—</div><div class="stat-lbl">Open Rate</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Active Templates</div>
+    <div id="tpl-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/settings/message-templates-cfg').then(r => r.json());
+    document.getElementById('h-sent').textContent = d.templates_sent_30d.toLocaleString();
+    document.getElementById('h-open').textContent = d.open_rate_pct.toFixed(1) + '%';
+    const tl = document.getElementById('tpl-list');
+    (d.templates || []).forEach(t => {
+      const cls = t.active ? 'var(--accent)' : 'var(--muted)';
+      tl.innerHTML += '<div class="tpl-card"><div class="tpl-top"><div class="tpl-name">' + t.name + '</div><span class="tpl-badge" style="color:' + cls + ';border-color:' + cls + '40;background:' + cls + '18">' + t.channel.toUpperCase() + '</span></div><div class="tpl-body">' + t.body + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

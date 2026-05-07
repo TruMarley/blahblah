@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>After-Hours Messaging — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    .msg-block { margin-bottom: 1rem; }
+    .msg-block:last-child { margin-bottom: 0; }
+    .msg-label { font-size: .78rem; font-weight: 700; color: var(--text); margin-bottom: .4rem; }
+    .msg-hint { font-size: .68rem; color: var(--muted); margin-bottom: .45rem; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .78rem; padding: .65rem .8rem; outline: none; resize: vertical; min-height: 68px; line-height: 1.5; font-family: inherit; }
+    textarea:focus { border-color: var(--accent); }
+    .var-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .55rem; }
+    .var-chip { font-size: .63rem; font-family: monospace; background: rgba(167,139,250,.08); color: var(--accent); border: 1px solid rgba(167,139,250,.2); border-radius: 4px; padding: .1rem .4rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">After-Hours Messaging</div>
+  <p class="page-sub">Control what the AI says when clients call outside business hours — play a closing message, offer a callback, or text a booking link.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-calls" style="color:var(--yellow)">—</div><div class="stat-lbl">After-Hours Calls (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-booked" style="color:var(--green)">—</div><div class="stat-lbl">After-Hours Bookings (30d)</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">After-Hours Behaviour</div>
+    <div class="row">
+      <div><div class="row-label">Enable After-Hours Mode</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Mode</div><div class="row-sub">How much the AI does after hours</div></div>
+      <select id="mode">
+        <option value="ai_limited">AI Limited (greet + offer)</option>
+        <option value="ai_full">AI Full (still books)</option>
+        <option value="message_only">Message Only (hang up)</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Still Books After Hours</div><div class="row-sub">Allow full appointment booking on after-hours calls</div></div>
+      <label class="toggle"><input type="checkbox" id="books"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Play Hours Message</div><div class="row-sub">Read current hours and next open time</div></div>
+      <label class="toggle"><input type="checkbox" id="play-hours"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Offer Callback</div><div class="row-sub">Ask client if they want a call back when open</div></div>
+      <label class="toggle"><input type="checkbox" id="offer-callback"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Offer SMS Booking Link</div><div class="row-sub">Text client a direct booking link immediately</div></div>
+      <label class="toggle"><input type="checkbox" id="offer-sms"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save After-Hours Settings</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Message Templates</div>
+    <div class="var-chips">
+      <span class="var-chip">{business}</span>
+      <span class="var-chip">{hours}</span>
+      <span class="var-chip">{next_open}</span>
+      <span class="var-chip">{phone}</span>
+    </div>
+    <div class="msg-block">
+      <div class="msg-label">Hours Message</div>
+      <div class="msg-hint">Played at the start of after-hours calls.</div>
+      <textarea id="hours-msg" rows="3"></textarea>
+    </div>
+    <div class="msg-block">
+      <div class="msg-label">Callback Offer</div>
+      <div class="msg-hint">Offered when "Offer Callback" is on.</div>
+      <textarea id="callback-msg" rows="2"></textarea>
+    </div>
+    <div class="msg-block">
+      <div class="msg-label">SMS Booking Offer</div>
+      <div class="msg-hint">Offered when "Offer SMS Booking Link" is on.</div>
+      <textarea id="sms-msg" rows="2"></textarea>
+    </div>
+    <button class="save-btn" onclick="save()">Save Message Templates</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/after-hours-msg-cfg').then(r => r.json());
+    document.getElementById('h-calls').textContent = data.after_hours_calls_30d;
+    document.getElementById('h-booked').textContent = data.after_hours_bookings_30d;
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('mode').value = data.after_hours_mode;
+    document.getElementById('books').checked = data.ai_still_books_after_hours;
+    document.getElementById('play-hours').checked = data.play_hours_message;
+    document.getElementById('offer-callback').checked = data.offer_callback;
+    document.getElementById('offer-sms').checked = data.offer_sms_booking;
+    document.getElementById('hours-msg').value = data.hours_message;
+    document.getElementById('callback-msg').value = data.callback_message;
+    document.getElementById('sms-msg').value = data.sms_booking_message;
+  }
+  async function save() {
+    const payload = { ...data,
+      enabled: document.getElementById('enabled').checked,
+      after_hours_mode: document.getElementById('mode').value,
+      ai_still_books_after_hours: document.getElementById('books').checked,
+      play_hours_message: document.getElementById('play-hours').checked,
+      offer_callback: document.getElementById('offer-callback').checked,
+      offer_sms_booking: document.getElementById('offer-sms').checked,
+      hours_message: document.getElementById('hours-msg').value,
+      callback_message: document.getElementById('callback-msg').value,
+      sms_booking_message: document.getElementById('sms-msg').value,
+    };
+    await fetch('/api/settings/after-hours-msg-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

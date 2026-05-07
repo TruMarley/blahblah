@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Queue Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .field-group { margin-bottom: 1rem; }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; display: block; }
+    .field-sub { font-size: .7rem; color: var(--muted); margin-top: .15rem; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .48rem .7rem; font-family: inherit; width: 100%; outline: none; }
+    .inline-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: .7rem 0; border-bottom: 1px solid var(--border); }
+    .toggle-row:last-of-type { border-bottom: none; }
+    .toggle-label { font-size: .88rem; font-weight: 700; }
+    .toggle-sub { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+    .toggle { position: relative; width: 38px; height: 21px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #222; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .slider:before { content: ''; position: absolute; width: 15px; height: 15px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: rgba(167,139,250,.3); }
+    input:checked + .slider:before { transform: translateX(17px); background: var(--accent); }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.4rem; border-radius: 9px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; width: 100%; }
+    .save-btn:hover { background: rgba(167,139,250,.2); }
+    .saved-msg { font-size: .75rem; color: var(--green); font-weight: 700; text-align: center; margin-top: .5rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Queue Settings</div>
+  <p class="page-sub">Control how incoming calls are queued when the AI receptionist is handling multiple calls simultaneously.</p>
+  <div class="card">
+    <div class="card-title">Queue Limits</div>
+    <div class="inline-2">
+      <div class="field-group">
+        <label class="field-label">Max Queue Size</label>
+        <input class="f-input" type="number" id="f-maxq" min="1" max="20" placeholder="5">
+        <div class="field-sub">Max callers held in queue at once</div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Queue Timeout (seconds)</label>
+        <input class="f-input" type="number" id="f-timeout" min="30" max="600" step="30" placeholder="120">
+        <div class="field-sub">Max wait before caller is released</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Caller Experience</div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Announce Position in Queue</div><div class="toggle-sub">Tell callers their place in line while waiting</div></div>
+      <label class="toggle"><input type="checkbox" id="f-pos"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Estimated Wait Message</div><div class="toggle-sub">Share approximate wait time with each caller</div></div>
+      <label class="toggle"><input type="checkbox" id="f-wait"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Offer Callback Option</div><div class="toggle-sub">Let callers request a callback instead of waiting</div></div>
+      <label class="toggle"><input type="checkbox" id="f-callback"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" style="margin-top:1.25rem" onclick="save()">Save Queue Settings</button>
+    <div class="saved-msg" id="saved-msg"></div>
+  </div>
+</div>
+<script>
+  let data = {};
+  async function load() {
+    const r = await fetch('/api/call-queue-settings');
+    data = await r.json();
+    document.getElementById('f-maxq').value = data.max_queue_size ?? 5;
+    document.getElementById('f-timeout').value = data.queue_timeout_seconds ?? 120;
+    document.getElementById('f-pos').checked = !!data.play_position_in_queue;
+    document.getElementById('f-wait').checked = !!data.estimated_wait_message;
+    document.getElementById('f-callback').checked = !!data.offer_callback;
+  }
+  async function save() {
+    data.max_queue_size = parseInt(document.getElementById('f-maxq').value) || 5;
+    data.queue_timeout_seconds = parseInt(document.getElementById('f-timeout').value) || 120;
+    data.play_position_in_queue = document.getElementById('f-pos').checked;
+    data.estimated_wait_message = document.getElementById('f-wait').checked;
+    data.offer_callback = document.getElementById('f-callback').checked;
+    await fetch('/api/call-queue-settings', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const msg = document.getElementById('saved-msg');
+    msg.textContent = '✓ Saved';
+    setTimeout(() => { msg.textContent = ''; }, 2000);
+  }
+  load();
+</script>
+</body>
+</html>

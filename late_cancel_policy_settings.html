@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancellation Policy — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .8rem; padding: .55rem .75rem; outline: none; resize: vertical; min-height: 60px; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .28rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .field-wrap { margin-bottom: .9rem; }
+    .section-divider { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; border-top: 1px solid var(--border); padding-top: .9rem; margin: .9rem 0 .9rem; }
+    .fee-row { display: flex; gap: .75rem; margin-bottom: .9rem; flex-wrap: wrap; }
+    .fee-opt { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .65rem .9rem; display: flex; align-items: center; gap: .45rem; cursor: pointer; flex: 1; min-width: 130px; }
+    .fee-opt input[type=radio] { accent-color: var(--accent); width: 14px; height: 14px; flex-shrink: 0; }
+    .fee-opt-label { font-size: .8rem; font-weight: 700; }
+    .fee-opt-sub { font-size: .68rem; color: var(--muted); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Cancellation Policy</div>
+  <p class="page-sub">Define your cancellation window and fee structure. Your AI communicates the policy clearly at booking and sends the right message when clients cancel — protecting your revenue from late cancellations.</p>
+
+  <div class="card">
+    <div class="card-title">Policy Rules</div>
+    <div class="row">
+      <div><div class="row-label">Enable Cancellation Policy</div><div class="row-sub">Enforce fees for late cancellations</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Free Cancel Window (hours)</div><div class="row-sub">Cancellations before this are always free</div></div>
+      <input type="number" id="free-hours" min="1" max="168" placeholder="24">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Allow Client Self-Cancel</div><div class="row-sub">Clients can cancel via SMS link</div></div>
+      <label class="toggle"><input type="checkbox" id="self-cancel"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Self-Cancel Cutoff (hours before)</div><div class="row-sub">Latest clients can self-cancel</div></div>
+      <input type="number" id="self-cancel-cutoff" min="0" max="72" placeholder="4">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Waive First Offense</div><div class="row-sub">No fee on client's first late cancel</div></div>
+      <label class="toggle"><input type="checkbox" id="waive-first"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Free Cancels / Month</div><div class="row-sub">After this, all late cancels are charged</div></div>
+      <input type="number" id="max-free" min="0" max="10" placeholder="1">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notify Client on Cancel</div></div>
+      <label class="toggle"><input type="checkbox" id="notify"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Fee Structure</div>
+    <div class="section-divider">Late Cancellation (within free window)</div>
+    <div class="field-label">Fee Type</div>
+    <div class="fee-row">
+      <label class="fee-opt">
+        <input type="radio" name="late-fee-type" value="flat">
+        <div><div class="fee-opt-label">Flat Fee</div><div class="fee-opt-sub">Fixed amount</div></div>
+      </label>
+      <label class="fee-opt">
+        <input type="radio" name="late-fee-type" value="percentage">
+        <div><div class="fee-opt-label">Percentage</div><div class="fee-opt-sub">% of service</div></div>
+      </label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Late Cancel Flat ($)</div></div>
+      <input type="number" id="late-flat" min="0" max="200" placeholder="15">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Late Cancel Pct (%)</div></div>
+      <input type="number" id="late-pct" min="0" max="100" placeholder="25">
+    </div>
+    <div class="section-divider">Same-Day Cancellation</div>
+    <div class="row">
+      <div><div class="row-label">Same-Day Flat ($)</div></div>
+      <input type="number" id="sameday-flat" min="0" max="500" placeholder="25">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Same-Day Pct (%)</div></div>
+      <input type="number" id="sameday-pct" min="0" max="100" placeholder="50">
+    </div>
+    <div class="field-wrap" style="margin-top:.75rem">
+      <div class="field-label">Cancellation Message to Client</div>
+      <textarea id="cancel-msg" rows="2"></textarea>
+    </div>
+    <button class="save-btn" onclick="save()">Save Cancellation Policy</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/settings/late-cancel-policy-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled ?? true;
+    document.getElementById('free-hours').value = d.free_cancel_hours ?? 24;
+    document.getElementById('self-cancel').checked = d.allow_client_self_cancel ?? true;
+    document.getElementById('self-cancel-cutoff').value = d.self_cancel_cutoff_hours ?? 4;
+    document.getElementById('waive-first').checked = d.waive_first_offense ?? true;
+    document.getElementById('max-free').value = d.max_free_cancels_per_month ?? 1;
+    document.getElementById('notify').checked = d.notify_on_cancel ?? true;
+    const lateFeeType = d.late_cancel_fee_type || 'flat';
+    document.querySelectorAll('input[name=late-fee-type]').forEach(r => { r.checked = r.value === lateFeeType; });
+    document.getElementById('late-flat').value = d.late_cancel_fee_flat ?? 15;
+    document.getElementById('late-pct').value = d.late_cancel_fee_pct ?? 25;
+    document.getElementById('sameday-flat').value = d.same_day_cancel_fee_flat ?? 25;
+    document.getElementById('sameday-pct').value = d.same_day_cancel_fee_pct ?? 50;
+    document.getElementById('cancel-msg').value = d.cancellation_message || '';
+  }
+  async function save() {
+    const lateFeeEl = document.querySelector('input[name=late-fee-type]:checked');
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      free_cancel_hours: parseInt(document.getElementById('free-hours').value) || 24,
+      allow_client_self_cancel: document.getElementById('self-cancel').checked,
+      self_cancel_cutoff_hours: parseInt(document.getElementById('self-cancel-cutoff').value) || 4,
+      waive_first_offense: document.getElementById('waive-first').checked,
+      max_free_cancels_per_month: parseInt(document.getElementById('max-free').value) || 1,
+      notify_on_cancel: document.getElementById('notify').checked,
+      late_cancel_fee_type: lateFeeEl ? lateFeeEl.value : 'flat',
+      late_cancel_fee_flat: parseInt(document.getElementById('late-flat').value) || 15,
+      late_cancel_fee_pct: parseInt(document.getElementById('late-pct').value) || 25,
+      same_day_cancel_fee_flat: parseInt(document.getElementById('sameday-flat').value) || 25,
+      same_day_cancel_fee_pct: parseInt(document.getElementById('sameday-pct').value) || 50,
+      cancellation_message: document.getElementById('cancel-msg').value,
+    };
+    await fetch('/api/settings/late-cancel-policy-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

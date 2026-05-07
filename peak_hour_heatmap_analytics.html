@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Peak Hour Heatmap — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem .9rem; text-align: center; }
+    .hero-label { font-size: .6rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.15rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .heatmap-wrap { overflow-x: auto; }
+    .heatmap-table { border-collapse: collapse; min-width: 600px; width: 100%; }
+    .heatmap-table th { font-size: .6rem; font-weight: 600; color: var(--muted); text-align: center; padding: .1rem .08rem; }
+    .heatmap-table td.day-label { font-size: .72rem; font-weight: 700; color: var(--text); padding-right: .5rem; white-space: nowrap; text-align: right; width: 36px; }
+    .heatmap-table td.cell { width: 24px; height: 18px; border-radius: 3px; transition: opacity .2s; cursor: default; }
+    .legend { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; }
+    .legend-label { font-size: .68rem; color: var(--muted); }
+    .legend-bar { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(to right, #1a1020, #a78bfa); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Peak Hour Heatmap</div>
+  <p class="page-sub">Visualize exactly when your phone is busiest. Each cell represents one hour of one day — darker means fewer calls, brighter purple means high call volume. Use this to staff smarter and schedule AI downtime during slow periods.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Busiest Hour</div>
+      <div class="hero-val" id="h-top" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Busiest Day</div>
+      <div class="hero-val" id="h-day" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Calls/Hour</div>
+      <div class="hero-val" id="h-avg" style="color:var(--green)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Call Volume by Hour &amp; Day</div>
+    <div class="heatmap-wrap">
+      <table class="heatmap-table" id="heatmap"></table>
+    </div>
+    <div class="legend">
+      <span class="legend-label">Low</span>
+      <div class="legend-bar"></div>
+      <span class="legend-label">High</span>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/call-peak-distribution').then(r => r.json());
+    document.getElementById('h-top').textContent = d.top_hour || '—';
+    document.getElementById('h-day').textContent = d.busiest_day || '—';
+    document.getElementById('h-avg').textContent = d.avg_calls_per_hour != null ? d.avg_calls_per_hour : '—';
+
+    const days = d.days || [];
+    const grid = d.grid || [];
+    const maxVal = d.max_val || 1;
+    const table = document.getElementById('heatmap');
+
+    // Header row with hour labels (every 3 hours)
+    let headerHtml = '<tr><th></th>';
+    for (let h = 0; h < 24; h++) {
+      const label = h % 3 === 0 ? (h === 0 ? '12a' : h < 12 ? h+'a' : h === 12 ? '12p' : (h-12)+'p') : '';
+      headerHtml += `<th style="font-size:.55rem">${label}</th>`;
+    }
+    headerHtml += '</tr>';
+
+    let bodyHtml = '';
+    days.forEach((day, di) => {
+      bodyHtml += `<tr><td class="day-label">${esc(day)}</td>`;
+      for (let h = 0; h < 24; h++) {
+        const val = (grid[di] || [])[h] || 0;
+        const intensity = val / maxVal;
+        const alpha = Math.max(0.04, intensity);
+        const r = Math.round(167 * intensity);
+        const g = Math.round(139 * intensity);
+        const b = Math.round(250 * Math.max(0.15, intensity));
+        const bg = `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
+        bodyHtml += `<td class="cell" style="background:${bg}" title="${day} ${h}:00 — intensity ${(intensity*100).toFixed(0)}%"></td>`;
+      }
+      bodyHtml += '</tr>';
+    });
+
+    table.innerHTML = headerHtml + bodyHtml;
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

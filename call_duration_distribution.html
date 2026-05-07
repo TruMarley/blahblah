@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Duration Distribution — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .bar-row { display: flex; align-items: center; gap: .85rem; margin-bottom: 1rem; }
+    .bar-row:last-child { margin-bottom: 0; }
+    .bucket-label { font-size: .8rem; font-weight: 700; width: 100px; flex-shrink: 0; }
+    .bar-track { flex: 1; background: var(--surface2); border-radius: 5px; height: 14px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 5px; background: var(--accent); opacity: .8; }
+    .bar-right { display: flex; gap: .6rem; align-items: center; width: 90px; justify-content: flex-end; flex-shrink: 0; }
+    .bar-count { font-size: .78rem; font-weight: 900; }
+    .bar-pct { font-size: .7rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Duration Distribution</div>
+  <p class="page-sub">How long AI-handled calls last — identifies complex inquiries vs. quick bookings.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg Duration</div>
+      <div class="hero-val" id="h-avg" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total Calls</div>
+      <div class="hero-val" id="h-total">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Calls by Duration Bucket</div>
+    <div id="bar-list"></div>
+  </div>
+</div>
+<script>
+  function fmtSec(s) {
+    if (s < 60) return s + 's';
+    return Math.floor(s/60) + 'm ' + (s%60 ? (s%60)+'s' : '');
+  }
+  const COLORS = ['#60a5fa','#a78bfa','#34d399','#fbbf24','#fb923c','#f87171'];
+  async function load() {
+    const r = await fetch('/api/analytics/call-duration-distribution');
+    const d = await r.json();
+    document.getElementById('h-avg').textContent = fmtSec(d.avg_duration_sec);
+    document.getElementById('h-total').textContent = d.total_calls;
+    const max = Math.max(...(d.buckets||[]).map(b=>b.count),1);
+    document.getElementById('bar-list').innerHTML = (d.buckets||[]).map((b,i) => `
+      <div class="bar-row">
+        <div class="bucket-label">${esc(b.label)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(b.count/max*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]}"></div></div>
+        <div class="bar-right"><span class="bar-count">${b.count}</span><span class="bar-pct">${b.pct}%</span></div>
+      </div>`).join('');
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

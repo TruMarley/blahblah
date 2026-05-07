@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Locations — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e;
+      --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399;
+      --red: #f87171; --yellow: #fbbf24;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; height: 58px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.15rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+    .nav-links a { color: var(--muted); font-size: .82rem; text-decoration: none; }
+    .nav-links a:hover { color: var(--text); }
+
+    .shell { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 5rem; }
+
+    /* Header */
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+    .page-title { font-size: 1.6rem; font-weight: 900; letter-spacing: -.03em; }
+    .page-title .count { color: var(--muted); font-size: 1rem; font-weight: 400; margin-left: .5rem; }
+
+    /* Summary bar */
+    .summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; }
+    .summary-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: .35rem; }
+    .summary-val { font-size: 1.75rem; font-weight: 900; letter-spacing: -.04em; }
+    .summary-val.green { color: var(--green); }
+    .summary-val.accent { color: var(--accent); }
+
+    /* Location grid */
+    .loc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 1.25rem; }
+    .loc-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; transition: border-color .2s; }
+    .loc-card:hover { border-color: #2a2a2a; }
+    .loc-card.inactive { opacity: .6; }
+    .loc-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+    .loc-name { font-size: 1rem; font-weight: 800; line-height: 1.3; }
+    .loc-type { font-size: .7rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; margin-top: .2rem; }
+    .status-badge { flex-shrink: 0; display: inline-block; padding: .2rem .6rem; border-radius: 99px; font-size: .68rem; font-weight: 700; text-transform: capitalize; }
+    .status-badge.active { background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.25); color: var(--green); }
+    .status-badge.inactive { background: rgba(102,102,102,.12); border: 1px solid rgba(102,102,102,.25); color: var(--muted); }
+
+    .loc-meta { font-size: .8rem; color: var(--muted); display: flex; flex-direction: column; gap: .3rem; }
+    .loc-meta span { display: flex; align-items: center; gap: .4rem; }
+
+    .loc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+    .loc-stat { background: var(--surface2); border-radius: 8px; padding: .6rem .75rem; }
+    .loc-stat-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .2rem; }
+    .loc-stat-val { font-size: 1.2rem; font-weight: 900; letter-spacing: -.03em; }
+
+    .loc-actions { display: flex; gap: .6rem; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .85rem; border-radius: 8px; font-size: .78rem; font-weight: 600; border: none; cursor: pointer; text-decoration: none; transition: opacity .15s; }
+    .btn:hover { opacity: .8; }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-red { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.25); color: var(--red); }
+    .btn-lg { padding: .65rem 1.25rem; font-size: .85rem; border-radius: 10px; font-weight: 700; }
+
+    /* Add location modal */
+    .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+    .modal-bg.open { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; width: 100%; max-width: 440px; }
+    .modal h2 { font-size: 1.1rem; font-weight: 800; margin-bottom: 1.25rem; }
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: .72rem; font-weight: 600; color: var(--muted); margin-bottom: .3rem; }
+    .field input, .field select { width: 100%; background: #0d0d0d; border: 1px solid var(--border); color: var(--text); font-size: .85rem; padding: .6rem .85rem; border-radius: 8px; outline: none; }
+    .field input:focus, .field select:focus { border-color: var(--accent); }
+    .field input::placeholder { color: #444; }
+    .modal-footer { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.25rem; }
+    .error-msg { font-size: .78rem; color: var(--red); margin-top: .5rem; display: none; }
+
+    .empty-state { grid-column: 1/-1; text-align: center; padding: 4rem 2rem; color: var(--muted); }
+    .empty-state h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: .5rem; color: var(--text); }
+    .empty-state p { font-size: .82rem; }
+
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--green); color: #000; padding: .7rem 1.2rem; border-radius: 9px; font-weight: 700; font-size: .82rem; opacity: 0; transform: translateY(8px); transition: all .25s; z-index: 999; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <div class="nav-links">
+    <a href="/dashboard">Dashboard</a>
+    <a href="/appointments">Appointments</a>
+    <a href="/locations-dashboard" style="color:var(--text)">Locations</a>
+    <a href="/live">Live</a>
+  </div>
+</nav>
+
+<div class="shell">
+  <div class="page-header">
+    <div class="page-title">Locations <span class="count" id="loc-count"></span></div>
+    <button class="btn btn-accent btn-lg" onclick="openModal()">+ Add Location</button>
+  </div>
+
+  <div class="summary-row">
+    <div class="summary-card"><div class="summary-label">Total Locations</div><div class="summary-val accent" id="s-total">—</div></div>
+    <div class="summary-card"><div class="summary-label">Active</div><div class="summary-val green" id="s-active">—</div></div>
+    <div class="summary-card"><div class="summary-label">Today's Bookings</div><div class="summary-val" id="s-today">—</div></div>
+    <div class="summary-card"><div class="summary-label">All-Time Bookings</div><div class="summary-val" id="s-alltime">—</div></div>
+  </div>
+
+  <div class="loc-grid" id="loc-grid">
+    <div class="empty-state"><h3>Loading locations…</h3></div>
+  </div>
+</div>
+
+<!-- Add Location Modal -->
+<div class="modal-bg" id="modal">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>Add Location</h2>
+    <div class="field"><label>Shop Name *</label><input id="m-name" placeholder="Kings Cuts — Brickell"></div>
+    <div class="field"><label>Address *</label><input id="m-address" placeholder="456 Brickell Ave, Miami FL 33131"></div>
+    <div class="field"><label>Phone *</label><input id="m-phone" placeholder="7865550002" type="tel"></div>
+    <div class="field"><label>Type</label>
+      <select id="m-type">
+        <option value="barbershop">Barbershop</option>
+        <option value="salon">Hair Salon</option>
+        <option value="nail_salon">Nail Salon</option>
+        <option value="spa">Spa / Day Spa</option>
+      </select>
+    </div>
+    <div class="field"><label>AI Receptionist Name</label><input id="m-ainame" placeholder="Alex"></div>
+    <div class="error-msg" id="m-error"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-accent" onclick="addLocation()">Add Location</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let locations = [];
+  let stats = {};
+
+  async function load() {
+    const [lr, sr] = await Promise.all([
+      fetch('/api/locations').then(r => r.json()).catch(() => ({locations: []})),
+      fetch('/api/stats').then(r => r.json()).catch(() => ({})),
+    ]);
+    locations = lr.locations || lr || [];
+    stats = sr;
+
+    document.getElementById('s-total').textContent = locations.length;
+    document.getElementById('s-active').textContent = locations.filter(l => l.status === 'active').length;
+    document.getElementById('s-today').textContent = stats.today ?? '—';
+    document.getElementById('s-alltime').textContent = stats.total_booked ?? '—';
+    document.getElementById('loc-count').textContent = `(${locations.length})`;
+
+    render();
+  }
+
+  function slugify(name) {
+    return name.toLowerCase().replace(/[—–]/g, '-').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/^-+|-+$/g, '');
+  }
+
+  function render() {
+    const grid = document.getElementById('loc-grid');
+    if (!locations.length) {
+      grid.innerHTML = `<div class="empty-state"><h3>No locations yet</h3><p>Add your first shop location to get started.</p></div>`;
+      return;
+    }
+    grid.innerHTML = locations.map((loc, i) => {
+      const slug = slugify(loc.name || '');
+      const active = loc.status === 'active';
+      return `
+        <div class="loc-card ${active ? '' : 'inactive'}">
+          <div class="loc-header">
+            <div>
+              <div class="loc-name">${esc(loc.name || 'Unnamed')}</div>
+              <div class="loc-type">${esc(loc.type || 'shop')}</div>
+            </div>
+            <span class="status-badge ${loc.status || 'active'}">${loc.status || 'active'}</span>
+          </div>
+          <div class="loc-meta">
+            ${loc.address ? `<span>📍 ${esc(loc.address)}</span>` : ''}
+            ${loc.phone ? `<span>📞 ${esc(loc.phone)}</span>` : ''}
+            ${loc.ai_name ? `<span>🤖 AI: ${esc(loc.ai_name)}</span>` : ''}
+          </div>
+          <div class="loc-stats">
+            <div class="loc-stat">
+              <div class="loc-stat-label">Today</div>
+              <div class="loc-stat-val">${i === 0 ? (stats.today ?? '—') : '—'}</div>
+            </div>
+            <div class="loc-stat">
+              <div class="loc-stat-label">Callbacks</div>
+              <div class="loc-stat-val">${i === 0 ? (stats.callbacks_pending ?? '—') : '—'}</div>
+            </div>
+          </div>
+          <div class="loc-actions">
+            <a href="/appointments" class="btn btn-ghost">View Appointments</a>
+            ${slug ? `<a href="/shop/${slug}" class="btn btn-ghost" target="_blank">Public Page ↗</a>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function openModal() { document.getElementById('modal').classList.add('open'); }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+    document.getElementById('m-error').style.display = 'none';
+  }
+  document.getElementById('modal').addEventListener('click', closeModal);
+
+  async function addLocation() {
+    const errEl = document.getElementById('m-error');
+    errEl.style.display = 'none';
+    const body = {
+      name: document.getElementById('m-name').value.trim(),
+      address: document.getElementById('m-address').value.trim(),
+      phone: document.getElementById('m-phone').value.trim(),
+      type: document.getElementById('m-type').value,
+      ai_name: document.getElementById('m-ainame').value.trim() || 'Alex',
+      status: 'active',
+    };
+    if (!body.name || !body.address || !body.phone) {
+      errEl.textContent = 'Name, address, and phone are required.';
+      errEl.style.display = 'block';
+      return;
+    }
+    const r = await fetch('/api/locations/add', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    if (d.ok || d.location) {
+      closeModal();
+      ['m-name','m-address','m-phone','m-ainame'].forEach(id => document.getElementById(id).value = '');
+      showToast('Location added!');
+      await load();
+    } else {
+      errEl.textContent = d.error || 'Failed to add location.';
+      errEl.style.display = 'block';
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  load();
+</script>
+</body>
+</html>

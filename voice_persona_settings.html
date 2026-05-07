@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice Persona — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    .text-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 180px; }
+    .text-input:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .45rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: .82rem; padding: .7rem .9rem; outline: none; resize: vertical; min-height: 60px; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .preview-box { background: rgba(167,139,250,.06); border: 1px solid rgba(167,139,250,.2); border-radius: 10px; padding: .8rem 1rem; font-size: .8rem; color: var(--accent); line-height: 1.6; margin-top: 1rem; }
+    .preview-label { font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; opacity: .7; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Voice Persona</div>
+  <p class="page-sub">Customize how your AI receptionist introduces itself, greets callers, and handles handoffs. Make every call feel on-brand.</p>
+
+  <div class="card">
+    <div class="card-title">Persona Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Custom Persona</div><div class="row-sub">Use branded AI name and style</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Persona Name</div><div class="row-sub">How the AI introduces itself</div></div>
+      <input class="text-input" type="text" id="persona-name" placeholder="e.g. Aria">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Voice Style</div><div class="row-sub">Tone of the AI voice</div></div>
+      <select id="voice-style">
+        <option value="friendly">Friendly</option>
+        <option value="professional">Professional</option>
+        <option value="energetic">Energetic</option>
+        <option value="calm">Calm</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Language</div><div class="row-sub">Caller language</div></div>
+      <select id="language">
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="es-US">Spanish (US)</option>
+        <option value="fr-FR">French</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use Client Name</div><div class="row-sub">Greet returning clients by name</div></div>
+      <label class="toggle"><input type="checkbox" id="use-client-name"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Phrases</div>
+    <div style="margin-bottom:1rem">
+      <div class="row-label" style="font-size:.8rem;margin-bottom:.4rem">Greeting Phrase</div>
+      <textarea id="greeting-phrase" rows="2"></textarea>
+    </div>
+    <div>
+      <div class="row-label" style="font-size:.8rem;margin-bottom:.4rem">Fallback / Transfer Phrase</div>
+      <textarea id="fallback-phrase" rows="2"></textarea>
+    </div>
+    <div class="preview-box" style="margin-top:1rem">
+      <div class="preview-label">Live Preview</div>
+      <div id="preview-text">—</div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  function updatePreview() {
+    const name = document.getElementById('persona-name').value || 'Aria';
+    const greeting = document.getElementById('greeting-phrase').value || 'Thanks for calling, how can I help?';
+    document.getElementById('preview-text').textContent = `"Hi, this is ${name}. ${greeting}"`;
+  }
+
+  async function load() {
+    const d = await fetch('/api/settings/voice-persona').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('persona-name').value = d.persona_name || '';
+    document.getElementById('voice-style').value = d.voice_style || 'friendly';
+    document.getElementById('language').value = d.language || 'en-US';
+    document.getElementById('use-client-name').checked = d.use_client_name;
+    document.getElementById('greeting-phrase').value = d.greeting_phrase || '';
+    document.getElementById('fallback-phrase').value = d.fallback_phrase || '';
+    updatePreview();
+  }
+
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      persona_name: document.getElementById('persona-name').value,
+      voice_style: document.getElementById('voice-style').value,
+      language: document.getElementById('language').value,
+      use_client_name: document.getElementById('use-client-name').checked,
+      greeting_phrase: document.getElementById('greeting-phrase').value,
+      fallback_phrase: document.getElementById('fallback-phrase').value
+    };
+    await fetch('/api/settings/voice-persona', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  ['persona-name','greeting-phrase'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updatePreview);
+  });
+
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monthly Booking Heatmap — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.6rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; overflow-x: auto; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .heatmap-wrap { display: grid; grid-template-columns: 64px repeat(4, 1fr); gap: 4px; min-width: 420px; }
+    .hm-cell { border-radius: 6px; aspect-ratio: 1.3; display: flex; align-items: center; justify-content: center; font-size: .62rem; font-weight: 700; color: rgba(255,255,255,.7); cursor: default; }
+    .hm-month { font-size: .7rem; font-weight: 700; color: var(--muted); display: flex; align-items: center; justify-content: flex-start; padding-right: .5rem; }
+    .hm-week-header { font-size: .6rem; font-weight: 700; color: var(--muted); text-align: center; padding-bottom: .3rem; }
+    .legend { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; font-size: .68rem; color: var(--muted); }
+    .legend-bar { display: flex; gap: 3px; }
+    .legend-swatch { width: 18px; height: 10px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Monthly Booking Heatmap</div>
+  <p class="page-sub">Identify your busiest weeks across the year — spot seasonal peaks, plan staffing, and time promotions for slow periods.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Busiest Month</div>
+      <div class="hero-val" id="h-month" style="color:var(--accent);font-size:1.1rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Peak Week</div>
+      <div class="hero-val" id="h-week" style="color:var(--yellow);font-size:1.1rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Bookings/Week</div>
+      <div class="hero-val" id="h-avg" style="color:var(--green)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Bookings by Month &amp; Week</div>
+    <div class="heatmap-wrap" id="heatmap-grid"></div>
+    <div class="legend">
+      <span>Less</span>
+      <div class="legend-bar" id="legend-bar"></div>
+      <span>More</span>
+    </div>
+  </div>
+</div>
+<script>
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function heatColor(norm) {
+    // dark → accent purple gradient
+    const r = Math.round(30 + norm * (167 - 30));
+    const g = Math.round(20 + norm * (139 - 20));
+    const b = Math.round(50 + norm * (250 - 50));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  async function load() {
+    const d = await fetch('/api/analytics/monthly-booking-heatmap').then(r => r.json());
+    const cells = d.cells || [];   // [{month_idx, week_idx, count}]
+    const months = d.months || []; // [{name, total}]
+
+    const maxCount = Math.max(...cells.map(c => c.count), 1);
+    const allCounts = cells.map(c => c.count);
+    const avgBookings = allCounts.length ? Math.round(allCounts.reduce((a,b) => a+b, 0) / allCounts.length) : 0;
+
+    const peakCell = cells.reduce((a,b) => b.count > a.count ? b : a, cells[0]);
+    const busiestMonth = months.reduce((a,b) => b.total > a.total ? b : a, months[0]);
+
+    document.getElementById('h-month').textContent = busiestMonth ? busiestMonth.name : '—';
+    document.getElementById('h-week').textContent = peakCell ? `${MONTHS[peakCell.month_idx]} W${peakCell.week_idx + 1}` : '—';
+    document.getElementById('h-avg').textContent = avgBookings;
+
+    // Build grid: header row + 12 month rows
+    const grid = document.getElementById('heatmap-grid');
+    // header
+    const headers = ['', 'Wk 1', 'Wk 2', 'Wk 3', 'Wk 4'];
+    grid.innerHTML = headers.map(h => `<div class="hm-week-header">${h}</div>`).join('');
+
+    for (let m = 0; m < 12; m++) {
+      grid.innerHTML += `<div class="hm-month">${MONTHS[m]}</div>`;
+      for (let w = 0; w < 4; w++) {
+        const cell = cells.find(c => c.month_idx === m && c.week_idx === w);
+        const count = cell ? cell.count : 0;
+        const norm = count / maxCount;
+        const bg = heatColor(norm);
+        grid.innerHTML += `<div class="hm-cell" style="background:${bg}" title="${MONTHS[m]} Wk${w+1}: ${count} bookings">${count}</div>`;
+      }
+    }
+
+    // legend
+    const legendBar = document.getElementById('legend-bar');
+    legendBar.innerHTML = [0, 0.2, 0.4, 0.6, 0.8, 1].map(n =>
+      `<div class="legend-swatch" style="background:${heatColor(n)}"></div>`
+    ).join('');
+  }
+
+  load();
+</script>
+</body>
+</html>

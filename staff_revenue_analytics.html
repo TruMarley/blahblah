@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Revenue — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .staff-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .85rem; }
+    .staff-name { font-size: .82rem; font-weight: 700; width: 60px; flex-shrink: 0; }
+    .staff-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+    .staff-fill { height: 100%; border-radius: 4px; background: var(--accent); }
+    .staff-rev { font-size: .75rem; font-weight: 700; color: var(--green); width: 65px; text-align: right; }
+    .staff-appts { font-size: .68rem; color: var(--muted); width: 50px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Revenue</div>
+  <p class="page-sub">See how much revenue each staff member generates over the past 30 days. Identify top performers and opportunities for coaching and scheduling optimisation.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--green)">—</div><div class="stat-lbl">Total Revenue (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-avg" style="color:var(--accent)">—</div><div class="stat-lbl">Avg per Staff</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-top" style="color:var(--yellow)">—</div><div class="stat-lbl">Top Earner Share</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Revenue by Staff Member</div>
+    <div id="staff-list"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['var(--accent)','var(--green)','var(--yellow)','#60a5fa','var(--red)'];
+  async function load() {
+    const d = await fetch('/api/analytics/staff-revenue-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = '$' + d.total_revenue_30d.toLocaleString(undefined, {maximumFractionDigits:0});
+    document.getElementById('h-avg').textContent = '$' + d.avg_revenue_per_staff.toLocaleString(undefined, {maximumFractionDigits:0});
+    document.getElementById('h-top').textContent = d.top_earner_pct.toFixed(1) + '%';
+    const sl = document.getElementById('staff-list');
+    const maxR = Math.max(...d.staff.map(s => s.revenue));
+    d.staff.forEach((s, i) => {
+      const w = (s.revenue / maxR * 100).toFixed(1);
+      sl.innerHTML += '<div class="staff-row"><div class="staff-name">' + s.name + '</div><div class="staff-track"><div class="staff-fill" style="width:' + w + '%;background:' + COLORS[i % COLORS.length] + '"></div></div><div class="staff-rev" style="color:' + COLORS[i % COLORS.length] + '">$' + s.revenue.toLocaleString(undefined, {maximumFractionDigits:0}) + '</div><div class="staff-appts">' + s.appointments + ' appts</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

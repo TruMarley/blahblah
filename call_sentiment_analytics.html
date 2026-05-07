@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Sentiment — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .call-list { display: flex; flex-direction: column; gap: .5rem; }
+    .call-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .7rem .9rem; display: flex; align-items: flex-start; gap: .75rem; }
+    .call-time { font-size: .72rem; color: var(--muted); min-width: 44px; padding-top: .1rem; }
+    .call-svc { font-size: .78rem; font-weight: 700; flex: 1; }
+    .call-summary { font-size: .72rem; color: var(--muted); margin-top: .2rem; line-height: 1.4; }
+    .badge { font-size: .62rem; font-weight: 800; border-radius: 5px; padding: .1rem .38rem; flex-shrink: 0; margin-top: .05rem; }
+    .badge-positive { background: rgba(52,211,153,.15); color: var(--green); }
+    .badge-neutral { background: rgba(251,191,36,.12); color: var(--yellow); }
+    .badge-negative { background: rgba(248,113,113,.12); color: var(--red); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Sentiment</div>
+  <p class="page-sub">Monitor the emotional tone of your AI's calls. Spot frustrated callers early, identify services that attract difficult conversations, and ensure your AI is leaving clients feeling positive.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg Sentiment Score</div>
+      <div class="hero-val" id="h-score" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Positive Calls</div>
+      <div class="hero-val" id="h-pos" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Negative Calls</div>
+      <div class="hero-val" id="h-neg" style="color:var(--red)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">6-Month Sentiment Trend</div>
+    <svg id="trend-chart" viewBox="0 0 680 140" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+    <div style="display:flex;gap:1.2rem;margin-top:.6rem;font-size:.7rem">
+      <span style="color:var(--green)">■ Positive %</span>
+      <span style="color:var(--red)">■ Negative %</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Recent Calls</div>
+    <div class="call-list" id="call-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/call-sentiment-stats').then(r => r.json());
+    document.getElementById('h-score').textContent = d.avg_satisfaction_score != null ? d.avg_satisfaction_score.toFixed(2) + ' / 5' : '—';
+    document.getElementById('h-pos').textContent = d.positive_pct != null ? d.positive_pct.toFixed(1) + '%' : '—';
+    document.getElementById('h-neg').textContent = d.negative_pct != null ? d.negative_pct.toFixed(1) + '%' : '—';
+
+    // Build insight note
+    const insight = document.createElement('div');
+    insight.style.cssText = 'background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.18);border-radius:10px;padding:.85rem 1.1rem;font-size:.8rem;color:var(--green);margin-bottom:1rem';
+    insight.textContent = `${d.positive_pct.toFixed(0)}% positive — ${d.calls_analyzed_30d} calls analyzed. Most common complaint: "${d.most_common_complaint}". Neutral: ${d.neutral_pct.toFixed(0)}%.`;
+    document.getElementById('trend-chart').parentElement.insertBefore(insight, document.getElementById('trend-chart'));
+
+    const monthly = d.monthly || [];
+    if (monthly.length > 1) {
+      const W = 680, H = 140, pL = 36, pR = 16, pT = 14, pB = 24, n = monthly.length;
+      const cW = W - pL - pR, cH = H - pT - pB;
+      const pos = monthly.map(m => m.positive_pct), neg = monthly.map(m => m.negative_pct);
+      const allVals = [...pos, ...neg];
+      const mx = Math.max(...allVals) * 1.15 || 100;
+      const ptsPos = pos.map((v, i) => ({ x: pL + i * (cW / (n - 1)), y: pT + cH - (v / mx) * cH, v }));
+      const ptsNeg = neg.map((v, i) => ({ x: pL + i * (cW / (n - 1)), y: pT + cH - (v / mx) * cH, v }));
+      const pathPos = ptsPos.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+      const pathNeg = ptsNeg.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+      const bot = pT + cH;
+      const fillPos = pathPos + ' L' + ptsPos[n-1].x.toFixed(1) + ',' + bot + ' L' + pL + ',' + bot + ' Z';
+      const fillNeg = pathNeg + ' L' + ptsNeg[n-1].x.toFixed(1) + ',' + bot + ' L' + pL + ',' + bot + ' Z';
+      let svg = `<path d="${fillPos}" fill="rgba(52,211,153,.07)"/>`;
+      svg += `<path d="${fillNeg}" fill="rgba(248,113,113,.07)"/>`;
+      svg += `<path d="${pathPos}" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linejoin="round"/>`;
+      svg += `<path d="${pathNeg}" fill="none" stroke="var(--red)" stroke-width="2" stroke-linejoin="round" stroke-dasharray="5,3"/>`;
+      monthly.forEach((m, i) => { svg += `<text x="${(pL + i * (cW / (n-1))).toFixed(1)}" y="${H - pB + 13}" text-anchor="middle" fill="#555" font-size="9">${esc(m.month)}</text>`; });
+      ptsPos.forEach(p => {
+        svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="var(--green)"/>`;
+        svg += `<text x="${p.x.toFixed(1)}" y="${(p.y - 6).toFixed(1)}" text-anchor="middle" fill="#aaa" font-size="7.5">${p.v.toFixed(0)}%</text>`;
+      });
+      document.getElementById('trend-chart').innerHTML = svg;
+    }
+
+    // Top phrases
+    const list = document.getElementById('call-list');
+    (d.top_phrases || []).forEach(p => {
+      const bc = p.sentiment === 'positive' ? 'badge-positive' : p.sentiment === 'negative' ? 'badge-negative' : 'badge-neutral';
+      list.innerHTML += `<div class="call-row">
+        <div style="flex:1"><div class="call-svc">"${esc(p.phrase)}"</div></div>
+        <span class="badge ${bc}">${p.sentiment}</span>
+        <div class="call-time" style="min-width:36px;text-align:right">${p.count}×</div>
+      </div>`;
+    });
+  }
+  function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  load();
+</script>
+</body>
+</html>

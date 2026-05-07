@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Auto-Reply SMS — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-size: .8rem; padding: .6rem .8rem; outline: none; resize: vertical; min-height: 56px; font-family: inherit; line-height: 1.55; margin-top: .5rem; }
+    textarea:focus { border-color: var(--accent); }
+    .var-bar { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .35rem; }
+    .var-chip { background: #1e1e1e; border-radius: 4px; padding: .1rem .32rem; font-size: .64rem; color: var(--accent); font-family: monospace; cursor: pointer; border: 1px solid #2a2a2a; }
+    .var-chip:hover { border-color: var(--accent); }
+    .msg-label { font-size: .78rem; font-weight: 600; color: var(--muted); margin-bottom: .1rem; }
+    .char-count { font-size: .65rem; color: var(--muted); text-align: right; margin-top: .2rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Auto-Reply SMS</div>
+  <p class="page-sub">Send instant text replies when a call goes unanswered — whether it's a missed call, after-hours inquiry, or a line that's currently busy. Never let a potential booking slip away without a response.</p>
+  <div class="card">
+    <div class="card-title">Trigger Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Auto-Reply SMS</div><div class="row-sub">Send texts for unanswered calls</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Reply on Missed Call</div><div class="row-sub">Call rang but was not answered</div></div>
+      <label class="toggle"><input type="checkbox" id="on-missed"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Reply on After-Hours Call</div><div class="row-sub">Call came in outside business hours</div></div>
+      <label class="toggle"><input type="checkbox" id="on-after-hours"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Reply When Busy (On a Call)</div><div class="row-sub">Send text if another call is in progress</div></div>
+      <label class="toggle"><input type="checkbox" id="on-busy"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Include Booking Link</div><div class="row-sub">Append online booking URL to every text</div></div>
+      <label class="toggle"><input type="checkbox" id="include-link"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Reply Delay (seconds)</div><div class="row-sub">Wait before sending to feel more natural</div></div>
+      <input type="number" id="delay" min="0" max="300" placeholder="30">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Texts / Client / Day</div><div class="row-sub">Avoid texting the same person repeatedly</div></div>
+      <input type="number" id="max-per-day" min="1" max="5" placeholder="2">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Message Templates</div>
+    <div style="margin-bottom:1rem">
+      <div class="msg-label">Missed Call</div>
+      <textarea id="msg-missed" rows="2" oninput="updateCount(this,'cnt-missed')"></textarea>
+      <div class="var-bar">
+        <span class="var-chip" onclick="ins('msg-missed','{name}')">{name}</span>
+        <span class="var-chip" onclick="ins('msg-missed','{business}')">{business}</span>
+        <span class="var-chip" onclick="ins('msg-missed','{link}')">{link}</span>
+      </div>
+      <div class="char-count" id="cnt-missed">0 chars</div>
+    </div>
+    <div style="margin-bottom:1rem">
+      <div class="msg-label">After-Hours</div>
+      <textarea id="msg-after-hours" rows="2" oninput="updateCount(this,'cnt-after')"></textarea>
+      <div class="var-bar">
+        <span class="var-chip" onclick="ins('msg-after-hours','{name}')">{name}</span>
+        <span class="var-chip" onclick="ins('msg-after-hours','{business}')">{business}</span>
+        <span class="var-chip" onclick="ins('msg-after-hours','{open_time}')">{open_time}</span>
+        <span class="var-chip" onclick="ins('msg-after-hours','{link}')">{link}</span>
+      </div>
+      <div class="char-count" id="cnt-after">0 chars</div>
+    </div>
+    <div>
+      <div class="msg-label">Currently Busy</div>
+      <textarea id="msg-busy" rows="2" oninput="updateCount(this,'cnt-busy')"></textarea>
+      <div class="var-bar">
+        <span class="var-chip" onclick="ins('msg-busy','{name}')">{name}</span>
+        <span class="var-chip" onclick="ins('msg-busy','{business}')">{business}</span>
+      </div>
+      <div class="char-count" id="cnt-busy">0 chars</div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  function ins(id, v) {
+    const ta = document.getElementById(id);
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    ta.value = ta.value.slice(0,s)+v+ta.value.slice(e);
+    ta.selectionStart = ta.selectionEnd = s+v.length;
+    ta.focus();
+    updateCount(ta, id==='msg-missed'?'cnt-missed':id==='msg-after-hours'?'cnt-after':'cnt-busy');
+  }
+  function updateCount(ta, cntId) {
+    document.getElementById(cntId).textContent = ta.value.length + ' chars';
+  }
+  async function load() {
+    const d = await fetch('/api/settings/auto-reply-sms-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('on-missed').checked = d.reply_on_missed_call;
+    document.getElementById('on-after-hours').checked = d.reply_on_after_hours;
+    document.getElementById('on-busy').checked = d.reply_on_busy;
+    document.getElementById('include-link').checked = d.include_booking_link;
+    document.getElementById('delay').value = d.delay_seconds ?? 30;
+    document.getElementById('max-per-day').value = d.max_per_client_per_day ?? 2;
+    const mm = document.getElementById('msg-missed');
+    mm.value = d.missed_call_message || '';
+    updateCount(mm,'cnt-missed');
+    const mah = document.getElementById('msg-after-hours');
+    mah.value = d.after_hours_message || '';
+    updateCount(mah,'cnt-after');
+    const mb = document.getElementById('msg-busy');
+    mb.value = d.busy_message || '';
+    updateCount(mb,'cnt-busy');
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      reply_on_missed_call: document.getElementById('on-missed').checked,
+      reply_on_after_hours: document.getElementById('on-after-hours').checked,
+      reply_on_busy: document.getElementById('on-busy').checked,
+      include_booking_link: document.getElementById('include-link').checked,
+      delay_seconds: parseInt(document.getElementById('delay').value) || 30,
+      max_per_client_per_day: parseInt(document.getElementById('max-per-day').value) || 2,
+      missed_call_message: document.getElementById('msg-missed').value,
+      after_hours_message: document.getElementById('msg-after-hours').value,
+      busy_message: document.getElementById('msg-busy').value
+    };
+    await fetch('/api/settings/auto-reply-sms-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

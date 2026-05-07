@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Phone vs Online Booking — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: .35rem; font-size: .75rem; color: var(--muted); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Phone vs Online Booking</div>
+  <p class="page-sub">Track how your clients choose to book — AI phone, online portal, or walk-in. As your AI receptionist handles more calls, phone booking share typically grows while walk-in share drops, signaling higher client satisfaction.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Phone Booking Share</div>
+      <div class="hero-val" id="h-phone" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Online Booking Share</div>
+      <div class="hero-val" id="h-online" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Walk-In Share</div>
+      <div class="hero-val" id="h-walkin" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Monthly Booking Channel Mix</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Phone</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Online</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>Walk-In</div>
+    </div>
+    <svg id="chart" viewBox="0 0 680 160" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/phone-vs-online-booking').then(r => r.json());
+    document.getElementById('h-phone').textContent = d.phone_pct != null ? d.phone_pct+'%' : '—';
+    document.getElementById('h-online').textContent = d.online_pct != null ? d.online_pct+'%' : '—';
+    document.getElementById('h-walkin').textContent = d.walkin_pct != null ? d.walkin_pct+'%' : '—';
+
+    const months = d.months||[], phone = d.phone_bookings||[], online = d.online_bookings||[], walkin = d.walkin_bookings||[], totals = d.totals||[];
+    if (months.length) {
+      const W=680,H=160,pL=36,pR=16,pT=16,pB=24,n=months.length;
+      const cW=W-pL-pR, cH=H-pT-pB;
+      const mx = Math.max(...totals)*1.05;
+      function makePts(arr) { return arr.map((v,i)=>({x:pL+i*(cW/(n-1)),y:pT+cH-(v/mx)*cH,v})); }
+      function makePath(pts) { return pts.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' '); }
+      const ptsP=makePts(phone), ptsO=makePts(online), ptsW=makePts(walkin);
+      const pathP=makePath(ptsP), pathO=makePath(ptsO), pathW=makePath(ptsW);
+      const bot = pT+cH;
+      const fillP=pathP+' L'+ptsP[n-1].x.toFixed(1)+','+bot+' L'+pL+','+bot+' Z';
+      const fillO=pathO+' L'+ptsO[n-1].x.toFixed(1)+','+bot+' L'+pL+','+bot+' Z';
+      let svg = `<path d="${fillP}" fill="rgba(167,139,250,.07)"/>`;
+      svg += `<path d="${fillO}" fill="rgba(52,211,153,.06)"/>`;
+      svg += `<path d="${pathP}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>`;
+      svg += `<path d="${pathO}" fill="none" stroke="var(--green)" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6,3"/>`;
+      svg += `<path d="${pathW}" fill="none" stroke="var(--yellow)" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="3,3"/>`;
+      months.forEach((m,i) => {
+        svg+=`<text x="${(pL+i*(cW/(n-1))).toFixed(1)}" y="${H-pB+13}" text-anchor="middle" fill="#555" font-size="8.5">${esc(m)}</text>`;
+      });
+      ptsP.forEach(p => {
+        svg+=`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="var(--accent)"/>`;
+      });
+      document.getElementById('chart').innerHTML=svg;
+    }
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

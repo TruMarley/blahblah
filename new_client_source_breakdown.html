@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New Client Source Breakdown — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .ch-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .65rem; }
+    .ch-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+    .ch-name { font-size: .9rem; font-weight: 800; }
+    .ch-right { text-align: right; }
+    .ch-pct { font-size: 1.1rem; font-weight: 900; color: var(--accent); }
+    .ch-count { font-size: .7rem; color: var(--muted); }
+    .bar-bg { width: 100%; height: 7px; background: var(--border); border-radius: 4px; }
+    .bar-fill { height: 7px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">New Client Source Breakdown</div>
+  <p class="page-sub">Where your new clients come from — invest in the channels that drive the most bookings.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total New Clients</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Top Channel</div>
+      <div class="hero-val" id="h-top" style="color:var(--green); font-size:1.2rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Acquisition Channels</div>
+    <div id="ch-list"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['var(--accent)','var(--green)','var(--yellow)','var(--red)','#60a5fa'];
+  async function load() {
+    const r = await fetch('/api/analytics/new-client-source-breakdown');
+    const d = await r.json();
+    const channels = d.channels || [];
+    document.getElementById('h-total').textContent = d.total || '—';
+    if (channels.length) document.getElementById('h-top').textContent = channels[0].channel;
+    const list = document.getElementById('ch-list');
+    channels.forEach((c, i) => {
+      const color = COLORS[i % COLORS.length];
+      list.innerHTML += `
+        <div class="ch-row">
+          <div class="ch-top">
+            <div class="ch-name">${esc(c.channel)}</div>
+            <div class="ch-right">
+              <div class="ch-pct" style="color:${color}">${c.pct}%</div>
+              <div class="ch-count">${c.client_count} clients</div>
+            </div>
+          </div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${c.pct}%;background:${color}"></div></div>
+        </div>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

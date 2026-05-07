@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Performance — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select, input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus, input:focus { border-color: var(--accent); }
+    input[type=number] { width: 90px; }
+    .staff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
+    .staff-tile { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; }
+    .staff-tile-name { font-size: .9rem; font-weight: 800; margin-bottom: .7rem; display: flex; align-items: center; gap: .5rem; }
+    .staff-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .kpi-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: .4rem; }
+    .kpi-label { font-size: .67rem; color: var(--muted); }
+    .kpi-val { font-size: .78rem; font-weight: 700; }
+    .kpi-bar-wrap { width: 100%; background: var(--surface); border-radius: 4px; height: 5px; margin-top: .15rem; margin-bottom: .45rem; }
+    .kpi-bar { height: 5px; border-radius: 4px; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Performance</div>
+  <p class="page-sub">Set KPI targets for your team and get alerts when performance dips. Track utilization, ticket size, tip rate, and rebook rate per staff member.</p>
+
+  <div class="card">
+    <div class="card-title">Tracking & Alerts</div>
+    <div class="row">
+      <div><div class="row-label">Enable Performance Tracking</div><div class="row-sub">Collect KPIs for each staff member</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Track Booking Rate</div></div>
+      <label class="toggle"><input type="checkbox" id="track-booking"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Track No-Show Rate</div></div>
+      <label class="toggle"><input type="checkbox" id="track-noshow"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Track Avg Ticket</div></div>
+      <label class="toggle"><input type="checkbox" id="track-ticket"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Track Tip Rate</div></div>
+      <label class="toggle"><input type="checkbox" id="track-tip"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Track Rebook Rate</div></div>
+      <label class="toggle"><input type="checkbox" id="track-rebook"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Alert on Low Performance</div><div class="row-sub">Notify when KPIs fall below thresholds</div></div>
+      <label class="toggle"><input type="checkbox" id="alert-low"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Review Cadence</div></div>
+      <select id="review-cadence">
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+        <option value="quarterly">Quarterly</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Staff View Own Stats</div><div class="row-sub">Staff can see their own KPI dashboard</div></div>
+      <label class="toggle"><input type="checkbox" id="self-view"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Staff View Team Stats</div><div class="row-sub">Staff can compare with team members</div></div>
+      <label class="toggle"><input type="checkbox" id="team-view"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">KPI Targets</div>
+    <div class="row">
+      <div><div class="row-label">Booking Utilization Target (%)</div></div>
+      <input type="number" id="target-util" min="50" max="100">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Avg Ticket Target ($)</div></div>
+      <input type="number" id="target-ticket" min="20" max="300">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Tip Rate Target (%)</div></div>
+      <input type="number" id="target-tip" min="20" max="100">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Rebook Rate Target (%)</div></div>
+      <input type="number" id="target-rebook" min="20" max="100">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max No-Show Rate (%)</div></div>
+      <input type="number" id="target-noshow" min="1" max="30">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Team Snapshot</div>
+    <div class="staff-grid" id="staff-grid"></div>
+    <button class="save-btn" onclick="save()">Save Performance Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/staff-performance-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('track-booking').checked = data.track_booking_rate;
+    document.getElementById('track-noshow').checked = data.track_no_show_rate;
+    document.getElementById('track-ticket').checked = data.track_avg_ticket;
+    document.getElementById('track-tip').checked = data.track_tip_rate;
+    document.getElementById('track-rebook').checked = data.track_rebook_rate;
+    document.getElementById('alert-low').checked = data.alert_on_low_performance;
+    document.getElementById('review-cadence').value = data.review_cadence;
+    document.getElementById('self-view').checked = data.staff_can_view_own_stats;
+    document.getElementById('team-view').checked = data.staff_can_view_team_stats;
+    const t = data.targets || {};
+    document.getElementById('target-util').value = t.booking_utilization_pct || 80;
+    document.getElementById('target-ticket').value = t.avg_ticket || 65;
+    document.getElementById('target-tip').value = t.tip_rate_pct || 75;
+    document.getElementById('target-rebook').value = t.rebook_rate_pct || 60;
+    document.getElementById('target-noshow').value = t.no_show_rate_pct || 8;
+
+    const grid = document.getElementById('staff-grid');
+    (data.staff_summary || []).forEach(s => {
+      const tile = document.createElement('div');
+      tile.className = 'staff-tile';
+      const kpis = [
+        {label:'Utilization', val:s.utilization_pct.toFixed(1)+'%', pct:s.utilization_pct, color:s.color},
+        {label:'Avg Ticket', val:'$'+s.avg_ticket.toFixed(0), pct:Math.min(s.avg_ticket/100*100,100), color:s.color},
+        {label:'Tip Rate', val:s.tip_rate_pct.toFixed(1)+'%', pct:s.tip_rate_pct, color:s.color},
+        {label:'Rebook Rate', val:s.rebook_rate_pct.toFixed(1)+'%', pct:s.rebook_rate_pct, color:s.color},
+      ];
+      tile.innerHTML = `
+        <div class="staff-tile-name"><div class="staff-dot" style="background:${s.color}"></div>${s.name}</div>
+        ${kpis.map(k => `
+          <div class="kpi-row"><span class="kpi-label">${k.label}</span><span class="kpi-val" style="color:${k.color}">${k.val}</span></div>
+          <div class="kpi-bar-wrap"><div class="kpi-bar" style="width:${k.pct}%;background:${k.color};opacity:.7"></div></div>
+        `).join('')}
+      `;
+      grid.appendChild(tile);
+    });
+  }
+  async function save() {
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      track_booking_rate: document.getElementById('track-booking').checked,
+      track_no_show_rate: document.getElementById('track-noshow').checked,
+      track_avg_ticket: document.getElementById('track-ticket').checked,
+      track_tip_rate: document.getElementById('track-tip').checked,
+      track_rebook_rate: document.getElementById('track-rebook').checked,
+      alert_on_low_performance: document.getElementById('alert-low').checked,
+      review_cadence: document.getElementById('review-cadence').value,
+      staff_can_view_own_stats: document.getElementById('self-view').checked,
+      staff_can_view_team_stats: document.getElementById('team-view').checked,
+      targets: {
+        booking_utilization_pct: parseInt(document.getElementById('target-util').value)||80,
+        avg_ticket: parseInt(document.getElementById('target-ticket').value)||65,
+        tip_rate_pct: parseInt(document.getElementById('target-tip').value)||75,
+        rebook_rate_pct: parseInt(document.getElementById('target-rebook').value)||60,
+        no_show_rate_pct: parseInt(document.getElementById('target-noshow').value)||8,
+      },
+    };
+    await fetch('/api/settings/staff-performance-cfg', {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

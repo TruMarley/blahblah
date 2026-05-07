@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client History — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; --gold: #f59e0b; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    /* Client header */
+    .client-header { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1.25rem; }
+    .client-avatar { width: 56px; height: 56px; border-radius: 50%; background: rgba(167,139,250,.15); border: 2px solid rgba(167,139,250,.3); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 900; color: var(--accent); flex-shrink: 0; }
+    .client-info { flex: 1; }
+    .client-name { font-size: 1.15rem; font-weight: 900; letter-spacing: -.03em; }
+    .client-phone { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
+    .stat-chips { display: flex; gap: .75rem; margin-top: .75rem; flex-wrap: wrap; }
+    .stat-chip { font-size: .72rem; font-weight: 700; padding: .25rem .65rem; border-radius: 99px; background: var(--surface2); border: 1px solid var(--border); }
+    .stat-chip.green { color: var(--green); border-color: rgba(52,211,153,.2); background: rgba(52,211,153,.06); }
+    .stat-chip.accent { color: var(--accent); border-color: rgba(167,139,250,.2); background: rgba(167,139,250,.06); }
+    /* Client selector */
+    .client-select-row { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.5rem; }
+    .client-select-label { font-size: .72rem; color: var(--muted); font-weight: 700; }
+    select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: .82rem; font-family: inherit; padding: .45rem .85rem; border-radius: 8px; outline: none; cursor: pointer; }
+    /* Appointment list */
+    .appt-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: .65rem; display: flex; align-items: center; gap: 1rem; }
+    .appt-date { width: 70px; flex-shrink: 0; font-size: .72rem; color: var(--muted); font-weight: 700; text-align: center; }
+    .appt-divider { width: 1px; height: 36px; background: var(--border); flex-shrink: 0; }
+    .appt-info { flex: 1; }
+    .appt-row1 { display: flex; align-items: center; gap: .6rem; }
+    .svc-chip { font-size: .7rem; font-weight: 700; padding: .15rem .5rem; border-radius: 6px; background: rgba(167,139,250,.08); color: var(--accent); border: 1px solid rgba(167,139,250,.2); }
+    .status-badge { font-size: .65rem; font-weight: 800; padding: .15rem .45rem; border-radius: 99px; }
+    .s-completed { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .s-no-show  { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+    .s-canceled { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+    .appt-staff { font-size: .72rem; color: var(--muted); margin-top: .2rem; }
+    .appt-right { display: flex; flex-direction: column; align-items: flex-end; gap: .3rem; flex-shrink: 0; }
+    .appt-amount { font-size: .9rem; font-weight: 900; color: var(--green); }
+    .stars { font-size: .78rem; letter-spacing: .05rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="client-select-row">
+    <span class="client-select-label">Client:</span>
+    <select onchange="loadClient(this.value)">
+      <option value="1">Aaliyah Brooks</option>
+      <option value="2">Marcus Thompson</option>
+      <option value="3">Simone Washington</option>
+    </select>
+  </div>
+  <div id="client-header"></div>
+  <div id="appt-list"></div>
+</div>
+<script>
+  function stars(rating) {
+    if (!rating) return '';
+    const filled = '★'.repeat(rating);
+    const empty = '☆'.repeat(5 - rating);
+    return `<span class="stars" style="color:var(--gold)">${filled}</span><span class="stars" style="color:var(--border)">${empty}</span>`;
+  }
+
+  function fmtDate(iso) {
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'2-digit'});
+  }
+
+  async function loadClient(id) {
+    const r = await fetch(`/api/clients/${id}/history`);
+    const d = await r.json();
+    const init = (d.client_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+
+    document.getElementById('client-header').innerHTML = `<div class="client-header">
+      <div class="client-avatar">${init}</div>
+      <div class="client-info">
+        <div class="client-name">${esc(d.client_name)}</div>
+        <div class="client-phone">${esc(d.phone)}</div>
+        <div class="stat-chips">
+          <span class="stat-chip accent">${d.total_visits} visits</span>
+          <span class="stat-chip green">$${Math.round(d.lifetime_revenue).toLocaleString()} lifetime</span>
+          <span class="stat-chip">$${Math.round(d.lifetime_revenue/Math.max(d.total_visits,1))} avg ticket</span>
+        </div>
+      </div>
+    </div>`;
+
+    document.getElementById('appt-list').innerHTML = (d.appointments||[]).map(a => {
+      const cls = `s-${a.status.replace('-','').replace(' ','-')}`;
+      const amtStr = a.amount > 0 ? `$${a.amount.toFixed(2)}` : '—';
+      return `<div class="appt-item">
+        <div class="appt-date">${fmtDate(a.date)}</div>
+        <div class="appt-divider"></div>
+        <div class="appt-info">
+          <div class="appt-row1">
+            <span class="svc-chip">${esc(a.service)}</span>
+            <span class="status-badge ${cls}">${a.status}</span>
+          </div>
+          <div class="appt-staff">${esc(a.staff)}</div>
+        </div>
+        <div class="appt-right">
+          <div class="appt-amount">${amtStr}</div>
+          ${a.rating ? stars(a.rating) : ''}
+        </div>
+      </div>`;
+    }).join('') || '<p style="color:var(--muted);padding:1rem 0">No appointments found.</p>';
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  loadClient('1');
+</script>
+</body>
+</html>

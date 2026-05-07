@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Response Time — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem 1.6rem; text-align: center; }
+    .hero-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
+    .hero-value { font-size: 2.8rem; font-weight: 900; letter-spacing: -.07em; line-height: 1; }
+    .hero-unit { font-size: .75rem; color: var(--muted); margin-top: .3rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .sparkline-wrap { overflow-x: auto; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Response Time</div>
+  <p class="page-sub">How fast your AI receptionist picks up calls.</p>
+
+  <div class="hero-row" id="hero-row"></div>
+
+  <div class="card">
+    <div class="card-title">Avg Response Time by Hour (seconds)</div>
+    <div class="sparkline-wrap">
+      <svg id="sparkline" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/response-time');
+    const d = await r.json();
+
+    document.getElementById('hero-row').innerHTML = [
+      {label:'Avg Pickup Time', value: d.avg_pickup_seconds + 's', color:'var(--green)', unit:'per call'},
+      {label:'Answered Under 3s', value: d.calls_answered_under_3s_pct + '%', color:'var(--accent)', unit:'of all calls'},
+      {label:'Missed Calls', value: d.missed_calls_pct + '%', color: d.missed_calls_pct > 5 ? 'var(--red)' : 'var(--text)', unit:'went unanswered'},
+    ].map(h => `<div class="hero-card">
+      <div class="hero-label">${h.label}</div>
+      <div class="hero-value" style="color:${h.color}">${h.value}</div>
+      <div class="hero-unit">${h.unit}</div>
+    </div>`).join('');
+
+    const hours = d.by_hour || [];
+    const W = 820, H = 120, PAD_L = 36, PAD_R = 12, PAD_T = 10, PAD_B = 28;
+    const cW = W - PAD_L - PAD_R, cH = H - PAD_T - PAD_B;
+    const maxV = Math.max(...hours.map(h => h.avg_seconds), 1);
+    const n = hours.length;
+
+    function xOf(i) { return PAD_L + (i / (n - 1)) * cW; }
+    function yOf(v) { return PAD_T + cH - (v / maxV) * cH; }
+
+    const pts = hours.map((h, i) => [xOf(i), yOf(h.avg_seconds)]);
+    const linePts = pts.map(p => p.join(',')).join(' ');
+    const areaPath = `M ${pts[0][0]},${PAD_T+cH} ${pts.map(p => `L ${p[0]},${p[1]}`).join(' ')} L ${pts[pts.length-1][0]},${PAD_T+cH} Z`;
+
+    let xLabels = '', yLines = '';
+    hours.forEach((h, i) => {
+      if (h.hour % 4 === 0) {
+        const label = h.hour === 0 ? '12a' : h.hour === 12 ? '12p' : h.hour < 12 ? h.hour+'a' : (h.hour-12)+'p';
+        xLabels += `<text x="${xOf(i)}" y="${H - 4}" text-anchor="middle" font-size="9" fill="#555">${label}</text>`;
+      }
+    });
+    [0, 0.5, 1].forEach(f => {
+      const v = Math.round(maxV * f);
+      const y = PAD_T + cH - f * cH;
+      yLines += `<line x1="${PAD_L}" y1="${y}" x2="${W-PAD_R}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      yLines += `<text x="${PAD_L-4}" y="${y+4}" text-anchor="end" font-size="9" fill="#555">${v}s</text>`;
+    });
+
+    const dots = pts.map((p, i) => {
+      const h = hours[i];
+      return `<circle cx="${p[0]}" cy="${p[1]}" r="2.5" fill="var(--accent)"><title>${h.hour}:00 — ${h.avg_seconds}s avg</title></circle>`;
+    }).join('');
+
+    const svg = document.getElementById('sparkline');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', H);
+    svg.innerHTML = `
+      <defs>
+        <linearGradient id="spGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#a78bfa" stop-opacity="0.02"/>
+        </linearGradient>
+      </defs>
+      ${yLines}
+      <path d="${areaPath}" fill="url(#spGrad)"/>
+      <polyline points="${linePts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dots}
+      ${xLabels}`;
+  }
+  load();
+</script>
+</body>
+</html>

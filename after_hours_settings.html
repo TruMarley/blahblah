@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>After Hours — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select, input[type=text], input[type=tel], input[type=email], input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus, input[type=text]:focus, input[type=tel]:focus, input[type=email]:focus { border-color: var(--accent); }
+    input[type=number] { width: 80px; }
+    input[type=time] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .75rem; padding: .3rem .5rem; outline: none; width: 96px; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .8rem; padding: .55rem .75rem; outline: none; resize: vertical; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .28rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .field-wrap { margin-bottom: .9rem; }
+    .mode-opts { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .9rem; }
+    .mode-opt { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: .5rem .9rem; display: flex; align-items: center; gap: .4rem; cursor: pointer; font-size: .8rem; font-weight: 600; }
+    .mode-opt input[type=radio] { accent-color: var(--accent); }
+    .hours-grid { display: grid; grid-template-columns: 90px 1fr 96px 96px; gap: .3rem .5rem; align-items: center; font-size: .75rem; }
+    .sch-head { font-size: .63rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding-bottom: .3rem; }
+    .mini-toggle { position: relative; width: 34px; height: 20px; }
+    .mini-toggle input { opacity: 0; width: 0; height: 0; }
+    .mini-slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .mini-slider::before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .mini-slider { background: var(--accent); }
+    input:checked + .mini-slider::before { transform: translateX(14px); background: #fff; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">After Hours</div>
+  <p class="page-sub">Configure what happens when clients call outside business hours — capture leads instead of losing them to silence.</p>
+
+  <div class="card">
+    <div class="card-title">After-Hours Mode</div>
+    <div class="row">
+      <div><div class="row-label">Enable After-Hours Handling</div><div class="row-sub">AI handles calls outside business hours</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="field-label" style="margin-bottom:.5rem">When closed, callers get:</div>
+    <div class="mode-opts">
+      <label class="mode-opt"><input type="radio" name="mode" value="voicemail"> Voicemail</label>
+      <label class="mode-opt"><input type="radio" name="mode" value="callback_offer"> Callback Offer</label>
+      <label class="mode-opt"><input type="radio" name="mode" value="ai_booking"> AI Booking</label>
+      <label class="mode-opt"><input type="radio" name="mode" value="forward_to_number"> Forward Call</label>
+    </div>
+    <div class="field-wrap">
+      <div class="field-label">After-Hours Greeting</div>
+      <textarea id="greeting" rows="3"></textarea>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Forward To Number</div><div class="row-sub">Used when mode is Forward Call</div></div>
+      <input type="tel" id="forward-number" style="width:160px" placeholder="+1 (555) 000-0000">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Voicemail Options</div>
+    <div class="row">
+      <div><div class="row-label">Enable Voicemail</div></div>
+      <label class="toggle"><input type="checkbox" id="voicemail-enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Recording (seconds)</div></div>
+      <input type="number" id="voicemail-max" min="15" max="180" placeholder="60">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Transcribe Voicemails</div><div class="row-sub">AI transcribes and sends to staff</div></div>
+      <label class="toggle"><input type="checkbox" id="voicemail-transcription"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notify Staff on Voicemail</div></div>
+      <label class="toggle"><input type="checkbox" id="notify-staff"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notification Email</div></div>
+      <input type="email" id="notify-email" style="width:200px" placeholder="owner@salon.com">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Callback &amp; Emergency</div>
+    <div class="row">
+      <div><div class="row-label">Callback Offer</div><div class="row-sub">Press 1 to schedule a callback</div></div>
+      <label class="toggle"><input type="checkbox" id="callback-enabled"><span class="slider"></span></label>
+    </div>
+    <div class="field-wrap">
+      <div class="field-label">Callback Message</div>
+      <textarea id="callback-msg" rows="2"></textarea>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Emergency Forward</div><div class="row-sub">Forward if caller says keyword</div></div>
+      <label class="toggle"><input type="checkbox" id="emergency-enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Emergency Keyword</div></div>
+      <input type="text" id="emergency-keyword" style="width:120px" placeholder="emergency">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Emergency Forward Number</div></div>
+      <input type="tel" id="emergency-number" style="width:160px" placeholder="+1 (555) 000-0000">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Business Hours</div>
+    <div class="hours-grid" id="hours-grid">
+      <div class="sch-head">Day</div><div class="sch-head">Open</div><div class="sch-head">Start</div><div class="sch-head">End</div>
+    </div>
+    <button class="save-btn" onclick="save()">Save After-Hours Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let hoursData = [];
+
+  async function load() {
+    const d = await fetch('/api/settings/after-hours-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled ?? true;
+    document.querySelectorAll('input[name=mode]').forEach(r => { r.checked = r.value === (d.mode || 'voicemail'); });
+    document.getElementById('greeting').value = d.after_hours_greeting || '';
+    document.getElementById('forward-number').value = d.forward_to_number || '';
+    document.getElementById('voicemail-enabled').checked = d.voicemail_enabled ?? true;
+    document.getElementById('voicemail-max').value = d.voicemail_max_seconds ?? 60;
+    document.getElementById('voicemail-transcription').checked = d.voicemail_transcription ?? true;
+    document.getElementById('notify-staff').checked = d.notify_staff_on_voicemail ?? true;
+    document.getElementById('notify-email').value = d.notification_email || '';
+    document.getElementById('callback-enabled').checked = d.callback_offer_enabled ?? true;
+    document.getElementById('callback-msg').value = d.callback_message || '';
+    document.getElementById('emergency-enabled').checked = d.emergency_forward_enabled ?? false;
+    document.getElementById('emergency-keyword').value = d.emergency_keyword || 'emergency';
+    document.getElementById('emergency-number').value = d.emergency_forward_number || '';
+    hoursData = d.business_hours || [];
+    renderHours();
+  }
+
+  function renderHours() {
+    const grid = document.getElementById('hours-grid');
+    const existingRows = grid.querySelectorAll('.sch-row');
+    existingRows.forEach(r => r.remove());
+    hoursData.forEach((h, i) => {
+      ['day','open','start','end'].forEach((col, ci) => {
+        const el = document.createElement('div');
+        el.className = 'sch-row';
+        if (col === 'day') el.innerHTML = `<span style="font-size:.78rem;color:var(--muted)">${h.day.slice(0,3)}</span>`;
+        else if (col === 'open') el.innerHTML = `<label class="mini-toggle"><input type="checkbox" data-i="${i}" class="day-open" ${h.open ? 'checked' : ''}><span class="mini-slider"></span></label>`;
+        else el.innerHTML = `<input type="time" data-i="${i}" class="day-${col}" value="${h[col]}">`;
+        grid.appendChild(el);
+      });
+    });
+    grid.querySelectorAll('.day-open').forEach(cb => {
+      cb.addEventListener('change', e => { hoursData[+e.target.dataset.i].open = e.target.checked; });
+    });
+    grid.querySelectorAll('.day-start').forEach(inp => {
+      inp.addEventListener('change', e => { hoursData[+e.target.dataset.i].start = e.target.value; });
+    });
+    grid.querySelectorAll('.day-end').forEach(inp => {
+      inp.addEventListener('change', e => { hoursData[+e.target.dataset.i].end = e.target.value; });
+    });
+  }
+
+  async function save() {
+    const modeEl = document.querySelector('input[name=mode]:checked');
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      mode: modeEl ? modeEl.value : 'voicemail',
+      after_hours_greeting: document.getElementById('greeting').value,
+      forward_to_number: document.getElementById('forward-number').value,
+      voicemail_enabled: document.getElementById('voicemail-enabled').checked,
+      voicemail_max_seconds: parseInt(document.getElementById('voicemail-max').value) || 60,
+      voicemail_transcription: document.getElementById('voicemail-transcription').checked,
+      notify_staff_on_voicemail: document.getElementById('notify-staff').checked,
+      notification_email: document.getElementById('notify-email').value,
+      callback_offer_enabled: document.getElementById('callback-enabled').checked,
+      callback_message: document.getElementById('callback-msg').value,
+      emergency_forward_enabled: document.getElementById('emergency-enabled').checked,
+      emergency_keyword: document.getElementById('emergency-keyword').value,
+      emergency_forward_number: document.getElementById('emergency-number').value,
+      business_hours: hoursData,
+    };
+    await fetch('/api/settings/after-hours-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

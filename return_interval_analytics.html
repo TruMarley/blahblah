@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Return Interval — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .svc-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; }
+    .svc-name { font-size: .78rem; color: var(--text); width: 140px; flex-shrink: 0; }
+    .svc-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 9px; overflow: hidden; }
+    .svc-fill { height: 100%; border-radius: 4px; background: var(--accent); }
+    .svc-val { font-size: .75rem; font-weight: 700; color: var(--accent); width: 45px; text-align: right; }
+    .trend-row { display: flex; align-items: flex-end; gap: .4rem; height: 70px; margin-bottom: .4rem; }
+    .trend-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+    .trend-bar { width: 100%; border-radius: 3px 3px 0 0; background: var(--accent); opacity: .7; transition: opacity .2s; }
+    .trend-bar:hover { opacity: 1; }
+    .trend-lbl { font-size: .6rem; color: var(--muted); }
+    .trend-val { font-size: .62rem; font-weight: 700; color: var(--accent); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Return Interval</div>
+  <p class="page-sub">How many days pass between a client's visits on average. Lower intervals mean stronger habits and higher LTV — use targeted reminders to pull the number down.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-avg" style="color:var(--accent)">—</div><div class="stat-lbl">Avg Interval (days)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-median" style="color:var(--yellow)">—</div><div class="stat-lbl">Median Interval (days)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-under14" style="color:var(--green)">—</div><div class="stat-lbl">Under 14 Days</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Avg Interval by Service</div>
+    <div id="svc-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Monthly Trend — Avg Interval (days)</div>
+    <div class="trend-row" id="trend-bars"></div>
+    <div class="trend-row" id="trend-labels" style="height:auto;margin-bottom:0;"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/return-interval-stats').then(r => r.json());
+    document.getElementById('h-avg').textContent = d.avg_return_interval_days.toFixed(1) + 'd';
+    document.getElementById('h-median').textContent = d.median_return_interval_days.toFixed(1) + 'd';
+    document.getElementById('h-under14').textContent = d.under_14_day_pct.toFixed(1) + '%';
+    const sl = document.getElementById('svc-list');
+    const maxDays = Math.max(...d.by_service.map(s => s.avg_days));
+    d.by_service.forEach(s => {
+      const w = (s.avg_days / maxDays * 100).toFixed(1);
+      sl.innerHTML += '<div class="svc-row"><div class="svc-name">' + s.service + '</div><div class="svc-track"><div class="svc-fill" style="width:' + w + '%"></div></div><div class="svc-val">' + s.avg_days.toFixed(1) + 'd</div></div>';
+    });
+    const maxT = Math.max(...d.monthly.map(m => m.avg_days));
+    const tb = document.getElementById('trend-bars');
+    const tl = document.getElementById('trend-labels');
+    d.monthly.forEach(m => {
+      const h = Math.max(6, (m.avg_days / maxT * 60)).toFixed(0);
+      tb.innerHTML += '<div class="trend-bar-wrap"><div class="trend-val">' + m.avg_days.toFixed(1) + '</div><div class="trend-bar" style="height:' + h + 'px"></div></div>';
+      tl.innerHTML += '<div class="trend-bar-wrap"><div class="trend-lbl">' + m.month + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

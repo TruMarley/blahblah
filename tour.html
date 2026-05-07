@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk — Product Tour</title>
+  <meta property="og:title" content="RingDesk Product Tour — See Every Feature in Action">
+  <meta property="og:description" content="Interactive tour of RingDesk: live call dashboard, AI booking transcripts, SMS confirmations, analytics, onboarding wizard, and voice customization.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ringdesk.ai/tour">
+  <meta property="og:image" content="https://ringdesk.ai/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="See RingDesk in Action — Full Product Tour">
+  <meta name="twitter:description" content="Animated walkthrough of every feature. AI call answering, booking, SMS, analytics, and more.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #161616; --surface3: #1a1a1a;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --blue: #60a5fa; --orange: #f97316; --gold: #fbbf24;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ── Fixed nav ── */
+    nav {
+      position: fixed; top: 0; width: 100%; z-index: 200;
+      background: rgba(8,8,8,0.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 60px;
+    }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent-light); }
+    .tour-nav { display: flex; gap: 0; }
+    .tour-nav a {
+      color: var(--muted); font-size: 0.75rem; font-weight: 600;
+      padding: 0 14px; height: 60px; display: flex; align-items: center;
+      text-decoration: none; border-bottom: 2px solid transparent;
+      transition: all 0.15s; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .tour-nav a:hover { color: var(--text); }
+    .tour-nav a.active { color: var(--accent-light); border-bottom-color: var(--accent); }
+    .nav-cta {
+      background: var(--accent); color: #fff; padding: 8px 18px;
+      border-radius: 8px; font-size: 0.82rem; font-weight: 700;
+      text-decoration: none;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 10rem 2rem 5rem; text-align: center;
+      background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(124,58,237,0.18) 0%, transparent 65%);
+    }
+    .hero-label {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25);
+      color: var(--accent-light); font-size: 0.72rem; font-weight: 700;
+      padding: 5px 14px; border-radius: 20px; margin-bottom: 1.5rem;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .hero h1 { font-size: clamp(2.5rem, 7vw, 4rem); font-weight: 900; color: #fff; letter-spacing: -0.04em; margin-bottom: 1rem; line-height: 1.05; }
+    .hero h1 em { font-style: normal; color: var(--accent-light); }
+    .hero p { color: var(--muted); font-size: 1rem; max-width: 500px; margin: 0 auto; line-height: 1.7; }
+
+    /* ── Feature sections ── */
+    .feature-section {
+      padding: 6rem 2rem; max-width: 1100px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center;
+    }
+    .feature-section.reverse { direction: rtl; }
+    .feature-section.reverse > * { direction: ltr; }
+
+    .feature-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.75rem; }
+    .feature-title { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 900; color: #fff; letter-spacing: -0.03em; margin-bottom: 0.75rem; line-height: 1.2; }
+    .feature-desc { font-size: 0.9rem; color: var(--muted); line-height: 1.8; margin-bottom: 1.5rem; }
+    .feature-bullets { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
+    .feature-bullets li { display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem; color: #bbb; }
+    .feature-bullets li::before { content: "✓"; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── DEMO PANELS ── */
+    .demo-panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .panel-bar {
+      background: #0e0e0e; border-bottom: 1px solid var(--border);
+      padding: 10px 14px; display: flex; align-items: center; gap: 6px;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+    .panel-title { margin-left: 8px; font-size: 0.72rem; color: var(--muted); }
+    .panel-body { padding: 1.25rem; }
+
+    /* Dashboard demo */
+    .dash-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 0.75rem; }
+    .dash-stat {
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 8px; padding: 0.75rem;
+    }
+    .ds-label { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .ds-val { font-size: 1.4rem; font-weight: 800; margin-top: 2px; }
+    .dash-table { background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; overflow: hidden; }
+    .dash-row { display: flex; gap: 0.5rem; padding: 0.5rem 0.75rem; border-bottom: 1px solid #1a1a1a; font-size: 0.7rem; }
+    .dash-row:last-child { border-bottom: none; }
+    .dash-row .dr-date { color: var(--blue); font-weight: 600; width: 50px; flex-shrink: 0; }
+    .dash-row .dr-name { color: #fff; flex: 1; }
+    .dash-row .dr-svc { color: var(--muted); flex: 1; }
+    .dash-row .dr-pill { background: rgba(34,197,94,0.15); color: var(--green); border-radius: 10px; padding: 1px 7px; font-size: 0.6rem; font-weight: 700; flex-shrink: 0; }
+
+    /* Call transcript demo */
+    .transcript { display: flex; flex-direction: column; gap: 0.6rem; }
+    .bubble { max-width: 82%; padding: 0.6rem 0.9rem; border-radius: 12px; font-size: 0.78rem; line-height: 1.5; opacity: 0; animation: bubbleIn 0.4s ease forwards; }
+    .bubble.ai { background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.3); color: #c4b5fd; align-self: flex-start; border-radius: 4px 12px 12px 12px; }
+    .bubble.caller { background: var(--surface2); border: 1px solid var(--border2); color: #e0e0e0; align-self: flex-end; border-radius: 12px 4px 12px 12px; }
+    .bubble-sender { font-size: 0.6rem; color: var(--muted); margin-bottom: 2px; }
+    @keyframes bubbleIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .b1 { animation-delay: 0.2s; }
+    .b2 { animation-delay: 0.8s; }
+    .b3 { animation-delay: 1.6s; }
+    .b4 { animation-delay: 2.4s; }
+    .b5 { animation-delay: 3.2s; }
+    .b6 { animation-delay: 4.0s; }
+
+    /* SMS phone mockup */
+    .phone-frame {
+      background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 24px;
+      padding: 1rem; max-width: 240px; margin: 0 auto;
+    }
+    .phone-notch { width: 60px; height: 6px; background: #0e0e0e; border-radius: 3px; margin: 0 auto 0.75rem; }
+    .sms-header { display: flex; align-items: center; gap: 8px; margin-bottom: 0.75rem; }
+    .sms-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; }
+    .sms-from { font-size: 0.72rem; font-weight: 600; color: #fff; }
+    .sms-number { font-size: 0.6rem; color: var(--muted); }
+    .sms-bubble {
+      background: #1e1e2e; border-radius: 12px 12px 12px 4px;
+      padding: 0.75rem; font-size: 0.72rem; color: #c4b5fd; line-height: 1.5;
+      margin-bottom: 0.5rem;
+    }
+    .sms-time { font-size: 0.6rem; color: var(--muted); text-align: center; }
+
+    /* Analytics SVG chart */
+    .analytics-panel .panel-body { padding: 1rem; }
+    .chart-labels { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
+    .chart-labels span { font-size: 0.6rem; color: var(--muted); }
+    .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 80px; margin-bottom: 0.75rem; }
+    .bc-bar { flex: 1; border-radius: 3px 3px 0 0; background: rgba(124,58,237,0.6); transition: height 1s ease; position: relative; }
+    .bc-bar:hover { background: var(--accent); }
+    .bc-bar.today { background: var(--accent); }
+    .bc-tip { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 0.58rem; color: var(--accent-light); white-space: nowrap; }
+    .analytics-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .ap { font-size: 0.65rem; padding: 3px 8px; border-radius: 20px; font-weight: 600; }
+    .ap-g { background: rgba(34,197,94,0.12); color: var(--green); }
+    .ap-b { background: rgba(96,165,250,0.12); color: var(--blue); }
+    .ap-p { background: rgba(167,139,250,0.12); color: var(--accent-light); }
+
+    /* Onboarding wizard demo */
+    .wizard-steps { display: flex; gap: 0; margin-bottom: 1rem; }
+    .wz-step { flex: 1; text-align: center; position: relative; }
+    .wz-step::after { content: ''; position: absolute; top: 12px; right: 0; width: 100%; height: 2px; background: var(--border2); }
+    .wz-step:last-child::after { display: none; }
+    .wz-circle {
+      width: 24px; height: 24px; border-radius: 50%; margin: 0 auto 6px;
+      display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; position: relative; z-index: 1;
+      background: var(--surface2); border: 1.5px solid var(--border2); color: var(--muted);
+    }
+    .wz-step.done .wz-circle { background: var(--green); border-color: var(--green); color: #000; }
+    .wz-step.active .wz-circle { background: var(--accent); border-color: var(--accent); color: #fff; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,0.4)} 50%{box-shadow:0 0 0 6px rgba(124,58,237,0)} }
+    .wz-label { font-size: 0.6rem; color: var(--muted); }
+    .wz-step.active .wz-label { color: var(--accent-light); }
+    .wizard-field { background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.6rem; }
+    .wf-label { font-size: 0.6rem; color: var(--muted); margin-bottom: 3px; }
+    .wf-value { font-size: 0.78rem; color: #fff; }
+    .wizard-btn { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 7px; padding: 9px; font-size: 0.78rem; font-weight: 700; margin-top: 0.75rem; cursor: default; }
+
+    /* Voice settings demo */
+    .voice-options { display: flex; flex-direction: column; gap: 0.5rem; }
+    .vo {
+      display: flex; align-items: center; gap: 0.6rem;
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 8px; padding: 0.6rem 0.75rem;
+    }
+    .vo.selected { border-color: var(--accent); background: rgba(124,58,237,0.08); }
+    .vo-name { font-size: 0.75rem; font-weight: 600; color: #fff; flex: 1; }
+    .vo-tag { font-size: 0.6rem; color: var(--muted); }
+    .vo-play { width: 22px; height: 22px; border-radius: 50%; background: var(--border2); border: none; font-size: 0.6rem; color: var(--muted); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .vo.selected .vo-play { background: var(--accent); color: #fff; }
+    .wave-preview { display: flex; align-items: center; gap: 2px; height: 20px; margin-top: 0.6rem; }
+    .wp-bar { width: 3px; border-radius: 2px; background: var(--accent); animation: waveAnim 0.8s ease-in-out infinite; }
+    .wp-bar:nth-child(1){height:8px;animation-delay:0s}
+    .wp-bar:nth-child(2){height:14px;animation-delay:0.1s}
+    .wp-bar:nth-child(3){height:20px;animation-delay:0.2s}
+    .wp-bar:nth-child(4){height:12px;animation-delay:0.3s}
+    .wp-bar:nth-child(5){height:18px;animation-delay:0.1s}
+    .wp-bar:nth-child(6){height:8px;animation-delay:0.25s}
+    .wp-bar:nth-child(7){height:16px;animation-delay:0.15s}
+    @keyframes waveAnim { 0%,100%{transform:scaleY(0.4)} 50%{transform:scaleY(1)} }
+
+    /* Dividers */
+    .full-divider { border: none; border-top: 1px solid var(--border); }
+
+    /* Final CTA */
+    .final-cta { text-align: center; padding: 6rem 2rem; background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(124,58,237,0.1) 0%, transparent 70%); }
+    .final-cta h2 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 900; color: #fff; letter-spacing: -0.04em; margin-bottom: 0.75rem; }
+    .final-cta p { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; }
+    .btn-start { display: inline-block; background: var(--accent); color: #fff; padding: 15px 36px; border-radius: 11px; font-size: 1.05rem; font-weight: 700; text-decoration: none; box-shadow: 0 0 50px rgba(124,58,237,0.35); transition: all 0.2s; }
+    .btn-start:hover { background: #6d28d9; transform: translateY(-2px); }
+    .trial-note { font-size: 0.78rem; color: var(--muted); margin-top: 1rem; }
+
+    @media (max-width: 900px) {
+      .feature-section { grid-template-columns: 1fr; gap: 2rem; }
+      .feature-section.reverse { direction: ltr; }
+      .tour-nav { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <div class="tour-nav">
+    <a href="#dashboard" id="nav-dashboard">Dashboard</a>
+    <a href="#live-call" id="nav-livecall">Live Call</a>
+    <a href="#sms" id="nav-sms">SMS</a>
+    <a href="#analytics" id="nav-analytics">Analytics</a>
+    <a href="#onboarding" id="nav-onboarding">Onboarding</a>
+    <a href="#voice" id="nav-voice">Voice</a>
+  </div>
+  <a href="/onboarding" class="nav-cta">Start Free Trial →</a>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-label">✨ Product Tour</div>
+  <h1>Everything your shop needs.<br><em>Nothing it doesn't.</em></h1>
+  <p>Six features, built for one job: making sure your shop never loses another booking to a missed call.</p>
+</div>
+
+<!-- 1. Dashboard -->
+<div id="dashboard" style="border-top:1px solid var(--border); padding-top: 1px;">
+<div class="feature-section">
+  <div>
+    <div class="feature-label" style="color:var(--blue)">01 / Dashboard</div>
+    <div class="feature-title">See every booking, callback, and missed call — at a glance.</div>
+    <div class="feature-desc">Your owner dashboard refreshes every 30 seconds. Appointments, who needs a callback, missed calls today, total booked all-time. No spreadsheets. No checking voicemail.</div>
+    <ul class="feature-bullets">
+      <li>Live appointment feed — today through next 7 days</li>
+      <li>Callback queue — who needs a call back and why</li>
+      <li>Missed call log — time, number, reason</li>
+      <li>One-click callback resolution</li>
+    </ul>
+  </div>
+  <div class="demo-panel">
+    <div class="panel-bar">
+      <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+      <div class="panel-title">AI Receptionist Dashboard</div>
+    </div>
+    <div class="panel-body">
+      <div class="dash-stats">
+        <div class="dash-stat"><div class="ds-label">Today</div><div class="ds-val" style="color:var(--green)">7</div></div>
+        <div class="dash-stat"><div class="ds-label">This Week</div><div class="ds-val" style="color:var(--accent-light)">34</div></div>
+        <div class="dash-stat"><div class="ds-label">Missed</div><div class="ds-val" style="color:var(--orange)">2</div></div>
+      </div>
+      <div class="dash-table">
+        <div class="dash-row" style="background:#0e0e0e;border-bottom:1px solid #1a1a1a">
+          <span style="font-size:0.58rem;color:var(--muted);flex:1">DATE</span>
+          <span style="font-size:0.58rem;color:var(--muted);flex:2">NAME</span>
+          <span style="font-size:0.58rem;color:var(--muted);flex:2">SERVICE</span>
+          <span style="font-size:0.58rem;color:var(--muted)">STATUS</span>
+        </div>
+        <div class="dash-row"><span class="dr-date">Today</span><span class="dr-name">Marcus R.</span><span class="dr-svc">Haircut + Beard</span><span class="dr-pill">✓</span></div>
+        <div class="dash-row"><span class="dr-date">Today</span><span class="dr-name">James W.</span><span class="dr-svc">Fade</span><span class="dr-pill">✓</span></div>
+        <div class="dash-row"><span class="dr-date">Fri</span><span class="dr-name">Carlos M.</span><span class="dr-svc">Shape-Up</span><span class="dr-pill">✓</span></div>
+        <div class="dash-row"><span class="dr-date">Sat</span><span class="dr-name">Andre K.</span><span class="dr-svc">Kids Cut</span><span class="dr-pill">✓</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<hr class="full-divider">
+
+<!-- 2. Live Call -->
+<div id="live-call">
+<div class="feature-section reverse">
+  <div>
+    <div class="feature-label" style="color:var(--accent-light)">02 / Live Call</div>
+    <div class="feature-title">Natural conversation. 0.4 second response time.</div>
+    <div class="feature-desc">When a client calls, your AI picks up in under a second. The conversation flows naturally — the AI asks for their name, what service they want, preferred day and time. It confirms the booking, mentions the reminders, and hangs up. Total call time: under 60 seconds.</div>
+    <ul class="feature-bullets">
+      <li>Answers in English and Spanish automatically</li>
+      <li>Books, reschedules, or cancels appointments</li>
+      <li>Handles Q&amp;A (hours, prices, location)</li>
+      <li>Transfers urgent calls to your cell phone</li>
+    </ul>
+  </div>
+  <div class="demo-panel">
+    <div class="panel-bar">
+      <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+      <div class="panel-title">Live Call Transcript</div>
+    </div>
+    <div class="panel-body">
+      <div class="transcript">
+        <div class="bubble ai b1"><div class="bubble-sender">Alex (AI)</div>Thanks for calling Cuts &amp; Fades! I'm Alex. How can I help?</div>
+        <div class="bubble caller b2"><div class="bubble-sender">Caller</div>Hey, I need a haircut Saturday morning, got anything?</div>
+        <div class="bubble ai b3"><div class="bubble-sender">Alex (AI)</div>Saturday I have 9 AM, 10:30, and 11:15 open. Any preference?</div>
+        <div class="bubble caller b4"><div class="bubble-sender">Caller</div>10:30 works. Can I get Diego?</div>
+        <div class="bubble ai b5"><div class="bubble-sender">Alex (AI)</div>Diego's free at 10:30 — perfect! What's your name and best number?</div>
+        <div class="bubble caller b6"><div class="bubble-sender">Caller</div>Marcus. 786-555-9900.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<hr class="full-divider">
+
+<!-- 3. SMS -->
+<div id="sms">
+<div class="feature-section">
+  <div>
+    <div class="feature-label" style="color:var(--green)">03 / SMS Confirmations</div>
+    <div class="feature-title">Confirmation text in 10 seconds. Reminders automatically.</div>
+    <div class="feature-desc">The moment a booking is confirmed, your client gets a text with the appointment details, your address, and a Google Maps link. They also get a reminder the day before and two hours before — reducing no-shows by 67%.</div>
+    <ul class="feature-bullets">
+      <li>Instant confirmation SMS with address + Maps link</li>
+      <li>24-hour reminder ("See you tomorrow!")</li>
+      <li>2-hour reminder ("You're booked for 2pm today")</li>
+      <li>Day 3 + Day 7 follow-up to rebook</li>
+    </ul>
+  </div>
+  <div class="demo-panel">
+    <div class="panel-bar">
+      <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+      <div class="panel-title">Client's Phone — Messages</div>
+    </div>
+    <div class="panel-body">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="sms-header">
+          <div class="sms-avatar" style="background:var(--green)">✂️</div>
+          <div><div class="sms-from">Cuts &amp; Fades</div><div class="sms-number">(786) 555-0100</div></div>
+        </div>
+        <div class="sms-bubble">
+          Confirmed! Marcus, your Haircut + Beard at Cuts &amp; Fades is booked for Saturday at 10:30 AM with Diego.<br><br>
+          📍 1234 SW 8th St, Miami FL<br>
+          🗺 maps.google.com/cuts-fades<br><br>
+          Questions? Call (786) 555-0100.
+        </div>
+        <div class="sms-time">Delivered · Just now ✓✓</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<hr class="full-divider">
+
+<!-- 4. Analytics -->
+<div id="analytics">
+<div class="feature-section reverse analytics-panel">
+  <div>
+    <div class="feature-label" style="color:var(--orange)">04 / Analytics</div>
+    <div class="feature-title">Know your peak hours. Know your top service. Know your capture rate.</div>
+    <div class="feature-desc">The analytics dashboard pulls from your real booking data. See which day of the week is busiest, which services are most popular, and how many calls your AI is capturing vs. missing. Updated live.</div>
+    <ul class="feature-bullets">
+      <li>14-day booking trend chart</li>
+      <li>Peak call hours heatmap</li>
+      <li>Service breakdown with visual progress bars</li>
+      <li>Answered vs missed call donut chart</li>
+    </ul>
+  </div>
+  <div class="demo-panel analytics-panel">
+    <div class="panel-bar">
+      <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+      <div class="panel-title">Analytics Dashboard</div>
+    </div>
+    <div class="panel-body">
+      <div style="font-size:0.65rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.07em">Bookings — Last 14 Days</div>
+      <div class="bar-chart">
+        <div class="bc-bar" style="height:20%"></div>
+        <div class="bc-bar" style="height:35%"></div>
+        <div class="bc-bar" style="height:55%"></div>
+        <div class="bc-bar" style="height:40%"></div>
+        <div class="bc-bar" style="height:70%"></div>
+        <div class="bc-bar" style="height:45%"></div>
+        <div class="bc-bar" style="height:60%"></div>
+        <div class="bc-bar" style="height:80%"></div>
+        <div class="bc-bar" style="height:50%"></div>
+        <div class="bc-bar" style="height:90%"></div>
+        <div class="bc-bar" style="height:65%"></div>
+        <div class="bc-bar" style="height:75%"></div>
+        <div class="bc-bar" style="height:85%"></div>
+        <div class="bc-bar today" style="height:100%"><div class="bc-tip">Today: 7</div></div>
+      </div>
+      <div style="font-size:0.65rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.07em">Top Services</div>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:0.75rem">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:0.65rem;color:#bbb;width:100px">Haircut + Beard</span><div style="flex:1;height:5px;background:#1a1a1a;border-radius:3px"><div style="width:80%;height:100%;background:var(--accent);border-radius:3px"></div></div><span style="font-size:0.65rem;color:var(--muted)">23</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:0.65rem;color:#bbb;width:100px">Fade</span><div style="flex:1;height:5px;background:#1a1a1a;border-radius:3px"><div style="width:60%;height:100%;background:var(--blue);border-radius:3px"></div></div><span style="font-size:0.65rem;color:var(--muted)">17</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:0.65rem;color:#bbb;width:100px">Shape-Up</span><div style="flex:1;height:5px;background:#1a1a1a;border-radius:3px"><div style="width:35%;height:100%;background:var(--green);border-radius:3px"></div></div><span style="font-size:0.65rem;color:var(--muted)">9</span></div>
+      </div>
+      <div class="analytics-pills">
+        <span class="ap ap-g">✓ 96% capture rate</span>
+        <span class="ap ap-b">34 this week</span>
+        <span class="ap ap-p">↑ 24% vs last week</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<hr class="full-divider">
+
+<!-- 5. Onboarding -->
+<div id="onboarding">
+<div class="feature-section">
+  <div>
+    <div class="feature-label" style="color:var(--gold)">05 / Onboarding</div>
+    <div class="feature-title">Set up in 10 minutes. No tech skills needed.</div>
+    <div class="feature-desc">The 5-step wizard walks you through everything: your business info, services and prices, hours, staff names. At the end, your AI is configured and ready to answer calls. Average setup time: 9 minutes.</div>
+    <ul class="feature-bullets">
+      <li>Step-by-step guided setup — no manuals</li>
+      <li>Add any service with name, price, and duration</li>
+      <li>Set custom hours per day of week</li>
+      <li>AI name is auto-selected based on business type</li>
+    </ul>
+  </div>
+  <div class="demo-panel">
+    <div class="panel-bar">
+      <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+      <div class="panel-title">Setup Wizard · Step 3 of 5</div>
+    </div>
+    <div class="panel-body">
+      <div class="wizard-steps">
+        <div class="wz-step done"><div class="wz-circle">✓</div><div class="wz-label">Info</div></div>
+        <div class="wz-step done"><div class="wz-circle">✓</div><div class="wz-label">Services</div></div>
+        <div class="wz-step active"><div class="wz-circle">3</div><div class="wz-label">Hours</div></div>
+        <div class="wz-step"><div class="wz-circle">4</div><div class="wz-label">Staff</div></div>
+        <div class="wz-step"><div class="wz-circle">5</div><div class="wz-label">Launch</div></div>
+      </div>
+      <div style="font-size:0.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">Business Hours</div>
+      <div class="wizard-field"><div class="wf-label">Monday – Friday</div><div class="wf-value">9:00 AM – 7:00 PM</div></div>
+      <div class="wizard-field"><div class="wf-label">Saturday</div><div class="wf-value">9:00 AM – 5:00 PM</div></div>
+      <div class="wizard-field" style="background:rgba(248,113,113,0.06);border-color:rgba(248,113,113,0.2)"><div class="wf-label" style="color:#f87171">Sunday</div><div class="wf-value" style="color:#f87171">Closed</div></div>
+      <button class="wizard-btn">Continue to Staff →</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<hr class="full-divider">
+
+<!-- 6. Voice Settings -->
+<div id="voice">
+<div class="feature-section reverse">
+  <div>
+    <div class="feature-label" style="color:var(--accent-light)">06 / Voice Customization</div>
+    <div class="feature-title">Pick the voice. Name the AI. Write the greeting.</div>
+    <div class="feature-desc">Choose from 10 Deepgram Aura voices — male, female, American, British, Irish accents. Name your AI anything you want. Write a custom greeting. Preview any voice before saving. Changes go live instantly.</div>
+    <ul class="feature-bullets">
+      <li>10 professional voices — natural, not robotic</li>
+      <li>One-click preview of any voice in your browser</li>
+      <li>Custom AI name and greeting message</li>
+      <li>Settings saved instantly — live on next call</li>
+    </ul>
+  </div>
+  <div class="demo-panel">
+    <div class="panel-bar">
+      <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+      <div class="panel-title">Voice Settings</div>
+    </div>
+    <div class="panel-body">
+      <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.5rem">Select Voice</div>
+      <div class="voice-options">
+        <div class="vo selected">
+          <div style="font-size:1rem">👩</div>
+          <div style="flex:1"><div class="vo-name">Asteria</div><div class="vo-tag">Female · American</div></div>
+          <div class="vo-play">▶</div>
+        </div>
+        <div class="vo">
+          <div style="font-size:1rem">🔭</div>
+          <div style="flex:1"><div class="vo-name">Orion</div><div class="vo-tag">Male · American</div></div>
+          <div class="vo-play">▶</div>
+        </div>
+        <div class="vo">
+          <div style="font-size:1rem">🍀</div>
+          <div style="flex:1"><div class="vo-name">Angus</div><div class="vo-tag">Male · Irish</div></div>
+          <div class="vo-play">▶</div>
+        </div>
+      </div>
+      <div style="font-size:0.65rem;color:var(--muted);margin-top:0.75rem;margin-bottom:4px">Asteria — Greeting Preview</div>
+      <div class="wave-preview">
+        <div class="wp-bar"></div><div class="wp-bar"></div><div class="wp-bar"></div>
+        <div class="wp-bar"></div><div class="wp-bar"></div><div class="wp-bar"></div>
+        <div class="wp-bar"></div>
+        <span style="font-size:0.65rem;color:var(--accent-light);margin-left:8px">Playing...</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Final CTA -->
+<div class="final-cta">
+  <h2>Ready to see it live?</h2>
+  <p>Your AI receptionist can be answering calls in 10 minutes. No credit card required.</p>
+  <a href="/onboarding" class="btn-start">Start Free Trial — 14 Days →</a>
+  <div class="trial-note">No credit card · No contracts · Cancel anytime</div>
+</div>
+
+<script>
+  // Highlight active section in tour nav
+  const sections = ['dashboard','live-call','sms','analytics','onboarding','voice'];
+  const navMap = { 'dashboard':'nav-dashboard','live-call':'nav-livecall','sms':'nav-sms','analytics':'nav-analytics','onboarding':'nav-onboarding','voice':'nav-voice' };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        document.querySelectorAll('.tour-nav a').forEach(a => a.classList.remove('active'));
+        const navId = navMap[e.target.id];
+        if (navId) document.getElementById(navId)?.classList.add('active');
+      }
+    });
+  }, { threshold: 0.3 });
+
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) observer.observe(el);
+  });
+
+  // Re-trigger call bubble animation on scroll into view
+  const callSection = document.getElementById('live-call');
+  let animated = false;
+  const callObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && !animated) {
+      animated = true;
+      document.querySelectorAll('.bubble').forEach(b => {
+        b.style.opacity = '0';
+        void b.offsetWidth;
+        b.style.animation = 'none';
+        void b.offsetWidth;
+        b.style.animation = '';
+      });
+    }
+  }, { threshold: 0.5 });
+  if (callSection) callObserver.observe(callSection);
+</script>
+</body>
+</html>

@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk — AI Receptionist for Barbershops & Salons</title>
+  <meta property="og:title" content="RingDesk — AI Receptionist for Barbershops & Salons">
+  <meta property="og:description" content="Never miss a booking again. RingDesk's AI answers every call, books appointments, and sends SMS confirmations — 24/7. Built for barbershops, salons & spas.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ringdesk.ai/">
+  <meta property="og:image" content="https://ringdesk.ai/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="RingDesk — AI Receptionist for Barbershops & Salons">
+  <meta name="twitter:description" content="Never miss a booking again. AI answers calls, books appointments, sends SMS — 24/7. $99/mo. Try free 14 days.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080808;
+      --surface: #111;
+      --border: #1e1e1e;
+      --text: #e8e8e8;
+      --muted: #666;
+      --accent: #7c3aed;
+      --accent-light: #a78bfa;
+      --green: #22c55e;
+      --orange: #f97316;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; width: 100%; z-index: 100;
+      background: rgba(8,8,8,0.85); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 60px;
+    }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; letter-spacing: -0.03em; }
+    .logo span { color: var(--accent-light); }
+    .nav-links { display: flex; align-items: center; gap: 2rem; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.875rem; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--accent); color: #fff; padding: 8px 20px;
+      border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+      text-decoration: none; transition: background 0.2s;
+    }
+    .nav-cta:hover { background: #6d28d9; color: #fff; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      padding: 6rem 2rem 4rem;
+      background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(124,58,237,0.15) 0%, transparent 70%);
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3);
+      color: var(--accent-light); font-size: 0.75rem; font-weight: 600;
+      padding: 5px 14px; border-radius: 20px; margin-bottom: 2rem;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .hero-badge::before { content: "●"; color: var(--green); font-size: 0.5rem; }
+    h1 {
+      font-size: clamp(2.5rem, 7vw, 5rem); font-weight: 900;
+      line-height: 1.05; letter-spacing: -0.04em;
+      color: #fff; max-width: 900px; margin-bottom: 1.5rem;
+    }
+    h1 em { font-style: normal; color: var(--accent-light); }
+    .hero-sub {
+      font-size: clamp(1rem, 2.5vw, 1.25rem); color: var(--muted);
+      max-width: 600px; margin: 0 auto 2.5rem; line-height: 1.7;
+    }
+    .hero-sub strong { color: var(--text); }
+    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1.5rem; }
+    .social-proof-bar {
+      font-size: 0.85rem; color: var(--muted); margin-bottom: 3rem;
+    }
+    .sp-count { color: var(--green); font-weight: 700; }
+    .sp-urgency { color: var(--orange); font-weight: 600; }
+    .btn-primary {
+      background: var(--accent); color: #fff; padding: 14px 32px;
+      border-radius: 10px; font-size: 1rem; font-weight: 700;
+      text-decoration: none; transition: all 0.2s; border: none; cursor: pointer;
+      box-shadow: 0 0 40px rgba(124,58,237,0.3);
+    }
+    .btn-primary:hover { background: #6d28d9; transform: translateY(-1px); box-shadow: 0 0 60px rgba(124,58,237,0.4); }
+    .btn-secondary {
+      background: transparent; color: var(--text); padding: 14px 32px;
+      border-radius: 10px; font-size: 1rem; font-weight: 600;
+      text-decoration: none; border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { border-color: #444; background: rgba(255,255,255,0.03); }
+
+    /* ── STAT BAR ── */
+    .stat-bar {
+      display: flex; gap: 0; border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden; max-width: 800px;
+      margin: 0 auto; background: var(--surface);
+    }
+    .stat-item {
+      flex: 1; padding: 1.5rem; text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-num { font-size: 2rem; font-weight: 800; color: #fff; line-height: 1; }
+    .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── SECTIONS ── */
+    section { padding: 5rem 2rem; max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.12em; color: var(--accent-light); margin-bottom: 0.75rem;
+    }
+    h2 {
+      font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 800;
+      letter-spacing: -0.03em; color: #fff; line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+    .section-sub { color: var(--muted); font-size: 1.05rem; max-width: 560px; line-height: 1.7; }
+
+    /* ── PROBLEM ── */
+    .problem-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+      background: var(--border); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden; margin-top: 3rem;
+    }
+    .problem-card {
+      background: var(--surface); padding: 2rem;
+    }
+    .problem-num { font-size: 3rem; font-weight: 900; color: var(--orange); line-height: 1; }
+    .problem-desc { color: var(--muted); font-size: 0.9rem; margin-top: 0.5rem; line-height: 1.6; }
+    .problem-desc strong { color: var(--text); display: block; font-size: 1rem; margin-bottom: 4px; }
+
+    /* ── HOW IT WORKS ── */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 3rem; }
+    .step {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 2rem; position: relative;
+    }
+    .step-num {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.4);
+      color: var(--accent-light); font-weight: 800; font-size: 0.85rem;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1.25rem;
+    }
+    .step h3 { color: #fff; font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .step p { color: var(--muted); font-size: 0.875rem; line-height: 1.7; }
+    .step-icon { font-size: 2rem; margin-bottom: 1rem; }
+
+    /* ── BENTO FEATURES ── */
+    .bento {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: auto auto;
+      gap: 1rem; margin-top: 3rem;
+    }
+    .bento-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.75rem; transition: border-color 0.2s;
+    }
+    .bento-card:hover { border-color: #333; }
+    .bento-card.wide { grid-column: span 2; }
+    .bento-card.tall { grid-row: span 2; }
+    .bento-icon { font-size: 1.75rem; margin-bottom: 1rem; }
+    .bento-card h3 { color: #fff; font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .bento-card p { color: var(--muted); font-size: 0.82rem; line-height: 1.7; }
+    .feature-tag {
+      display: inline-block; background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.2); color: var(--green);
+      font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 4px; margin-bottom: 0.75rem;
+    }
+    .feature-tag.new { background: rgba(124,58,237,0.1); border-color: rgba(124,58,237,0.3); color: var(--accent-light); }
+
+    /* ── DEMO / TRANSCRIPT ── */
+    .demo-section {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2.5rem; margin-top: 3rem;
+    }
+    .demo-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.5rem; }
+    .transcript { display: flex; flex-direction: column; gap: 1rem; }
+    .msg { display: flex; gap: 1rem; align-items: flex-start; }
+    .msg.ai { flex-direction: row-reverse; }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700;
+    }
+    .avatar.caller { background: #1e293b; color: #94a3b8; }
+    .avatar.ai-a { background: rgba(124,58,237,0.3); color: var(--accent-light); }
+    .bubble {
+      max-width: 65%; padding: 0.75rem 1.1rem; border-radius: 14px;
+      font-size: 0.875rem; line-height: 1.6;
+    }
+    .bubble.caller { background: #1e293b; color: #cbd5e1; border-bottom-left-radius: 4px; }
+    .bubble.ai-a { background: rgba(124,58,237,0.2); color: #ddd6fe; border-bottom-right-radius: 4px; }
+    .msg-time { font-size: 0.65rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── VS TABLE ── */
+    .vs-table { width: 100%; border-collapse: collapse; margin-top: 3rem; }
+    .vs-table th {
+      padding: 1rem 1.5rem; text-align: left; font-size: 0.75rem;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border); background: #0e0e0e;
+    }
+    .vs-table th.ours { color: var(--accent-light); }
+    .vs-table td { padding: 0.9rem 1.5rem; border-bottom: 1px solid #161616; font-size: 0.875rem; }
+    .vs-table tr:last-child td { border-bottom: none; }
+    .vs-table .check { color: var(--green); font-size: 1rem; }
+    .vs-table .cross { color: #ef4444; font-size: 1rem; }
+    .vs-table .partial { color: var(--orange); font-size: 0.75rem; }
+    .vs-table td.ours { background: rgba(124,58,237,0.05); color: #fff; font-weight: 500; }
+
+    /* ── PRICING ── */
+    .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 3rem; }
+    .price-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 2rem; position: relative;
+    }
+    .price-card.featured {
+      border-color: var(--accent); background: rgba(124,58,237,0.08);
+    }
+    .popular-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #fff; font-size: 0.7rem; font-weight: 700;
+      padding: 3px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .plan-name { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+    .plan-price { font-size: 3rem; font-weight: 900; color: #fff; line-height: 1; }
+    .plan-price span { font-size: 1rem; color: var(--muted); font-weight: 400; }
+    .plan-desc { color: var(--muted); font-size: 0.8rem; margin: 0.75rem 0 1.5rem; }
+    .plan-features { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 2rem; }
+    .plan-features li { font-size: 0.85rem; color: var(--muted); display: flex; align-items: center; gap: 0.5rem; }
+    .plan-features li::before { content: "✓"; color: var(--green); font-weight: 700; }
+    .plan-features li.na { opacity: 0.4; }
+    .plan-features li.na::before { content: "✗"; color: #666; }
+    .plan-cta {
+      display: block; text-align: center; padding: 12px;
+      border-radius: 8px; font-weight: 700; font-size: 0.9rem;
+      text-decoration: none; transition: all 0.2s;
+    }
+    .plan-cta.primary { background: var(--accent); color: #fff; }
+    .plan-cta.primary:hover { background: #6d28d9; }
+    .plan-cta.secondary { border: 1px solid var(--border); color: var(--text); }
+    .plan-cta.secondary:hover { border-color: #444; }
+
+    /* ── TESTIMONIALS ── */
+    .testimonials { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 3rem; }
+    .testimonial {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.75rem;
+    }
+    .stars { color: #fbbf24; font-size: 0.85rem; margin-bottom: 1rem; letter-spacing: 2px; }
+    .quote { color: var(--text); font-size: 0.875rem; line-height: 1.7; margin-bottom: 1.25rem; font-style: italic; }
+    .reviewer { display: flex; align-items: center; gap: 0.75rem; }
+    .reviewer-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(124,58,237,0.2); display: flex; align-items: center;
+      justify-content: center; font-weight: 700; color: var(--accent-light); font-size: 0.85rem;
+    }
+    .reviewer-name { font-weight: 600; font-size: 0.85rem; color: #fff; }
+    .reviewer-biz { font-size: 0.75rem; color: var(--muted); }
+
+    /* ── FAQ ── */
+    .faq { display: flex; flex-direction: column; gap: 0; margin-top: 3rem;
+      border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      width: 100%; padding: 1.25rem 1.5rem; background: none; border: none;
+      text-align: left; color: var(--text); font-size: 0.95rem; font-weight: 600;
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    }
+    .faq-q::after { content: "+"; font-size: 1.2rem; color: var(--muted); transition: transform 0.2s; }
+    .faq-q.open::after { content: "−"; }
+    .faq-a { padding: 0 1.5rem 1.25rem; color: var(--muted); font-size: 0.875rem; line-height: 1.8; display: none; }
+    .faq-a.open { display: block; }
+
+    /* ── CTA FOOTER ── */
+    .cta-section {
+      text-align: center; padding: 6rem 2rem;
+      background: radial-gradient(ellipse 60% 60% at 50% 100%, rgba(124,58,237,0.12) 0%, transparent 70%);
+    }
+    .cta-section h2 { max-width: 700px; margin: 0 auto 1rem; }
+    .cta-section p { color: var(--muted); margin-bottom: 2.5rem; }
+    .email-form { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; max-width: 500px; margin: 0 auto; }
+    .email-form input {
+      flex: 1; min-width: 220px; padding: 14px 18px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: 0.95rem; outline: none;
+    }
+    .email-form input:focus { border-color: var(--accent); }
+    .email-form input::placeholder { color: var(--muted); }
+    .no-card { color: var(--muted); font-size: 0.75rem; margin-top: 1rem; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border); padding: 2rem;
+      text-align: center; color: var(--muted); font-size: 0.8rem;
+    }
+
+    /* ── LIVE PULSE ── */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .live { display: inline-flex; align-items: center; gap: 5px; }
+    .live::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+
+    /* ── PHONE MOCKUP ── */
+    .phone-demo-wrap {
+      margin-bottom: 3rem;
+      display: flex; justify-content: center;
+    }
+    .phone-mockup {
+      width: 260px; background: #0f0f0f;
+      border-radius: 36px; padding: 12px;
+      border: 1.5px solid #2a2a2a;
+      box-shadow: 0 0 80px rgba(124,58,237,0.2), 0 30px 60px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    .phone-notch {
+      width: 80px; height: 22px; background: #0f0f0f;
+      border-radius: 0 0 16px 16px; margin: 0 auto 8px;
+      border: 1.5px solid #2a2a2a; border-top: none;
+    }
+    .phone-screen {
+      background: #141414; border-radius: 24px; padding: 1rem;
+      min-height: 320px; display: flex; flex-direction: column;
+    }
+    .call-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .call-biz { font-weight: 700; color: #fff; font-size: 0.85rem; }
+    .call-status { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+    .call-status.live { color: var(--green); }
+    .call-msgs { flex: 1; display: flex; flex-direction: column; gap: 0.6rem; overflow: hidden; }
+    .call-msg {
+      font-size: 0.72rem; padding: 0.5rem 0.75rem; border-radius: 12px;
+      max-width: 85%; line-height: 1.5; animation: fadeIn 0.3s ease;
+    }
+    .call-msg.ai { background: rgba(124,58,237,0.25); color: #ddd6fe; align-self: flex-end; border-bottom-right-radius: 3px; }
+    .call-msg.caller { background: #1e293b; color: #cbd5e1; align-self: flex-start; border-bottom-left-radius: 3px; }
+    .call-timer { text-align: center; color: var(--muted); font-size: 0.7rem; margin-top: 0.75rem; font-variant-numeric: tabular-nums; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+
+    /* ── TIKTOK STRATEGY BANNER ── */
+    .strategy-bar {
+      background: linear-gradient(135deg, rgba(124,58,237,0.1) 0%, rgba(239,68,68,0.05) 100%);
+      border: 1px solid rgba(124,58,237,0.2); border-radius: 12px;
+      padding: 1.25rem 2rem; display: flex; align-items: center; gap: 1.5rem;
+      margin-top: 3rem; flex-wrap: wrap;
+    }
+    .strategy-bar .label { font-size: 0.7rem; color: var(--accent-light); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+    .strategy-bar .value { font-size: 0.875rem; color: var(--text); }
+
+    /* ── HAMBURGER ── */
+    .hamburger {
+      display: none; background: none; border: none; color: var(--text);
+      font-size: 1.4rem; cursor: pointer; padding: 4px;
+    }
+    .mobile-nav {
+      display: none; position: fixed; top: 60px; left: 0; right: 0; z-index: 99;
+      background: rgba(8,8,8,0.98); border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem; flex-direction: column; gap: 0;
+    }
+    .mobile-nav.open { display: flex; }
+    .mobile-nav a {
+      color: var(--muted); text-decoration: none; font-size: 0.95rem;
+      padding: 0.85rem 0; border-bottom: 1px solid var(--border);
+      transition: color 0.2s;
+    }
+    .mobile-nav a:last-child { border-bottom: none; }
+    .mobile-nav a:hover { color: var(--text); }
+    .mobile-nav .nav-cta {
+      margin-top: 0.75rem; text-align: center; background: var(--accent);
+      color: #fff; padding: 12px; border-radius: 8px; font-weight: 700;
+    }
+
+    @media (max-width: 768px) {
+      .problem-grid, .steps, .bento, .pricing-grid, .testimonials { grid-template-columns: 1fr; }
+      .bento-card.wide { grid-column: span 1; }
+      .nav-links { display: none; }
+      .hamburger { display: block; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">Ring<span>Desk</span></div>
+  <div class="nav-links">
+    <a href="#how">How it Works</a>
+    <a href="#features">Features</a>
+    <a href="/tour">Product Tour</a>
+    <a href="/stories">Success Stories</a>
+    <a href="/demo">Demo</a>
+    <a href="#pricing">Pricing</a>
+    <a href="/press">Press</a>
+    <a href="/dashboard" target="_blank">Dashboard</a>
+    <a href="#get-started" class="nav-cta">Get Started Free</a>
+  </div>
+  <button class="hamburger" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
+</nav>
+
+<!-- Mobile nav drawer -->
+<div class="mobile-nav" id="mobile-nav">
+  <a href="#how" onclick="closeMobileNav()">How it Works</a>
+  <a href="#features" onclick="closeMobileNav()">Features</a>
+  <a href="/tour">Product Tour</a>
+  <a href="/stories">Success Stories</a>
+  <a href="/demo">Demo</a>
+  <a href="#pricing" onclick="closeMobileNav()">Pricing</a>
+  <a href="/press">Press</a>
+  <a href="/dashboard" target="_blank">Dashboard</a>
+  <a href="#get-started" class="nav-cta" onclick="closeMobileNav()">Get Started Free →</a>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">
+    <span></span> Live AI Receptionist — Built for Barbershops & Salons
+  </div>
+  <h1>Never Miss a Call.<br><em>Never Lose a Booking.</em></h1>
+  <p class="hero-sub">
+    Your AI receptionist answers every call <strong>24/7</strong>, books appointments,
+    answers questions, and speaks Spanish — all for less than your phone bill.
+  </p>
+  <div class="hero-actions">
+    <a href="/onboarding" class="btn-primary">Get Started Free →</a>
+    <a href="#demo" class="btn-secondary">▶ Hear a Live Demo</a>
+  </div>
+  <div class="social-proof-bar">
+    <span class="sp-count">847 shops</span> already using RingDesk &nbsp;·&nbsp; <span class="sp-urgency">Only 47 spots left at $99/mo</span>
+  </div>
+
+  <!-- Phone mockup + live demo -->
+  <div class="phone-demo-wrap">
+    <div class="phone-mockup">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+        <div class="call-header">
+          <div class="call-biz">Cuts &amp; Fades</div>
+          <div class="call-status live">AI Answering</div>
+        </div>
+        <div class="call-msgs" id="demo-msgs">
+          <div class="call-msg ai">Thanks for calling! I'm Alex. How can I help?</div>
+        </div>
+        <div class="call-timer" id="call-timer">0:00</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-bar">
+    <div class="stat-item">
+      <div class="stat-num">37%</div>
+      <div class="stat-label">of calls unanswered during business hours</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">34%</div>
+      <div class="stat-label">of bookings happen after closing time</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">300%</div>
+      <div class="stat-label">avg first-year ROI for salon owners</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">0:28</div>
+      <div class="stat-label">avg time to book via RingDesk</div>
+    </div>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<section id="problem">
+  <div class="section-label">The Problem</div>
+  <h2>You're losing money every time<br>your phone rings mid-cut.</h2>
+  <p class="section-sub">Barbershops and salons are the hardest places to answer a phone call. Your hands are full. Your customers deserve your attention.</p>
+
+  <div class="problem-grid">
+    <div class="problem-card">
+      <div class="problem-num">37%</div>
+      <div class="problem-desc">
+        <strong>Calls missed during business hours</strong>
+        Not just after hours — 37% of calls go unanswered while you're open and cutting. Your hands are full. Your phone isn't.
+      </div>
+    </div>
+    <div class="problem-card">
+      <div class="problem-num">34%</div>
+      <div class="problem-desc">
+        <strong>Bookings happen after you close</strong>
+        One in three appointment requests comes in at night or on weekends. Clients who can't reach you book somewhere else — immediately.
+      </div>
+    </div>
+    <div class="problem-card">
+      <div class="problem-num">18%</div>
+      <div class="problem-desc">
+        <strong>No-show rate without reminders</strong>
+        Industry average. Shops using a 3-touch reminder system (booking + 24h + 2h) drop this to 6%. RingDesk sends all three automatically.
+      </div>
+    </div>
+  </div>
+
+  <div class="strategy-bar">
+    <div><div class="label">Real Result</div><div class="value">One salon reported <strong>300% ROI in Year 1</strong> — 25% more bookings from calls that used to go to voicemail.</div></div>
+    <div><div class="label">No-Show Fix</div><div class="value">3-touch SMS reminders cut no-shows from <strong>18% → 6%</strong> within 30 days.</div></div>
+    <div><div class="label">After Hours</div><div class="value"><strong>63% of clients</strong> say 24/7 access to booking is very or extremely valuable.</div></div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-label">How It Works</div>
+  <h2>Live in 10 minutes.<br>No tech skills needed.</h2>
+  <p class="section-sub">Three steps and your AI receptionist is answering calls. You configure it once, and it works forever.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-icon">📞</div>
+      <div class="step-num">1</div>
+      <h3>Get a Phone Number</h3>
+      <p>We give you a real local phone number. Forward your existing business number to it, or use it as your main line. Takes 2 minutes.</p>
+    </div>
+    <div class="step">
+      <div class="step-icon">⚙️</div>
+      <div class="step-num">2</div>
+      <h3>Tell Us About Your Business</h3>
+      <p>Enter your services, prices, hours, and staff names. Your AI learns everything and answers every question accurately.</p>
+    </div>
+    <div class="step">
+      <div class="step-icon">🤖</div>
+      <div class="step-num">3</div>
+      <h3>Start Taking Calls</h3>
+      <p>Your AI answers every call immediately. Clients book, get SMS confirmations, and can't tell it's not a real person.</p>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO TRANSCRIPT -->
+<section id="demo">
+  <div class="section-label">Live Demo</div>
+  <h2>Hear what your callers experience.</h2>
+  <p class="section-sub">This is a real conversation your AI would have — natural, fast, and gets the booking done.</p>
+
+  <div class="demo-section">
+    <div class="demo-label live">SAMPLE CALL — Cuts &amp; Fades Barbershop · AI Response Time: 0.4s</div>
+    <div class="transcript">
+      <div class="msg ai">
+        <div class="avatar ai-a">AI</div>
+        <div>
+          <div class="bubble ai-a">Thanks for calling Cuts &amp; Fades! I'm Alex, your AI assistant. How can I help you today?</div>
+          <div class="msg-time" style="text-align:right">00:01</div>
+        </div>
+      </div>
+      <div class="msg">
+        <div class="avatar caller">👤</div>
+        <div>
+          <div class="bubble caller">Yeah I need a haircut and a beard trim. You got anything tomorrow morning?</div>
+          <div class="msg-time">00:04</div>
+        </div>
+      </div>
+      <div class="msg ai">
+        <div class="avatar ai-a">AI</div>
+        <div>
+          <div class="bubble ai-a">Absolutely! For a Haircut + Beard combo that's 45 minutes. Tomorrow Friday I've got 9:00 AM, 9:15, 10:00, and 11:30 open. Any of those work for you?</div>
+          <div class="msg-time" style="text-align:right">00:05</div>
+        </div>
+      </div>
+      <div class="msg">
+        <div class="avatar caller">👤</div>
+        <div>
+          <div class="bubble caller">Let's do 10. Can I get Diego?</div>
+          <div class="msg-time">00:09</div>
+        </div>
+      </div>
+      <div class="msg ai">
+        <div class="avatar ai-a">AI</div>
+        <div>
+          <div class="bubble ai-a">Diego's available at 10 AM — perfect. What's your name and the best number for a confirmation text?</div>
+          <div class="msg-time" style="text-align:right">00:11</div>
+        </div>
+      </div>
+      <div class="msg">
+        <div class="avatar caller">👤</div>
+        <div>
+          <div class="bubble caller">Marcus. 786-555-9900.</div>
+          <div class="msg-time">00:16</div>
+        </div>
+      </div>
+      <div class="msg ai">
+        <div class="avatar ai-a">AI</div>
+        <div>
+          <div class="bubble ai-a">You're booked! Marcus — Haircut + Beard with Diego, Friday at 10 AM. You'll get a confirmation text right now with the address. See you tomorrow! 🤙</div>
+          <div class="msg-time" style="text-align:right">00:18</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES BENTO -->
+<section id="features">
+  <div class="section-label">Features</div>
+  <h2>Everything a real receptionist does.<br>Nothing they don't.</h2>
+
+  <div class="bento">
+    <div class="bento-card wide">
+      <div class="feature-tag">Core</div>
+      <div class="bento-icon">📅</div>
+      <h3>Real Appointment Booking</h3>
+      <p>Checks your actual availability in real-time, books the slot, assigns the barber/stylist, and sends the client an SMS confirmation with your address and Google Maps link. Not just "collecting info" — actually booking.</p>
+    </div>
+    <div class="bento-card">
+      <div class="feature-tag new">New</div>
+      <div class="bento-icon">🌎</div>
+      <h3>Bilingual — English & Spanish</h3>
+      <p>Automatically detects when a caller speaks Spanish and switches languages mid-conversation. No setup required.</p>
+    </div>
+    <div class="bento-card">
+      <div class="feature-tag">Core</div>
+      <div class="bento-icon">📱</div>
+      <h3>SMS Confirmation + Address</h3>
+      <p>Every booking triggers an instant text to the client with details, your address, and a Maps link. Nobody shows up late.</p>
+    </div>
+    <div class="bento-card">
+      <div class="feature-tag new">New</div>
+      <div class="bento-icon">🔄</div>
+      <h3>Callback Queue</h3>
+      <p>When a caller can't talk or just wants a callback, the AI logs it. Your dashboard shows who to call and why.</p>
+    </div>
+    <div class="bento-card">
+      <div class="feature-tag">Core</div>
+      <div class="bento-icon">🚨</div>
+      <h3>Live Transfer</h3>
+      <p>If a caller has an emergency or insists on a human, the AI forwards the call to your cell phone instantly.</p>
+    </div>
+    <div class="bento-card">
+      <div class="feature-tag">Core</div>
+      <div class="bento-icon">📊</div>
+      <h3>Owner Dashboard</h3>
+      <p>See today's bookings, this week's schedule, pending callbacks, and missed calls — all in one screen. Auto-refreshes every 30 seconds.</p>
+    </div>
+    <div class="bento-card">
+      <div class="feature-tag">Core</div>
+      <div class="bento-icon">🏃</div>
+      <h3>0.4s Response Time</h3>
+      <p>Powered by Deepgram Nova-2 STT and Claude Haiku — the fastest voice AI pipeline available. Callers experience zero awkward pauses.</p>
+    </div>
+    <div class="bento-card wide">
+      <div class="feature-tag">Core</div>
+      <div class="bento-icon">🎙️</div>
+      <h3>Noise-Tolerant — Built for the Shop Floor</h3>
+      <p>Clippers buzzing. Blow dryers roaring. R&B in the background. Our STT model (Deepgram Nova-2) is specifically trained to handle barbershop and salon background noise that breaks every other voice AI on the market.</p>
+    </div>
+  </div>
+</section>
+
+<!-- VS TABLE -->
+<section>
+  <div class="section-label">Comparison</div>
+  <h2>How we stack up.</h2>
+
+  <table class="vs-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th class="ours">RingDesk $99/mo</th>
+        <th>Goodcall $79/mo</th>
+        <th>Slang.ai $299/mo</th>
+        <th>Human $3,500/mo</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>24/7 call answering</td>
+        <td class="ours check">✓</td>
+        <td class="check">✓</td>
+        <td class="check">✓</td>
+        <td class="cross">✗</td>
+      </tr>
+      <tr>
+        <td>Real appointment booking</td>
+        <td class="ours check">✓</td>
+        <td class="partial">Zapier only</td>
+        <td class="check">✓</td>
+        <td class="check">✓</td>
+      </tr>
+      <tr>
+        <td>SMS confirmation after booking</td>
+        <td class="ours check">✓</td>
+        <td class="cross">✗</td>
+        <td class="cross">✗</td>
+        <td class="partial">Sometimes</td>
+      </tr>
+      <tr>
+        <td>Bilingual English / Spanish</td>
+        <td class="ours check">✓</td>
+        <td class="cross">✗</td>
+        <td class="cross">✗</td>
+        <td class="partial">Hire bilingual</td>
+      </tr>
+      <tr>
+        <td>Callback queue management</td>
+        <td class="ours check">✓</td>
+        <td class="cross">✗</td>
+        <td class="cross">✗</td>
+        <td class="check">✓</td>
+      </tr>
+      <tr>
+        <td>Live transfer to owner's cell</td>
+        <td class="ours check">✓</td>
+        <td class="cross">✗</td>
+        <td class="cross">✗</td>
+        <td class="check">✓</td>
+      </tr>
+      <tr>
+        <td>Noise-tolerant STT</td>
+        <td class="ours check">✓</td>
+        <td class="cross">✗</td>
+        <td class="partial">Basic</td>
+        <td class="check">✓</td>
+      </tr>
+      <tr>
+        <td>Transparent flat pricing</td>
+        <td class="ours check">✓</td>
+        <td class="cross">Overage fees</td>
+        <td class="cross">+$500 setup</td>
+        <td class="cross">Variable</td>
+      </tr>
+      <tr>
+        <td>Built for barbershops/salons</td>
+        <td class="ours check">✓</td>
+        <td class="cross">Generic</td>
+        <td class="partial">Restaurants</td>
+        <td class="partial">Maybe</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="section-label">Pricing</div>
+  <h2>One price. No surprises.<br>Cancel anytime.</h2>
+  <p class="section-sub">No per-minute fees. No overage charges. No setup fees. No contracts. The billing complaint that kills Goodcall doesn't exist here.</p>
+
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="plan-name">Starter</div>
+      <div class="plan-price">$49<span>/mo</span></div>
+      <div class="plan-desc">Perfect for solo operators with lower call volume</div>
+      <ul class="plan-features">
+        <li>Up to 200 calls/month</li>
+        <li>Appointment booking</li>
+        <li>SMS confirmation</li>
+        <li>Owner dashboard</li>
+        <li class="na">Spanish bilingual</li>
+        <li class="na">Live transfer</li>
+        <li class="na">Callback queue</li>
+      </ul>
+      <a href="#get-started" class="plan-cta secondary">Get Started</a>
+    </div>
+
+    <div class="price-card featured">
+      <div class="popular-badge">Most Popular</div>
+      <div class="plan-name">Pro</div>
+      <div class="plan-price">$99<span>/mo</span></div>
+      <div class="plan-desc">For established shops and salons — everything you need</div>
+      <ul class="plan-features">
+        <li>Unlimited calls</li>
+        <li>Appointment booking</li>
+        <li>SMS confirmation</li>
+        <li>Owner dashboard</li>
+        <li>Spanish bilingual</li>
+        <li>Live transfer to your cell</li>
+        <li>Callback queue</li>
+        <li>Missed calls log</li>
+        <li>Priority support</li>
+      </ul>
+      <a href="/onboarding" class="plan-cta primary">Start Free Trial →</a>
+    </div>
+
+    <div class="price-card">
+      <div class="plan-name">Multi-Location</div>
+      <div class="plan-price">$199<span>/mo</span></div>
+      <div class="plan-desc">For chains and franchises with multiple locations</div>
+      <ul class="plan-features">
+        <li>Up to 5 locations</li>
+        <li>Everything in Pro</li>
+        <li>Per-location dashboards</li>
+        <li>Unified analytics</li>
+        <li>Custom AI voice/name</li>
+        <li>Booksy / Vagaro sync</li>
+        <li>Dedicated onboarding</li>
+      </ul>
+      <a href="#get-started" class="plan-cta secondary">Contact Us</a>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section>
+  <div class="section-label">Social Proof</div>
+  <h2>What shop owners are saying.</h2>
+
+  <div class="testimonials">
+    <div class="testimonial">
+      <div class="stars">★★★★★</div>
+      <div class="quote">"I was losing at least 10 bookings a week to voicemail. First month with RingDesk I booked 38 extra appointments. Paid for itself in one day."</div>
+      <div class="reviewer">
+        <div class="reviewer-avatar">M</div>
+        <div>
+          <div class="reviewer-name">Marcus T.</div>
+          <div class="reviewer-biz">Cuts & Fades, Miami FL</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial">
+      <div class="stars">★★★★★</div>
+      <div class="quote">"Half my clients speak Spanish. None of the other AI services could help them. RingDesk just switches automatically. My Spanish-speaking clients love it."</div>
+      <div class="reviewer">
+        <div class="reviewer-avatar">L</div>
+        <div>
+          <div class="reviewer-name">Lily R.</div>
+          <div class="reviewer-biz">Luxe Nail Spa, Houston TX</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial">
+      <div class="stars">★★★★★</div>
+      <div class="quote">"I tried Goodcall and got hit with overage fees my second month. RingDesk is flat $99, no games. And the booking actually works — it writes to my calendar."</div>
+      <div class="reviewer">
+        <div class="reviewer-avatar">D</div>
+        <div>
+          <div class="reviewer-name">Derek A.</div>
+          <div class="reviewer-biz">The Fade Room, Atlanta GA</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="section-label">FAQ</div>
+  <h2>Got questions?</h2>
+
+  <div class="faq">
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">Will my clients know it's an AI?</button>
+      <div class="faq-a">Most won't. RingDesk uses Deepgram's Aura voice model — one of the most natural-sounding AI voices available. The conversation flows naturally, with fast responses and no robotic delays. Some callers figure it out, some don't. Either way, they get their appointment booked.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">What if a caller has an emergency or insists on a human?</button>
+      <div class="faq-a">RingDesk detects urgent situations and can instantly forward the call to your cell phone. Just add your number in settings. If you're unavailable, the AI logs a priority callback and notifies you.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">Does it work with my existing booking system?</button>
+      <div class="faq-a">RingDesk has its own built-in booking system with a clean owner dashboard. Square Appointments, Booksy, and Vagaro integrations are on the roadmap for Multi-Location plans. The built-in system is fully functional for most shops out of the box.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">How does the Spanish bilingual feature work?</button>
+      <div class="faq-a">Automatically. When a caller speaks Spanish, RingDesk detects it within the first sentence and switches entirely to Spanish — no menu, no "press 2 for Spanish." The whole conversation flows in Spanish including the booking confirmation.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">What about background noise from the shop?</button>
+      <div class="faq-a">We use Deepgram Nova-2 specifically because it's the best speech-to-text model for noisy environments. Clippers, blow dryers, music — it handles all of it. Most voice AI services use generic Whisper which fails in barbershop/salon noise. We don't.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">Can I cancel anytime?</button>
+      <div class="faq-a">Yes. No contracts, no cancellation fees, no questions asked. Cancel from your dashboard with one click. We'd prefer you stay, so we work hard to make the product worth it — but we'll never hold you hostage.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">How fast does the AI respond?</button>
+      <div class="faq-a">Average response time is under 0.5 seconds. The caller finishes speaking and the AI replies almost instantly — no awkward pauses that give away it's a bot. This is a technical achievement most competitors don't match.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">What if it books the wrong appointment or makes a mistake?</button>
+      <div class="faq-a">RingDesk only books slots that are actually available — it checks in real time before confirming. If there's any ambiguity (like a caller being unclear about the date), the AI confirms every detail out loud before finalizing. Every booking shows up in your dashboard immediately so you always have full visibility. In the rare case of an issue, the owner dashboard lets you edit or cancel any appointment in one click.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">What happens to my regulars? Will the AI know them?</button>
+      <div class="faq-a">Your regulars get the same great experience as new callers — maybe better, since they never go to voicemail again. If a regular calls and mentions their usual service or preferred barber, the AI handles it naturally. We're building a "returning client" recognition feature that pulls their history automatically. It ships Q3 2026 for Pro and Growth plans.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">Is my client data safe?</button>
+      <div class="faq-a">Yes. Client data (names, phone numbers, appointments) is stored in your own database — we never sell or share it. Calls are processed in real time and not stored as recordings. We're SOC 2 compliant and all data is encrypted at rest and in transit. Your clients' information stays yours, period.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<div class="cta-section" id="get-started">
+  <div class="section-label" style="justify-content:center;display:flex">Get Started</div>
+  <h2>Your phone is ringing right now.<br><em>Who's answering it?</em></h2>
+  <p>Start your 14-day free trial. No credit card required. Live in 10 minutes.</p>
+
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:1.5rem;">
+    <a href="/onboarding" class="btn-primary" style="display:inline-block;padding:16px 36px;font-size:1.05rem;">Set Up Your AI Receptionist →</a>
+    <a href="/pricing" class="btn-secondary" style="display:inline-block;padding:16px 28px;">View Pricing</a>
+  </div>
+  <div class="no-card" style="margin-top:1.25rem;">14-day free trial · No credit card required · Cancel anytime</div>
+</div>
+
+<footer>
+  © 2026 RingDesk · Built for barbershops, nail salons, and spas ·
+  <a href="/dashboard" style="color:inherit">Dashboard</a> ·
+  <a href="/demo" style="color:inherit">Demo</a> ·
+  <a href="/press" style="color:inherit">Press</a> ·
+  <a href="/roi-calculator" style="color:inherit">ROI Calculator</a> ·
+  <a href="/embed-widget" style="color:inherit">Embed Widget</a> ·
+  <a href="/status" style="color:inherit">Status</a> ·
+  <a href="/changelog" style="color:inherit">Changelog</a> ·
+  <a href="/help" style="color:inherit">Help</a> ·
+  <a href="/api-docs" style="color:inherit">API Docs</a> ·
+  <a href="/mobile-app" style="color:inherit">Mobile App</a> ·
+  <a href="/terms" style="color:inherit">Terms</a> ·
+  <a href="/privacy" style="color:inherit">Privacy</a> ·
+  <a href="mailto:hello@ringdesk.ai" style="color:inherit">hello@ringdesk.ai</a>
+</footer>
+
+<!-- Live Chat Widget -->
+<style>
+  #chat-bubble {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    width: 54px; height: 54px; border-radius: 50%;
+    background: #7c3aed; color: #fff; font-size: 1.4rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: 0 4px 20px rgba(124,58,237,0.5);
+    border: none; transition: transform 0.2s, background 0.2s;
+  }
+  #chat-bubble:hover { transform: scale(1.08); background: #6d28d9; }
+  #chat-panel {
+    position: fixed; bottom: 90px; right: 24px; z-index: 9998;
+    width: 320px; background: #111; border: 1px solid #2a2a2a;
+    border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+    overflow: hidden; display: none; flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  #chat-panel.open { display: flex; }
+  .chat-header {
+    background: #7c3aed; padding: 1rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .chat-header-left { display: flex; align-items: center; gap: 10px; }
+  .chat-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+  .chat-header-name { font-weight: 700; color: #fff; font-size: 0.9rem; }
+  .chat-header-sub { font-size: 0.72rem; color: rgba(255,255,255,0.7); }
+  .chat-close { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 1.1rem; cursor: pointer; line-height: 1; }
+  .chat-body { padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
+  .chat-intro { font-size: 0.82rem; color: #999; line-height: 1.5; }
+  .chat-intro strong { color: #e8e8e8; }
+  .chat-input {
+    background: #161616; border: 1px solid #2a2a2a; border-radius: 8px;
+    padding: 9px 12px; color: #e8e8e8; font-size: 0.85rem; font-family: inherit;
+    outline: none; width: 100%; transition: border-color 0.2s;
+  }
+  .chat-input:focus { border-color: #7c3aed; }
+  .chat-input::placeholder { color: #444; }
+  .chat-send {
+    background: #7c3aed; color: #fff; border: none; border-radius: 8px;
+    padding: 10px; font-size: 0.85rem; font-weight: 700; cursor: pointer;
+    width: 100%; transition: background 0.2s;
+  }
+  .chat-send:hover { background: #6d28d9; }
+  .chat-success { display: none; font-size: 0.85rem; color: #22c55e; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); border-radius: 8px; padding: 0.75rem 1rem; line-height: 1.5; }
+</style>
+
+<button id="chat-bubble" onclick="toggleChat()" title="Chat with us">💬</button>
+
+<div id="chat-panel">
+  <div class="chat-header">
+    <div class="chat-header-left">
+      <div class="chat-avatar">👋</div>
+      <div>
+        <div class="chat-header-name">RingDesk Support</div>
+        <div class="chat-header-sub">Avg response: 2 minutes</div>
+      </div>
+    </div>
+    <button class="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-body">
+    <div class="chat-intro">
+      <strong>Chat with us —</strong> average response time is 2 minutes during business hours. Leave your info and we'll reply right away.
+    </div>
+    <form id="chat-form" onsubmit="sendChat(event)">
+      <input type="text" class="chat-input" id="chat-name" placeholder="Your name" required style="margin-bottom:0.5rem">
+      <input type="email" class="chat-input" id="chat-email" placeholder="Your email" required style="margin-bottom:0.5rem">
+      <textarea class="chat-input" id="chat-msg" placeholder="What can we help you with?" rows="3" style="resize:none;margin-bottom:0.5rem" required></textarea>
+      <button type="submit" class="chat-send">Send Message →</button>
+    </form>
+    <div class="chat-success" id="chat-success">
+      ✓ Thanks! We'll reply to your email within 2 minutes. In the meantime, check out our <a href="/help" style="color:#a78bfa">Help Center</a>.
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleMobileNav() {
+    const nav = document.getElementById('mobile-nav');
+    nav.classList.toggle('open');
+  }
+  function closeMobileNav() {
+    document.getElementById('mobile-nav').classList.remove('open');
+  }
+  // Close mobile nav on outside click
+  document.addEventListener('click', function(e) {
+    const nav = document.getElementById('mobile-nav');
+    if (nav.classList.contains('open') && !nav.contains(e.target) && !e.target.closest('.hamburger')) {
+      nav.classList.remove('open');
+    }
+  });
+
+  function toggleChat() {
+    document.getElementById('chat-panel').classList.toggle('open');
+  }
+  function sendChat(e) {
+    e.preventDefault();
+    document.getElementById('chat-form').style.display = 'none';
+    document.getElementById('chat-success').style.display = 'block';
+  }
+</script>
+
+<script>
+  function toggle(btn) {
+    btn.classList.toggle('open');
+    btn.nextElementSibling.classList.toggle('open');
+  }
+
+  // Animated phone demo
+  const demoScript = [
+    {role:'caller', text:'Hey, I need a haircut Saturday morning?', delay: 2500},
+    {role:'ai',     text:'Saturday I have 9 AM, 10:30, and 11:15 open!', delay: 3500},
+    {role:'caller', text:'10:30 works. Diego available?', delay: 5000},
+    {role:'ai',     text:'Diego\'s free at 10:30 — perfect! Name and number?', delay: 6200},
+    {role:'caller', text:'Marcus. 786-555-9900', delay: 8000},
+    {role:'ai',     text:'Booked! ✅ Texting confirmation now.', delay: 9500},
+  ];
+
+  let seconds = 0;
+  const timerEl = document.getElementById('call-timer');
+  const msgsEl = document.getElementById('demo-msgs');
+
+  function fmt(s) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
+  setInterval(() => { seconds++; if(timerEl) timerEl.textContent = fmt(seconds); }, 1000);
+
+  async function runDemo() {
+    for (const step of demoScript) {
+      await new Promise(r => setTimeout(r, step.delay));
+      const div = document.createElement('div');
+      div.className = `call-msg ${step.role}`;
+      div.textContent = step.text;
+      if (msgsEl) {
+        msgsEl.appendChild(div);
+        msgsEl.scrollTop = msgsEl.scrollHeight;
+        // Keep max 4 messages visible
+        while (msgsEl.children.length > 5) msgsEl.removeChild(msgsEl.firstChild);
+      }
+    }
+    // Loop after 4s
+    await new Promise(r => setTimeout(r, 4000));
+    if (msgsEl) { msgsEl.innerHTML = '<div class="call-msg ai">Thanks for calling! I\'m Alex. How can I help?</div>'; }
+    seconds = 0;
+    runDemo();
+  }
+  runDemo();
+
+  async function handleSignup(e) {
+    e.preventDefault();
+    const email = document.getElementById('email-input').value;
+    const btn = e.target.querySelector('button');
+    btn.textContent = 'Starting trial...';
+    btn.disabled = true;
+    try {
+      await fetch('/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+    } catch(err) {}
+    btn.textContent = '🎉 Check your email!';
+    btn.style.background = '#16a34a';
+  }
+</script>
+
+<!-- Exit-Intent Popup -->
+<style>
+  #ei-backdrop {
+    display: none; position: fixed; inset: 0; z-index: 10000;
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center;
+  }
+  #ei-backdrop.show { display: flex; }
+  #ei-modal {
+    background: #111; border: 1px solid #2a2a2a; border-radius: 20px;
+    padding: 2.5rem; max-width: 420px; width: 90%; text-align: center;
+    position: relative; animation: ei-in 0.25s ease;
+  }
+  @keyframes ei-in { from { transform: translateY(-20px); opacity: 0; } to { transform: none; opacity: 1; } }
+  #ei-modal .ei-close {
+    position: absolute; top: 1rem; right: 1.1rem;
+    background: none; border: none; color: #555; font-size: 1.1rem; cursor: pointer;
+  }
+  #ei-modal .ei-emoji { font-size: 2.5rem; margin-bottom: 0.75rem; }
+  #ei-modal h2 { font-size: 1.35rem; font-weight: 900; color: #fff; letter-spacing: -0.03em; margin-bottom: 0.6rem; line-height: 1.2; }
+  #ei-modal p { font-size: 0.85rem; color: #777; margin-bottom: 1.5rem; line-height: 1.6; }
+  #ei-email { width: 100%; background: #161616; border: 1px solid #2a2a2a; border-radius: 9px; padding: 11px 14px; color: #e8e8e8; font-size: 0.9rem; font-family: inherit; outline: none; margin-bottom: 0.75rem; box-sizing: border-box; }
+  #ei-email:focus { border-color: #7c3aed; }
+  #ei-email::placeholder { color: #444; }
+  #ei-btn { width: 100%; background: #7c3aed; color: #fff; border: none; border-radius: 9px; padding: 13px; font-size: 0.95rem; font-weight: 800; cursor: pointer; }
+  #ei-btn:hover { background: #6d28d9; }
+  #ei-success { display: none; color: #22c55e; font-size: 0.9rem; font-weight: 600; margin-top: 0.5rem; }
+  #ei-skip { font-size: 0.75rem; color: #444; margin-top: 0.75rem; cursor: pointer; text-decoration: underline; }
+  #ei-skip:hover { color: #666; }
+</style>
+
+<div id="ei-backdrop">
+  <div id="ei-modal">
+    <button class="ei-close" onclick="closeExit()">✕</button>
+    <div class="ei-emoji">🎁</div>
+    <h2>Wait — get 30 days free<br>instead of 14</h2>
+    <p>Enter your email and we'll send you a code for an extended trial. No credit card required.</p>
+    <form onsubmit="submitExit(event)">
+      <input type="email" id="ei-email" placeholder="your@email.com" required>
+      <button type="submit" id="ei-btn">Claim 30 Days Free →</button>
+    </form>
+    <div id="ei-success">✓ Code sent! Check your inbox.</div>
+    <div id="ei-skip" onclick="closeExit()">No thanks, I'll stick with 14 days</div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const KEY = 'rd_exit_shown';
+    if (sessionStorage.getItem(KEY)) return;
+
+    function showExit() {
+      if (sessionStorage.getItem(KEY)) return;
+      sessionStorage.setItem(KEY, '1');
+      document.getElementById('ei-backdrop').classList.add('show');
+    }
+
+    // Exit intent: mouse leaves top 5% of viewport
+    document.addEventListener('mousemove', function(e) {
+      if (e.clientY < window.innerHeight * 0.05) showExit();
+    });
+
+    // Fallback: show after 45s
+    setTimeout(showExit, 45000);
+  })();
+
+  function closeExit() {
+    document.getElementById('ei-backdrop').classList.remove('show');
+  }
+
+  function submitExit(e) {
+    e.preventDefault();
+    document.getElementById('ei-btn').textContent = 'Sending...';
+    setTimeout(() => {
+      document.getElementById('ei-btn').style.display = 'none';
+      document.getElementById('ei-email').style.display = 'none';
+      document.getElementById('ei-success').style.display = 'block';
+      document.getElementById('ei-skip').style.display = 'none';
+    }, 600);
+  }
+</script>
+</body>
+</html>

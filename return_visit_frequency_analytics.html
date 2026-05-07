@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Return Visit Frequency — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .gap-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; }
+    .gap-label { font-size: .8rem; font-weight: 600; width: 100px; flex-shrink: 0; }
+    .bar-wrap { flex: 1; background: var(--surface2); border-radius: 5px; height: 10px; overflow: hidden; }
+    .bar { height: 100%; border-radius: 5px; background: var(--accent); }
+    .gap-pct { font-size: .76rem; font-weight: 700; color: var(--accent); width: 36px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Return Visit Frequency</div>
+  <p class="page-sub">How often do clients come back — and how long do they wait? Use this to calibrate your rebook nudge timing and loyalty program thresholds.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Return Rate</div>
+      <div class="hero-val" id="h-rate" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Gap</div>
+      <div class="hero-val" id="h-gap" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Top Segment</div>
+      <div class="hero-val" id="h-seg" style="color:var(--accent);font-size:1rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Monthly Return Rate Trend</div>
+    <svg id="chart" viewBox="0 0 680 200" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+  <div class="card">
+    <div class="card-title">Visit Gap Distribution</div>
+    <div id="gap-chart"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/return-visit-frequency').then(r => r.json());
+    document.getElementById('h-rate').textContent = d.return_rate_pct ? d.return_rate_pct+'%' : '—';
+    document.getElementById('h-gap').textContent = d.avg_days_between_visits ? d.avg_days_between_visits+'d' : '—';
+    document.getElementById('h-seg').textContent = d.top_returner_segment || '—';
+
+    const months = d.months||[], rates = d.return_rates||[];
+    if (months.length) {
+      const W=680,H=200,pL=36,pR=16,pT=20,pB=32,n=months.length;
+      const cW=W-pL-pR, cH=H-pT-pB, step=n>1?cW/(n-1):cW;
+      const mn=Math.max(Math.min(...rates)-5,0), mx=Math.max(...rates)+5, rng=mx-mn||1;
+      const pts=rates.map((v,i)=>({x:pL+i*step,y:pT+cH-(v-mn)/rng*cH}));
+      const line='M'+pts[0].x+','+pts[0].y+' '+pts.slice(1).map(p=>`L${p.x},${p.y}`).join(' ');
+      const area=line+` L${pts[n-1].x},${pT+cH} L${pts[0].x},${pT+cH} Z`;
+      let dots='',lbls='';
+      pts.forEach((p,i)=>{
+        dots+=`<circle cx="${p.x}" cy="${p.y}" r="4" fill="var(--green)" stroke="var(--bg)" stroke-width="2"/>`;
+        dots+=`<text x="${p.x}" y="${p.y-9}" text-anchor="middle" fill="var(--green)" font-size="9" font-weight="700">${rates[i]}%</text>`;
+        lbls+=`<text x="${p.x}" y="${H-pB+14}" text-anchor="middle" fill="#555" font-size="9">${esc(months[i])}</text>`;
+      });
+      document.getElementById('chart').innerHTML=
+        `<path d="${area}" fill="rgba(52,211,153,.06)"/>`+
+        `<path d="${line}" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linejoin="round"/>`+
+        dots+lbls;
+    }
+
+    const gaps = d.visit_gap_distribution||[];
+    const maxG = Math.max(...gaps.map(g=>g.pct),1);
+    document.getElementById('gap-chart').innerHTML = gaps.map(g=>`
+      <div class="gap-row">
+        <span class="gap-label">${esc(g.label)}</span>
+        <div class="bar-wrap"><div class="bar" style="width:${(g.pct/maxG*100).toFixed(1)}%"></div></div>
+        <span class="gap-pct">${g.pct}%</span>
+      </div>
+    `).join('');
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

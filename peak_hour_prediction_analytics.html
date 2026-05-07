@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Peak Hour Prediction — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .hour-row { display: grid; grid-template-columns: 48px 1fr 1fr 50px; gap: .6rem; align-items: center; margin-bottom: .55rem; }
+    .hour-lbl { font-size: .78rem; color: var(--muted); }
+    .bar-wrap { background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; }
+    .bar-fill.actual { background: var(--accent); }
+    .bar-fill.predicted { background: rgba(167,139,250,.35); }
+    .hour-pct { font-size: .72rem; font-weight: 700; text-align: right; color: var(--accent); }
+    .legend { display: flex; gap: 1.2rem; margin-bottom: 1rem; }
+    .legend-item { display: flex; align-items: center; gap: .35rem; font-size: .7rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Peak Hour Prediction</div>
+  <p class="page-sub">See actual capacity utilization by hour and AI predictions for next week. Use this to schedule staff and offer strategic discounts during slow periods.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-peak" style="color:var(--accent)">—</div><div class="stat-lbl">Peak Hour</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-day" style="color:var(--yellow)">—</div><div class="stat-lbl">Busiest Day</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-util" style="color:var(--green)">—</div><div class="stat-lbl">Avg Utilization</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Hourly Load vs Prediction</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Actual</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(167,139,250,.35)"></div> Predicted</div>
+    </div>
+    <div id="hour-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/peak-hour-prediction-stats').then(r => r.json());
+    document.getElementById('h-peak').textContent = d.peak_hour;
+    document.getElementById('h-day').textContent = d.busiest_day;
+    document.getElementById('h-util').textContent = d.avg_utilization_pct.toFixed(1) + '%';
+    const hl = document.getElementById('hour-list');
+    d.slots.forEach(s => {
+      hl.innerHTML += '<div class="hour-row"><div class="hour-lbl">' + s.hour + '</div><div class="bar-wrap"><div class="bar-fill actual" style="width:' + s.load_pct + '%"></div></div><div class="bar-wrap"><div class="bar-fill predicted" style="width:' + s.predicted_next + '%"></div></div><div class="hour-pct">' + s.load_pct + '%</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

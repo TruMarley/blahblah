@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monthly Active Clients — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem .9rem; text-align: center; }
+    .hero-label { font-size: .6rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.35rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .breakdown-list { display: flex; flex-direction: column; gap: .85rem; }
+    .breakdown-row { display: flex; align-items: center; gap: .75rem; }
+    .br-label { font-size: .8rem; font-weight: 600; min-width: 120px; }
+    .br-bar { flex: 1; height: 6px; background: var(--surface2); border-radius: 6px; }
+    .br-fill { height: 6px; border-radius: 6px; }
+    .br-val { font-size: .78rem; font-weight: 700; min-width: 38px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Monthly Active Clients</div>
+  <p class="page-sub">Track how many unique clients engaged with your business each month — booked, responded to SMS, left a review, or sent a referral. A growing MAU means your retention is working.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">MAU This Month</div>
+      <div class="hero-val" id="h-mau" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">MoM Change</div>
+      <div class="hero-val" id="h-mom" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Engagement Rate</div>
+      <div class="hero-val" id="h-eng" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total Clients</div>
+      <div class="hero-val" id="h-total" style="color:var(--muted)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">12-Month MAU Trend</div>
+    <svg id="bar-chart" viewBox="0 0 680 140" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+  <div class="card">
+    <div class="card-title">Activity Breakdown</div>
+    <div class="breakdown-list" id="breakdown"></div>
+  </div>
+</div>
+<script>
+  const ACT_COLORS = { booked: 'var(--accent)', sms_response: 'var(--green)', reviewed: 'var(--yellow)', referred: '#60a5fa' };
+  const ACT_LABELS = { booked: 'Booked Appointment', sms_response: 'Responded to SMS', reviewed: 'Left a Review', referred: 'Sent a Referral' };
+  async function load() {
+    const d = await fetch('/api/analytics/monthly-active-clients').then(r => r.json());
+    const mom = d.mom_change_pct;
+    document.getElementById('h-mau').textContent = d.mau_this_month != null ? d.mau_this_month.toLocaleString() : '—';
+    document.getElementById('h-mom').textContent = mom != null ? (mom >= 0 ? '+' : '') + mom + '%' : '—';
+    document.getElementById('h-mom').style.color = mom >= 0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('h-eng').textContent = d.engagement_rate_pct != null ? d.engagement_rate_pct + '%' : '—';
+    document.getElementById('h-total').textContent = d.total_clients != null ? d.total_clients.toLocaleString() : '—';
+
+    const months = d.months || [], mau = d.mau || [];
+    if (months.length > 0) {
+      const W = 680, H = 140, pL = 36, pR = 10, pT = 14, pB = 24;
+      const cW = W - pL - pR, cH = H - pT - pB;
+      const n = months.length;
+      const bW = (cW / n) * 0.65;
+      const gap = cW / n;
+      const mx = Math.max(...mau) * 1.1 || 1;
+      let svg = '';
+      mau.forEach((v, i) => {
+        const bH = (v / mx) * cH;
+        const x = pL + i * gap + (gap - bW) / 2;
+        const y = pT + cH - bH;
+        svg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bW.toFixed(1)}" height="${bH.toFixed(1)}" rx="3" fill="rgba(167,139,250,.55)"/>`;
+        svg += `<text x="${(x + bW/2).toFixed(1)}" y="${(y - 4).toFixed(1)}" text-anchor="middle" fill="#888" font-size="7.5">${v}</text>`;
+        svg += `<text x="${(x + bW/2).toFixed(1)}" y="${(H - pB + 13).toFixed(1)}" text-anchor="middle" fill="#555" font-size="8.5">${esc(months[i])}</text>`;
+      });
+      document.getElementById('bar-chart').innerHTML = svg;
+    }
+
+    const bd = d.activity_breakdown || {};
+    const el = document.getElementById('breakdown');
+    const mx2 = Math.max(...Object.values(bd), 1);
+    Object.entries(bd).forEach(([key, val]) => {
+      const pct = ((val / mx2) * 100).toFixed(0);
+      const color = ACT_COLORS[key] || 'var(--accent)';
+      el.innerHTML += `<div class="breakdown-row">
+        <div class="br-label">${ACT_LABELS[key] || key}</div>
+        <div class="br-bar"><div class="br-fill" style="width:${pct}%;background:${color}"></div></div>
+        <div class="br-val" style="color:${color}">${val}%</div>
+      </div>`;
+    });
+  }
+  function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Locale — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; min-width: 140px; }
+    select:focus { border-color: var(--accent); }
+    .lang-list { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
+    .lang-chip { font-size: .72rem; background: rgba(167,139,250,.08); color: var(--accent); border: 1px solid rgba(167,139,250,.18); border-radius: 6px; padding: .25rem .65rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Locale</div>
+  <p class="page-sub">Set the AI's language, date and time formats, currency, and timezone. Auto-detect switches language based on what the caller speaks.</p>
+  <div class="card">
+    <div class="card-title">Language</div>
+    <div class="row">
+      <div><div class="row-label">Enable Locale Settings</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Detect Language</div><div class="row-sub">Switch language based on caller's speech</div></div>
+      <label class="toggle"><input type="checkbox" id="auto-detect"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Primary Language</div></div>
+      <select id="primary-lang">
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="es-US">Spanish (US)</option>
+        <option value="es-ES">Spanish (Spain)</option>
+        <option value="fr-FR">French</option>
+        <option value="pt-BR">Portuguese (Brazil)</option>
+        <option value="zh-CN">Chinese (Simplified)</option>
+        <option value="ko-KR">Korean</option>
+        <option value="vi-VN">Vietnamese</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Fallback Language</div><div class="row-sub">Used when detection is unclear</div></div>
+      <select id="fallback-lang">
+        <option value="en-US">English (US)</option>
+        <option value="es-US">Spanish (US)</option>
+        <option value="fr-FR">French</option>
+      </select>
+    </div>
+    <div>
+      <div class="row-label" style="font-size:.82rem;margin-bottom:.5rem;">Secondary Languages</div>
+      <div class="lang-list" id="secondary-langs"></div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Locale Settings</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Formats &amp; Region</div>
+    <div class="row">
+      <div><div class="row-label">Date Format</div></div>
+      <select id="date-fmt">
+        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Time Format</div></div>
+      <select id="time-fmt">
+        <option value="12h">12-hour (AM/PM)</option>
+        <option value="24h">24-hour</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Currency</div></div>
+      <select id="currency">
+        <option value="USD">USD ($)</option>
+        <option value="CAD">CAD (C$)</option>
+        <option value="GBP">GBP (£)</option>
+        <option value="EUR">EUR (€)</option>
+        <option value="AUD">AUD (A$)</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Phone Format</div></div>
+      <select id="phone-fmt">
+        <option value="(###) ###-####">(###) ###-####</option>
+        <option value="+# (###) ###-####">+# (###) ###-####</option>
+        <option value="###-###-####">###-###-####</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Distance Unit</div></div>
+      <select id="distance">
+        <option value="miles">Miles</option>
+        <option value="km">Kilometres</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Timezone</div></div>
+      <select id="timezone">
+        <option value="America/New_York">Eastern (ET)</option>
+        <option value="America/Chicago">Central (CT)</option>
+        <option value="America/Denver">Mountain (MT)</option>
+        <option value="America/Los_Angeles">Pacific (PT)</option>
+        <option value="America/Phoenix">Arizona (MST)</option>
+        <option value="Pacific/Honolulu">Hawaii (HT)</option>
+        <option value="America/Anchorage">Alaska (AKT)</option>
+        <option value="Europe/London">London (GMT/BST)</option>
+        <option value="Europe/Paris">Paris (CET)</option>
+        <option value="Australia/Sydney">Sydney (AEST)</option>
+      </select>
+    </div>
+    <button class="save-btn" onclick="save()">Save Format Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/ai-locale-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('auto-detect').checked = data.auto_detect_language;
+    document.getElementById('primary-lang').value = data.primary_language;
+    document.getElementById('fallback-lang').value = data.fallback_language;
+    document.getElementById('date-fmt').value = data.date_format;
+    document.getElementById('time-fmt').value = data.time_format;
+    document.getElementById('currency').value = data.currency;
+    document.getElementById('phone-fmt').value = data.phone_format;
+    document.getElementById('distance').value = data.distance_unit;
+    document.getElementById('timezone').value = data.timezone;
+    const sl = document.getElementById('secondary-langs');
+    (data.secondary_languages || []).forEach(l => {
+      sl.innerHTML += '<span class="lang-chip">' + l + '</span>';
+    });
+  }
+  async function save() {
+    const payload = { ...data,
+      enabled: document.getElementById('enabled').checked,
+      auto_detect_language: document.getElementById('auto-detect').checked,
+      primary_language: document.getElementById('primary-lang').value,
+      fallback_language: document.getElementById('fallback-lang').value,
+      date_format: document.getElementById('date-fmt').value,
+      time_format: document.getElementById('time-fmt').value,
+      currency: document.getElementById('currency').value,
+      phone_format: document.getElementById('phone-fmt').value,
+      distance_unit: document.getElementById('distance').value,
+      timezone: document.getElementById('timezone').value,
+    };
+    await fetch('/api/settings/ai-locale-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

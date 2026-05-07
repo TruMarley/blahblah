@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Lifetime Bookings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { height: 240px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Lifetime Bookings</div>
+  <p class="page-sub">Distribution of how many total appointments each client has made — understand your loyal base vs. one-time visitors.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Clients</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Loyal (6+ visits)</div>
+      <div class="hero-val" id="h-loyal" style="color:var(--green)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Clients by Lifetime Booking Count</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 700 240" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/client-lifetime-bookings');
+    const d = await r.json();
+    document.getElementById('h-total').textContent = d.total_clients.toLocaleString();
+    const loyal = (d.buckets || []).filter(b => b.label !== '1 booking' && b.label !== '2–5')
+      .reduce((s, b) => s + b.client_count, 0);
+    document.getElementById('h-loyal').textContent = loyal.toLocaleString();
+
+    const svg = document.getElementById('chart');
+    const W=700, H=240, pL=90, pR=60, pT=14, pB=10;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const buckets = d.buckets || [];
+    const n = buckets.length;
+    const rowH = cH / n;
+    const barH = Math.min(rowH * 0.6, 32);
+    const maxV = Math.max(...buckets.map(b => b.client_count));
+
+    buckets.forEach((b, i) => {
+      const y = pT + i * rowH + rowH / 2;
+      const t = b.client_count / maxV;
+      const alpha = 0.2 + t * 0.65;
+      const bw = cW * t;
+      svg.innerHTML += `<text x="${pL-8}" y="${y+4}" font-size="10" fill="#aaa" text-anchor="end" font-weight="700">${esc(b.label)}</text>`;
+      svg.innerHTML += `<rect x="${pL}" y="${y - barH/2}" width="${bw}" height="${barH}" rx="5" fill="rgba(167,139,250,${alpha.toFixed(2)})"/>`;
+      svg.innerHTML += `<text x="${pL + bw + 7}" y="${y+4}" font-size="10" fill="rgba(167,139,250,.9)" font-weight="700">${b.client_count}</text>`;
+    });
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

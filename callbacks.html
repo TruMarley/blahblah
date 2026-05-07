@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Callbacks — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .filter-tabs { display: flex; gap: .5rem; margin-bottom: 1.25rem; }
+    .tab { background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: .78rem; font-weight: 700; padding: .4rem .9rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .tab.active { border-color: rgba(167,139,250,.4); color: var(--accent); background: rgba(167,139,250,.06); }
+    .cb-list { display: flex; flex-direction: column; gap: .75rem; }
+    .cb-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; display: flex; align-items: center; gap: 1rem; }
+    .cb-card:hover { border-color: #2a2a2a; }
+    .cb-left { flex: 1; }
+    .cb-name { font-size: .9rem; font-weight: 800; }
+    .cb-phone { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+    .cb-reason { display: inline-block; font-size: .68rem; font-weight: 700; padding: .15rem .5rem; border-radius: 6px; background: rgba(167,139,250,.08); color: var(--accent); border: 1px solid rgba(167,139,250,.18); margin-top: .35rem; }
+    .cb-meta { font-size: .7rem; color: var(--muted); margin-top: .35rem; }
+    .status-badge { font-size: .68rem; font-weight: 800; padding: .18rem .55rem; border-radius: 99px; white-space: nowrap; }
+    .s-pending     { background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); }
+    .s-in-progress { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+    .s-completed   { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .complete-btn { background: var(--surface2); border: 1px solid rgba(52,211,153,.25); color: var(--green); font-size: .72rem; font-weight: 700; padding: .35rem .85rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all .15s; white-space: nowrap; flex-shrink: 0; }
+    .complete-btn:hover { background: rgba(52,211,153,.08); }
+    .complete-btn:disabled { color: var(--muted); border-color: var(--border); cursor: default; background: transparent; }
+    .empty { text-align: center; color: var(--muted); padding: 3rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Callbacks</div>
+  <p class="page-sub">Clients requesting a return call — captured by the AI during calls.</p>
+  <div class="filter-tabs">
+    <button class="tab active" onclick="setFilter('all',this)">All</button>
+    <button class="tab" onclick="setFilter('pending',this)">Pending</button>
+    <button class="tab" onclick="setFilter('in-progress',this)">In Progress</button>
+    <button class="tab" onclick="setFilter('completed',this)">Completed</button>
+  </div>
+  <div class="cb-list" id="cb-list"></div>
+</div>
+<script>
+  let callbacks = [], filter = 'all';
+
+  async function load() {
+    const r = await fetch('/api/callbacks');
+    const d = await r.json();
+    callbacks = d.callbacks || [];
+    render();
+  }
+
+  function setFilter(f, btn) {
+    filter = f;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  }
+
+  function relTime(iso) {
+    const diff = Math.floor((new Date() - new Date(iso)) / 60000);
+    if (diff < 1) return 'just now';
+    if (diff < 60) return diff + 'm ago';
+    if (diff < 1440) return Math.floor(diff/60) + 'h ago';
+    return Math.floor(diff/1440) + 'd ago';
+  }
+
+  function render() {
+    const items = filter === 'all' ? callbacks : callbacks.filter(c => c.status === filter);
+    document.getElementById('cb-list').innerHTML = items.length ? items.map(cb => {
+      const canComplete = cb.status !== 'completed';
+      return `<div class="cb-card">
+        <div class="cb-left">
+          <div class="cb-name">${esc(cb.client_name)}</div>
+          <div class="cb-phone">${esc(cb.phone)}</div>
+          <div><span class="cb-reason">${esc(cb.reason)}</span></div>
+          <div class="cb-meta">${relTime(cb.requested_at)} · ${esc(cb.assigned_to)}</div>
+        </div>
+        <span class="status-badge s-${cb.status.replace(' ','-')}">${cb.status}</span>
+        ${canComplete
+          ? `<button class="complete-btn" id="cb-${esc(cb.id)}" onclick="complete('${esc(cb.id)}')">✓ Done</button>`
+          : `<button class="complete-btn" disabled>Done</button>`}
+      </div>`;
+    }).join('') : `<div class="empty">No ${filter === 'all' ? '' : filter + ' '}callbacks.</div>`;
+  }
+
+  async function complete(id) {
+    const btn = document.getElementById('cb-' + id);
+    if (btn) { btn.textContent = '…'; btn.disabled = true; }
+    await fetch(`/api/callbacks/${id}/complete`, { method: 'POST' });
+    const cb = callbacks.find(c => c.id === id);
+    if (cb) cb.status = 'completed';
+    render();
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

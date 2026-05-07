@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Intake Form Analytics — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1.2rem; margin-bottom: .75rem; }
+    .leg-item { display: flex; align-items: center; gap: .35rem; font-size: .7rem; color: var(--muted); }
+    .leg-bar { width: 10px; height: 10px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Intake Form Analytics</div>
+  <p class="page-sub">See how many new clients start vs. complete your intake form. Identify drop-off points and reduce friction in the onboarding funnel.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Completion Rate</div>
+      <div class="hero-val" id="h-rate" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Time to Complete</div>
+      <div class="hero-val" id="h-time" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Abandoned This Period</div>
+      <div class="hero-val" id="h-abandon" style="color:var(--red)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Weekly Intake Form Funnel</div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-bar" style="background:rgba(167,139,250,.5)"></div> Started</div>
+      <div class="leg-item"><div class="leg-bar" style="background:var(--green)"></div> Completed</div>
+      <div class="leg-item"><div class="leg-bar" style="background:var(--red)"></div> Abandoned</div>
+    </div>
+    <svg id="chart" viewBox="0 0 700 240" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/intake-form-analytics').then(r => r.json());
+    const weeks = d.weeks || [];
+
+    document.getElementById('h-rate').textContent = d.overall_completion_rate_pct ? d.overall_completion_rate_pct + '%' : '—';
+    const sec = d.avg_time_to_complete_sec || 0;
+    document.getElementById('h-time').textContent = sec ? Math.floor(sec/60) + 'm ' + (sec%60) + 's' : '—';
+    const totalAbandon = weeks.reduce((a,w)=>a+(w.abandoned||0),0);
+    document.getElementById('h-abandon').textContent = totalAbandon || '—';
+
+    if (!weeks.length) return;
+    const W=700, H=240, padL=36, padR=12, padT=16, padB=36;
+    const chartW=W-padL-padR, chartH=H-padT-padB;
+    const n=weeks.length, groupW=chartW/n, barW=Math.floor(groupW*0.22);
+    const maxVal=Math.max(...weeks.flatMap(w=>[w.started,w.completed,w.abandoned]),1);
+
+    let bars='', labels='';
+    weeks.forEach((w,i)=>{
+      const cx=padL+i*groupW+groupW/2;
+      const colors=['rgba(167,139,250,.55)','var(--green)','var(--red)'];
+      [w.started,w.completed,w.abandoned].forEach((v,j)=>{
+        const bh=(v/maxVal)*chartH;
+        const bx=cx+(j-1)*(barW+2)-barW/2;
+        bars+=`<rect x="${bx}" y="${padT+chartH-bh}" width="${barW}" height="${bh}" fill="${colors[j]}" rx="2" opacity=".85"/>`;
+      });
+      labels+=`<text x="${cx}" y="${H-padB+14}" text-anchor="middle" fill="#555" font-size="9">${esc(w.week)}</text>`;
+    });
+
+    let yAxis='';
+    for(let t=0;t<=4;t++){
+      const yv=Math.round(maxVal*t/4);
+      const yp=padT+chartH-(t/4)*chartH;
+      yAxis+=`<line x1="${padL}" x2="${W-padR}" y1="${yp}" y2="${yp}" stroke="#1e1e1e" stroke-width="1"/>`;
+      yAxis+=`<text x="${padL-5}" y="${yp+4}" text-anchor="end" fill="#444" font-size="8">${yv}</text>`;
+    }
+
+    document.getElementById('chart').innerHTML=yAxis+bars+labels;
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>No-Show Frequency — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .day-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: .4rem; }
+    .day-cell { background: var(--surface2); border-radius: 8px; padding: .6rem .3rem; text-align: center; }
+    .day-name { font-size: .6rem; color: var(--muted); margin-bottom: .3rem; }
+    .day-pct { font-size: .85rem; font-weight: 900; }
+    .meta-row { display: flex; justify-content: space-between; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .meta-item { text-align: center; }
+    .meta-val { font-size: .95rem; font-weight: 900; }
+    .meta-lbl { font-size: .62rem; color: var(--muted); margin-top: .15rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">No-Show Frequency</div>
+  <p class="page-sub">Track which clients and which days have the highest no-show rates. Identify repeat offenders and measure how effectively AI follow-up outreach converts no-shows into rescheduled appointments.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-rate" style="color:var(--red)">—</div><div class="stat-lbl">No-Show Rate (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-lost" style="color:var(--red)">—</div><div class="stat-lbl">Revenue Lost (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-followup" style="color:var(--green)">—</div><div class="stat-lbl">AI Follow-Up Rate</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">No-Show Rate by Day of Week</div>
+    <div class="day-grid" id="day-grid"></div>
+    <div class="meta-row">
+      <div class="meta-item"><div class="meta-val" id="m-count" style="color:var(--red)">—</div><div class="meta-lbl">No-Shows This Month</div></div>
+      <div class="meta-item"><div class="meta-val" id="m-repeat" style="color:var(--yellow)">—</div><div class="meta-lbl">Repeat Offenders</div></div>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/no-show-frequency-stats').then(r => r.json());
+    document.getElementById('h-rate').textContent = d.no_show_pct.toFixed(1) + '%';
+    document.getElementById('h-lost').textContent = '$' + d.revenue_lost_30d.toLocaleString();
+    document.getElementById('h-followup').textContent = d.ai_followup_sent_pct.toFixed(1) + '%';
+    document.getElementById('m-count').textContent = d.no_show_count_30d;
+    document.getElementById('m-repeat').textContent = d.repeat_offender_pct.toFixed(1) + '%';
+    const maxP = Math.max(...d.by_day.map(x => x.no_show_pct));
+    const dg = document.getElementById('day-grid');
+    d.by_day.forEach(x => {
+      const intensity = Math.round((x.no_show_pct / maxP) * 255);
+      const col = x.no_show_pct > 12 ? 'var(--red)' : x.no_show_pct > 7 ? 'var(--yellow)' : 'var(--green)';
+      dg.innerHTML += '<div class="day-cell"><div class="day-name">' + x.day + '</div><div class="day-pct" style="color:' + col + '">' + x.no_show_pct.toFixed(1) + '%</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

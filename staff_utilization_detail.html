@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Utilization Detail — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; margin-bottom: 1.25rem; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .55rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th:not(:first-child) { text-align: center; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .75rem 1rem; font-size: .82rem; text-align: center; }
+    tbody td:first-child { text-align: left; font-weight: 800; }
+    .util-wrap { display: flex; align-items: center; gap: .5rem; justify-content: center; }
+    .util-track { width: 80px; height: 7px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+    .util-fill { height: 100%; border-radius: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Utilization Detail</div>
+  <p class="page-sub">How much of each staff member's available time is booked this week.</p>
+
+  <div class="hero-card">
+    <div class="hero-label">Avg Team Utilization</div>
+    <div class="hero-val" id="h-avg" style="color:var(--accent)">—</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Utilization by Staff Member</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Staff</th>
+          <th>Booked Hrs</th>
+          <th>Available Hrs</th>
+          <th>Peak Day</th>
+          <th>Utilization</th>
+        </tr>
+      </thead>
+      <tbody id="util-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  function utilColor(pct) {
+    if (pct >= 85) return '#f87171';
+    if (pct >= 70) return '#34d399';
+    return '#fbbf24';
+  }
+  async function load() {
+    const r = await fetch('/api/analytics/staff-utilization-detail');
+    const d = await r.json();
+    document.getElementById('h-avg').textContent = d.avg_utilization_pct + '%';
+    document.getElementById('util-tbody').innerHTML = (d.staff||[]).map(s => {
+      const col = utilColor(s.utilization_pct);
+      return `<tr>
+        <td>${esc(s.name)}</td>
+        <td style="color:var(--text);font-weight:800">${s.booked_hours}h</td>
+        <td style="color:var(--muted)">${s.available_hours}h</td>
+        <td style="color:var(--muted)">${esc(s.peak_day)}</td>
+        <td>
+          <div class="util-wrap">
+            <div class="util-track"><div class="util-fill" style="width:${s.utilization_pct}%;background:${col}"></div></div>
+            <span style="font-size:.75rem;font-weight:800;color:${col}">${s.utilization_pct}%</span>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

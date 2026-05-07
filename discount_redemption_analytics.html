@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Discount Redemptions — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .code-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .5rem; display: flex; align-items: center; gap: 1rem; }
+    .code-chip { font-family: monospace; font-size: .75rem; font-weight: 700; background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); border-radius: 4px; padding: .2rem .55rem; flex-shrink: 0; }
+    .disc-badge { font-size: .65rem; font-weight: 700; background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); border-radius: 4px; padding: .12rem .4rem; }
+    .code-stats { flex: 1; display: flex; gap: 1.2rem; }
+    .cstat { font-size: .72rem; color: var(--muted); }
+    .cstat span { font-weight: 700; color: var(--text); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Discount Redemptions</div>
+  <p class="page-sub">Track promo code usage and the revenue each code is driving. High redemptions with low revenue per redemption may signal a code that's attracting bargain-seekers rather than loyal clients.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Redemptions (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-rev" style="color:var(--green)">—</div><div class="stat-lbl">Revenue (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-avg" style="color:var(--yellow)">—</div><div class="stat-lbl">Avg Revenue/Redeem</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-top" style="color:var(--text)">—</div><div class="stat-lbl">Most Used Code</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Code Breakdown</div>
+    <div id="code-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/discount-redemption-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_redemptions_30d;
+    document.getElementById('h-rev').textContent = '$' + d.total_revenue_30d.toLocaleString();
+    document.getElementById('h-avg').textContent = '$' + d.avg_revenue_per_redemption.toFixed(2);
+    document.getElementById('h-top').textContent = d.most_used_code;
+    const sorted = [...d.codes].sort((a, b) => b.redemptions - a.redemptions);
+    const cl = document.getElementById('code-list');
+    sorted.forEach(c => {
+      cl.innerHTML += '<div class="code-card"><span class="code-chip">' + c.code + '</span><span class="disc-badge">-' + c.discount_pct + '%</span><div class="code-stats"><div class="cstat"><span>' + c.redemptions + '</span> uses</div><div class="cstat">Revenue <span>$' + c.revenue.toLocaleString() + '</span></div><div class="cstat">Avg <span>$' + Math.round(c.revenue / c.redemptions) + '</span></div></div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

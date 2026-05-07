@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hourly Revenue — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
+    .hero-val { font-size: 2.2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Hourly Revenue</div>
+  <p class="page-sub">Average revenue generated per hour of the day — identifies your busiest window.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Peak Hour</div>
+      <div class="hero-val" style="color:var(--yellow)" id="h-peak-hour">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Peak Hour Revenue</div>
+      <div class="hero-val" style="color:var(--accent)" id="h-peak-rev">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Revenue by Hour of Day</div>
+    <svg id="chart" width="100%" style="display:block;overflow:visible"></svg>
+  </div>
+</div>
+<script>
+  function fmtHour(h) {
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    return (h % 12 || 12) + ampm;
+  }
+
+  async function load() {
+    const r = await fetch('/api/analytics/hourly-revenue');
+    const d = await r.json();
+    const hours = d.hours || [];
+    document.getElementById('h-peak-hour').textContent = fmtHour(d.peak_hour);
+    document.getElementById('h-peak-rev').textContent = '$' + d.peak_revenue;
+
+    const W=700, H=220, PL=8, PR=8, PT=16, PB=36, cW=W-PL-PR, cH=H-PT-PB, n=hours.length;
+    const maxRev = Math.max(...hours.map(h=>h.revenue), 1);
+    const xOf = i => PL + i * cW / (n-1);
+    const yOf = v => PT + cH - (v / maxRev) * cH;
+
+    const pts = hours.map((h,i)=>`${xOf(i)},${yOf(h.revenue)}`).join(' ');
+    const area = pts + ` ${xOf(n-1)},${PT+cH} ${xOf(0)},${PT+cH}`;
+
+    let labels = hours.map((h,i) => {
+      const x = xOf(i);
+      return `<text x="${x}" y="${H-8}" text-anchor="middle" font-size="9" fill="#444">${fmtHour(h.hour)}</text>`;
+    }).join('');
+
+    // Peak hour highlight
+    const peakIdx = hours.findIndex(h => h.hour === d.peak_hour);
+    let peakMark = '';
+    if (peakIdx >= 0) {
+      const px = xOf(peakIdx), py = yOf(hours[peakIdx].revenue);
+      peakMark = `<circle cx="${px}" cy="${py}" r="5" fill="#fbbf24" opacity=".9"/>
+        <text x="${px}" y="${py-10}" text-anchor="middle" font-size="9" fill="#fbbf24" font-weight="bold">PEAK</text>`;
+    }
+
+    const svg = document.getElementById('chart');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('height', H);
+    svg.innerHTML = `
+      <polygon points="${area}" fill="#a78bfa" opacity=".18"/>
+      <polyline points="${pts}" fill="none" stroke="#a78bfa" stroke-width="2" opacity=".9"/>
+      ${peakMark}${labels}`;
+  }
+  load();
+</script>
+</body>
+</html>

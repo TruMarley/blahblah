@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Schedule — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    /* Header */
+    .staff-header { display: flex; align-items: center; gap: 1.25rem; margin-bottom: 2rem; }
+    .staff-avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #7c3aed); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 900; color: #fff; flex-shrink: 0; }
+    .staff-name { font-size: 1.5rem; font-weight: 900; letter-spacing: -.04em; }
+    .staff-sub { font-size: .8rem; color: var(--muted); margin-top: .2rem; }
+    /* Week stats */
+    .week-stats { display: flex; gap: 1.5rem; margin-left: auto; }
+    .ws { text-align: right; }
+    .ws-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+    .ws-value { font-size: 1.2rem; font-weight: 900; }
+    .ws-value.green { color: var(--green); }
+    /* Week nav */
+    .week-nav { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+    .week-label { font-size: .9rem; font-weight: 700; color: var(--accent); }
+    .nav-btn { background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: .78rem; padding: .3rem .75rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .nav-btn:hover { color: var(--text); }
+    /* 7-col grid */
+    .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: .75rem; }
+    @media (max-width: 700px) { .week-grid { grid-template-columns: repeat(3, 1fr); } }
+    .day-col { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .day-col.today { border-color: rgba(167,139,250,.4); }
+    .day-col.off { opacity: .45; }
+    .day-header { padding: .6rem .75rem; border-bottom: 1px solid var(--border); }
+    .day-name { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+    .day-date { font-size: .85rem; font-weight: 800; margin-top: .1rem; }
+    .day-col.today .day-name { color: var(--accent); }
+    .day-col.today .day-date { color: var(--accent); }
+    .day-body { padding: .5rem; min-height: 120px; }
+    .appt-block { background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.2); border-radius: 6px; padding: .4rem .55rem; margin-bottom: .4rem; }
+    .ab-time { font-size: .6rem; color: var(--accent); font-weight: 700; }
+    .ab-client { font-size: .72rem; font-weight: 800; margin-top: .1rem; }
+    .ab-svc { font-size: .62rem; color: var(--muted); }
+    .off-label { font-size: .72rem; color: var(--muted); text-align: center; padding: 1rem .5rem; font-style: italic; }
+    .hours-label { font-size: .62rem; color: var(--muted); padding: .3rem .55rem; margin-top: .25rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/staff-schedule" class="back">← Staff Schedule</a>
+</nav>
+<div class="main">
+  <div class="staff-header" id="staff-header">
+    <div class="staff-avatar" id="staff-avatar">?</div>
+    <div>
+      <div class="staff-name" id="staff-name">Loading...</div>
+      <div class="staff-sub" id="staff-sub"></div>
+    </div>
+    <div class="week-stats" id="week-stats"></div>
+  </div>
+
+  <div class="week-nav">
+    <button class="nav-btn" onclick="prevWeek()">← Prev</button>
+    <div class="week-label" id="week-label">This Week</div>
+    <button class="nav-btn" onclick="nextWeek()">Next →</button>
+  </div>
+
+  <div class="week-grid" id="week-grid">
+    <div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:2rem">Loading schedule...</div>
+  </div>
+</div>
+<script>
+  const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const staffId = location.pathname.split('/')[2];
+  let weekOffset = 0;
+
+  function getWeekDates(offset) {
+    const now = new Date();
+    const day = now.getDay(); // 0=Sun
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1) + offset * 7);
+    return Array.from({length: 7}, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d;
+    });
+  }
+
+  function prevWeek() { weekOffset--; render(); }
+  function nextWeek() { weekOffset++; render(); }
+
+  async function load() {
+    const r = await fetch(`/api/staff/${staffId}/schedule`);
+    const d = await r.json();
+    window._scheduleData = d;
+    // Staff name from data or derive from ID
+    const name = d.staff_name || staffId.charAt(0).toUpperCase() + staffId.slice(1);
+    document.getElementById('staff-avatar').textContent = name.charAt(0).toUpperCase();
+    document.getElementById('staff-name').textContent = name;
+    document.getElementById('staff-sub').textContent = d.role || 'Staff Member';
+    render();
+  }
+
+  function render() {
+    const d = window._scheduleData || {};
+    const schedule = d.schedule || {};
+    const dates = getWeekDates(weekOffset);
+    const today = new Date().toDateString();
+
+    const label = `${dates[0].toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${dates[6].toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+    document.getElementById('week-label').textContent = label;
+
+    let totalAppts = 0;
+    let totalHours = 0;
+
+    const html = DAYS.map((dayName, i) => {
+      const date = dates[i];
+      const dayKey = dayName.toLowerCase();
+      const dayInfo = schedule[dayKey] || {};
+      const isOff = !dayInfo.start_time;
+      const isToday = date.toDateString() === today;
+      const appts = dayInfo.appointments || [];
+      totalAppts += appts.length;
+      if (!isOff && dayInfo.start_time && dayInfo.end_time) {
+        const [sh, sm] = dayInfo.start_time.split(':').map(Number);
+        const [eh, em] = dayInfo.end_time.split(':').map(Number);
+        totalHours += (eh * 60 + em - sh * 60 - sm) / 60;
+      }
+
+      let bodyHtml = '';
+      if (isOff) {
+        bodyHtml = '<div class="off-label">Day Off</div>';
+      } else {
+        bodyHtml = appts.map(a => {
+          const t = a.time ? new Date('2000-01-01T' + a.time.slice(11,16)).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : a.time || '';
+          return `<div class="appt-block">
+            <div class="ab-time">${esc(t)}</div>
+            <div class="ab-client">${esc(a.client_name || 'Client')}</div>
+            <div class="ab-svc">${esc(a.service || '')}${a.duration_min ? ' · ' + a.duration_min + 'm' : ''}</div>
+          </div>`;
+        }).join('');
+        if (!appts.length) bodyHtml = '<div class="off-label">Open</div>';
+        if (dayInfo.start_time) bodyHtml += `<div class="hours-label">${dayInfo.start_time}–${dayInfo.end_time}</div>`;
+      }
+
+      return `<div class="day-col${isOff ? ' off' : ''}${isToday ? ' today' : ''}">
+        <div class="day-header">
+          <div class="day-name">${dayName}</div>
+          <div class="day-date">${date.getDate()}</div>
+        </div>
+        <div class="day-body">${bodyHtml}</div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('week-grid').innerHTML = html;
+    document.getElementById('week-stats').innerHTML = `
+      <div class="ws"><div class="ws-label">Appointments</div><div class="ws-value accent">${totalAppts}</div></div>
+      <div class="ws"><div class="ws-label">Hours</div><div class="ws-value green">${totalHours.toFixed(1)}h</div></div>
+    `;
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

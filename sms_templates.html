@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMS Templates — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-top: .2rem; }
+    .new-btn { background: var(--accent); color: #fff; border: none; font-size: .85rem; font-weight: 700; padding: .55rem 1.1rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+    .new-btn:hover { opacity: .85; }
+    .tpl-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .tpl-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; }
+    .tpl-name { font-size: .95rem; font-weight: 800; flex: 1; }
+    .trigger-badge { font-size: .68rem; font-weight: 700; padding: .2rem .6rem; border-radius: 99px; white-space: nowrap; }
+    .t-manual    { background: rgba(102,102,102,.1); color: var(--muted); border: 1px solid rgba(102,102,102,.2); }
+    .t-reminder  { background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); }
+    .t-no_show   { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+    .t-follow_up { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .t-promo     { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+    .tpl-body { font-size: .8rem; color: var(--muted); line-height: 1.55; margin-bottom: .75rem; }
+    .tpl-footer { display: flex; align-items: center; justify-content: space-between; }
+    .tpl-meta { font-size: .7rem; color: var(--muted); }
+    .edit-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-size: .75rem; font-weight: 700; padding: .35rem .8rem; border-radius: 7px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .edit-btn:hover { color: var(--text); border-color: #3e3e3e; }
+    .edit-form { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-top: .75rem; display: none; }
+    .edit-form.open { display: block; }
+    .form-row { margin-bottom: .75rem; }
+    .form-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .3rem; display: block; }
+    .form-input, .form-select, .form-textarea { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: .83rem; padding: .5rem .7rem; border-radius: 8px; font-family: inherit; outline: none; }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+    .form-textarea { resize: vertical; min-height: 80px; line-height: 1.55; }
+    .char-counter { font-size: .68rem; text-align: right; margin-top: .25rem; }
+    .char-ok   { color: var(--muted); }
+    .char-warn { color: var(--yellow); }
+    .char-over { color: var(--red); font-weight: 700; }
+    .form-actions { display: flex; gap: .6rem; justify-content: flex-end; margin-top: .75rem; }
+    .cancel-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: .78rem; font-weight: 700; padding: .4rem .85rem; border-radius: 7px; cursor: pointer; font-family: inherit; }
+    .save-tpl-btn { background: var(--accent); color: #fff; border: none; font-size: .78rem; font-weight: 700; padding: .4rem .85rem; border-radius: 7px; cursor: pointer; font-family: inherit; }
+    .variables-hint { font-size: .68rem; color: var(--muted); margin-top: .3rem; }
+    .variables-hint code { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: .05rem .3rem; font-size: .67rem; color: var(--accent); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="header-row">
+    <div>
+      <div class="page-title">SMS Templates</div>
+      <div class="page-sub">Pre-written messages sent automatically by your AI.</div>
+    </div>
+    <button class="new-btn" onclick="openNew()">+ New Template</button>
+  </div>
+  <div id="new-form-wrap"></div>
+  <div id="templates-list">Loading...</div>
+</div>
+<script>
+  const TRIGGERS = {manual:'Manual',reminder:'Appointment Reminder',no_show:'No-Show',follow_up:'Follow-Up',promo:'Promotion'};
+
+  async function load() {
+    const r = await fetch('/api/sms/templates');
+    const d = await r.json();
+    renderList(d.templates || []);
+  }
+
+  function renderList(templates) {
+    document.getElementById('templates-list').innerHTML = templates.map(t => {
+      const preview = t.body.length > 120 ? t.body.slice(0, 117) + '\u2026' : t.body;
+      const tCls = 't-' + (t.trigger || 'manual');
+      return `<div class="tpl-card" id="card-${t.id}">
+        <div class="tpl-header">
+          <div class="tpl-name">${esc(t.name)}</div>
+          <span class="trigger-badge ${tCls}">${TRIGGERS[t.trigger] || t.trigger}</span>
+        </div>
+        <div class="tpl-body">${esc(preview)}</div>
+        <div class="tpl-footer">
+          <div class="tpl-meta">${t.body.length} chars &middot; Sent ${t.last_sent_count || 0} times</div>
+          <button class="edit-btn" onclick="toggleEdit(${JSON.stringify(t.id)})">Edit</button>
+        </div>
+        <div class="edit-form" id="form-${t.id}">
+          <div class="form-row">
+            <label class="form-label">Template Name</label>
+            <input class="form-input" id="fn-${t.id}" value="${esc(t.name)}">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Trigger</label>
+            <select class="form-select" id="ft-${t.id}">
+              ${Object.entries(TRIGGERS).map(([k,v]) => '<option value="' + k + '"' + (t.trigger===k?' selected':'') + '>' + v + '</option>').join('')}
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Message Body</label>
+            <textarea class="form-textarea" id="fb-${t.id}" oninput="updateCounter(${JSON.stringify(t.id)})">${esc(t.body)}</textarea>
+            <div class="char-counter char-ok" id="cc-${t.id}">${t.body.length}/160 characters</div>
+            <div class="variables-hint">Variables: <code>{client_name}</code> <code>{service}</code> <code>{staff}</code> <code>{time}</code> <code>{shop_name}</code></div>
+          </div>
+          <div class="form-actions">
+            <button class="cancel-btn" onclick="closeEdit(${JSON.stringify(t.id)})">Cancel</button>
+            <button class="save-tpl-btn" onclick="saveTpl(${JSON.stringify(t.id)})">Save Changes</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('') || '<div style="color:var(--muted);text-align:center;padding:3rem">No templates yet.</div>';
+  }
+
+  function toggleEdit(id) {
+    const form = document.getElementById('form-' + id);
+    if (form) { form.classList.toggle('open'); if (form.classList.contains('open')) updateCounter(id); }
+  }
+  function closeEdit(id) { const f = document.getElementById('form-' + id); if (f) f.classList.remove('open'); }
+
+  function updateCounter(id) {
+    const ta = document.getElementById('fb-' + id);
+    const cc = document.getElementById('cc-' + id);
+    if (!ta || !cc) return;
+    const len = ta.value.length;
+    cc.className = 'char-counter ' + (len > 160 ? 'char-over' : len > 140 ? 'char-warn' : 'char-ok');
+    cc.textContent = len + '/160 characters' + (len > 160 ? ' \u2014 will send as 2 SMS' : '');
+  }
+
+  async function saveTpl(id) {
+    const payload = {
+      name: (document.getElementById('fn-' + id) || {}).value,
+      trigger: (document.getElementById('ft-' + id) || {}).value,
+      body: (document.getElementById('fb-' + id) || {}).value,
+    };
+    await fetch('/api/sms/templates/' + id, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    closeEdit(id);
+    load();
+  }
+
+  function openNew() {
+    const triggers = Object.entries(TRIGGERS).map(([k,v]) => '<option value="' + k + '">' + v + '</option>').join('');
+    document.getElementById('new-form-wrap').innerHTML = '<div class="tpl-card" style="margin-bottom:1.5rem;border-color:rgba(167,139,250,.3)">' +
+      '<div style="font-size:.88rem;font-weight:800;margin-bottom:1rem;color:var(--accent)">New Template</div>' +
+      '<div class="form-row"><label class="form-label">Template Name</label><input class="form-input" id="nf-name" placeholder="e.g. Birthday Offer"></div>' +
+      '<div class="form-row"><label class="form-label">Trigger</label><select class="form-select" id="nf-trigger">' + triggers + '</select></div>' +
+      '<div class="form-row"><label class="form-label">Message Body</label>' +
+      '<textarea class="form-textarea" id="nf-body" oninput="updateNewCounter()" placeholder="Hi {client_name}!..."></textarea>' +
+      '<div class="char-counter char-ok" id="nf-cc">0/160 characters</div>' +
+      '<div class="variables-hint">Variables: <code>{client_name}</code> <code>{service}</code> <code>{staff}</code> <code>{time}</code> <code>{shop_name}</code></div></div>' +
+      '<div class="form-actions"><button class="cancel-btn" onclick="closeNew()">Cancel</button><button class="save-tpl-btn" onclick="saveNew()">Create Template</button></div></div>';
+  }
+
+  function closeNew() { document.getElementById('new-form-wrap').innerHTML = ''; }
+
+  function updateNewCounter() {
+    const ta = document.getElementById('nf-body');
+    const cc = document.getElementById('nf-cc');
+    if (!ta || !cc) return;
+    const len = ta.value.length;
+    cc.className = 'char-counter ' + (len > 160 ? 'char-over' : len > 140 ? 'char-warn' : 'char-ok');
+    cc.textContent = len + '/160 characters' + (len > 160 ? ' \u2014 will send as 2 SMS' : '');
+  }
+
+  async function saveNew() {
+    const payload = {
+      name: (document.getElementById('nf-name') || {}).value.trim(),
+      trigger: (document.getElementById('nf-trigger') || {}).value,
+      body: (document.getElementById('nf-body') || {}).value.trim(),
+    };
+    if (!payload.name || !payload.body) return;
+    await fetch('/api/sms/templates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    closeNew();
+    load();
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  load();
+</script>
+</body>
+</html>

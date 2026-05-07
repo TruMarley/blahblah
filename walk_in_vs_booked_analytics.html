@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Walk-In vs Booked — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .split-bar { height: 28px; border-radius: 8px; overflow: hidden; display: flex; margin-bottom: 1rem; }
+    .split-booked { background: var(--accent); opacity: .8; display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; color: #fff; }
+    .split-walkin { background: var(--green); opacity: .75; display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; color: #fff; }
+    .split-legend { display: flex; gap: 1.2rem; margin-bottom: 1.2rem; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+    .day-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; }
+    .day-label { font-size: .78rem; width: 28px; flex-shrink: 0; }
+    .day-stacked { flex: 1; display: flex; height: 20px; border-radius: 6px; overflow: hidden; }
+    .day-booked { background: var(--accent); opacity: .7; }
+    .day-walkin { background: var(--green); opacity: .7; }
+    .day-pct { font-size: .7rem; color: var(--muted); width: 42px; text-align: right; }
+    .ticket-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .ticket-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; text-align: center; }
+    .ticket-val { font-size: 1.3rem; font-weight: 900; }
+    .ticket-lbl { font-size: .68rem; color: var(--muted); margin-top: .25rem; }
+    .monthly-row { display: flex; align-items: flex-end; gap: 3px; height: 72px; }
+    .monthly-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .monthly-stacked { width: 100%; display: flex; flex-direction: column-reverse; border-radius: 3px 3px 0 0; overflow: hidden; }
+    .m-booked { background: var(--accent); opacity: .7; }
+    .m-walkin { background: var(--green); opacity: .7; }
+    .monthly-lbl { font-size: .56rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Walk-In vs Booked</div>
+  <p class="page-sub">Compare walk-in and pre-booked appointment patterns. Understand which days drive walk-ins, how ticket values differ, and whether your booking conversion is improving over time.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-total" style="color:var(--text)">—</div>
+      <div class="stat-lbl">Total Appts (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-booked" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Pre-Booked (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-walkin" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Walk-In (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-peak-walkin" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Peak Walk-In Day</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Overall Split (30d)</div>
+    <div class="split-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Pre-Booked</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Walk-In</div>
+    </div>
+    <div class="split-bar" id="split-bar"></div>
+    <div class="ticket-compare">
+      <div class="ticket-box">
+        <div class="ticket-val" id="booked-ticket" style="color:var(--accent)">—</div>
+        <div class="ticket-lbl">Avg Pre-Booked Ticket</div>
+      </div>
+      <div class="ticket-box">
+        <div class="ticket-val" id="walkin-ticket" style="color:var(--green)">—</div>
+        <div class="ticket-lbl">Avg Walk-In Ticket</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Walk-In % by Day of Week</div>
+    <div id="day-bars"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Volume — Booked vs Walk-In</div>
+    <div class="monthly-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/walk-in-vs-booked-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = data.total_appointments_30d;
+    document.getElementById('h-booked').textContent = data.booked_30d;
+    document.getElementById('h-walkin').textContent = data.walk_in_30d;
+    document.getElementById('h-peak-walkin').textContent = data.peak_walk_in_day;
+    document.getElementById('booked-ticket').textContent = '$' + data.avg_booked_ticket.toFixed(0);
+    document.getElementById('walkin-ticket').textContent = '$' + data.avg_walk_in_ticket.toFixed(0);
+
+    const bookedPct = (data.booked_30d / data.total_appointments_30d * 100).toFixed(1);
+    const walkinPct = data.walk_in_pct_30d.toFixed(1);
+    document.getElementById('split-bar').innerHTML = `
+      <div class="split-booked" style="width:${bookedPct}%">${bookedPct}%</div>
+      <div class="split-walkin" style="width:${walkinPct}%">${walkinPct}%</div>
+    `;
+
+    const dayBars = document.getElementById('day-bars');
+    (data.by_day || []).forEach(d => {
+      dayBars.innerHTML += `
+        <div class="day-row">
+          <div class="day-label">${d.day.slice(0,3)}</div>
+          <div class="day-stacked">
+            <div class="day-booked" style="width:${d.booked_pct.toFixed(1)}%"></div>
+            <div class="day-walkin" style="width:${d.walk_in_pct.toFixed(1)}%"></div>
+          </div>
+          <div class="day-pct">${d.walk_in_pct.toFixed(0)}% WI</div>
+        </div>`;
+    });
+
+    const monthly = data.monthly || [];
+    const maxTotal = Math.max(...monthly.map(m => m.total), 1);
+    const barsEl = document.getElementById('monthly-bars');
+    monthly.forEach(m => {
+      const totalH = Math.max((m.total / maxTotal * 64).toFixed(0), 4);
+      const walkinH = Math.round(totalH * m.walk_in_pct / 100);
+      const bookedH = totalH - walkinH;
+      barsEl.innerHTML += `
+        <div class="monthly-col">
+          <div class="monthly-stacked" style="height:${totalH}px">
+            <div class="m-booked" style="height:${bookedH}px"></div>
+            <div class="m-walkin" style="height:${walkinH}px"></div>
+          </div>
+          <div class="monthly-lbl">${m.month.slice(0,3)}</div>
+        </div>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

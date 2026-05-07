@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Performance — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .metrics-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; }
+    .metric-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; }
+    .metric-value { font-size: 1.7rem; font-weight: 900; letter-spacing: -.05em; line-height: 1; }
+    .metric-sub { font-size: .68rem; color: var(--muted); margin-top: .2rem; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    /* Accuracy gauge */
+    .gauge-wrap { display: flex; flex-direction: column; align-items: center; }
+    .gauge-score { font-size: 2.8rem; font-weight: 900; letter-spacing: -.06em; margin-top: .5rem; }
+    .gauge-label { font-size: .72rem; color: var(--muted); margin-top: .25rem; }
+    /* Intents bar */
+    .intent-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+    .intent-name { width: 130px; flex-shrink: 0; font-size: .78rem; font-weight: 600; }
+    .intent-track { flex: 1; background: var(--surface2); border-radius: 99px; height: 16px; overflow: hidden; }
+    .intent-fill { height: 16px; border-radius: 99px; background: var(--accent); opacity: .75; transition: width .7s ease; }
+    .intent-count { width: 40px; flex-shrink: 0; text-align: right; font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Performance</div>
+  <p class="page-sub">How well your AI voice agent is handling calls.</p>
+
+  <div class="metrics-row" id="metrics-row"></div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Accuracy Score</div>
+      <div class="gauge-wrap">
+        <svg width="160" height="90" viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg" id="gauge-svg"></svg>
+        <div class="gauge-score" id="gauge-score">—</div>
+        <div class="gauge-label">out of 100</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top Caller Intents</div>
+      <div id="intents-list"></div>
+    </div>
+  </div>
+</div>
+<script>
+  function fmtDur(s) { const m=Math.floor(s/60),sec=s%60; return `${m}:${String(sec).padStart(2,'0')}`; }
+
+  async function load() {
+    const r = await fetch('/api/analytics/ai-performance');
+    const d = await r.json();
+
+    const score = d.accuracy_score || 0;
+    const scoreColor = score >= 90 ? 'var(--green)' : score >= 75 ? 'var(--yellow)' : 'var(--red)';
+
+    document.getElementById('metrics-row').innerHTML = [
+      {label:'Calls Handled', value: (d.calls_handled||0).toLocaleString(), color:'var(--accent)', sub:'total'},
+      {label:'Avg Handle Time', value: fmtDur(d.avg_handle_time_sec||0), color:'', sub:'mm:ss'},
+      {label:'Booking Rate', value: (d.booking_conversion_rate||0)+'%', color:'var(--green)', sub:'of calls booked'},
+      {label:'Escalation Rate', value: (d.escalation_rate||0)+'%', color:'var(--yellow)', sub:'transferred to staff'},
+      {label:'Voicemail Rate', value: (d.voicemail_rate||0)+'%', color:'var(--muted)', sub:'went to voicemail'},
+    ].map(m => `<div class="metric-card">
+      <div class="metric-label">${m.label}</div>
+      <div class="metric-value" style="${m.color ? 'color:'+m.color : ''}">${m.value}</div>
+      <div class="metric-sub">${m.sub}</div>
+    </div>`).join('');
+
+    // SVG arc gauge
+    const pct = score / 100;
+    const r2 = 65, cx = 80, cy = 80;
+    const startAngle = -180, sweepAngle = 180 * pct;
+    const toRad = a => a * Math.PI / 180;
+    const x1 = cx + r2 * Math.cos(toRad(startAngle));
+    const y1 = cy + r2 * Math.sin(toRad(startAngle));
+    const x2 = cx + r2 * Math.cos(toRad(startAngle + sweepAngle));
+    const y2 = cy + r2 * Math.sin(toRad(startAngle + sweepAngle));
+    const large = sweepAngle > 180 ? 1 : 0;
+    const circumference = Math.PI * r2;
+    document.getElementById('gauge-svg').innerHTML =
+      `<path d="M ${cx-r2} ${cy} A ${r2} ${r2} 0 0 1 ${cx+r2} ${cy}" fill="none" stroke="var(--surface2)" stroke-width="12" stroke-linecap="round"/>
+       <path d="M ${cx-r2} ${cy} A ${r2} ${r2} 0 0 1 ${x2} ${y2}" fill="none" stroke="${scoreColor}" stroke-width="12" stroke-linecap="round"/>`;
+    document.getElementById('gauge-score').style.color = scoreColor;
+    document.getElementById('gauge-score').textContent = score;
+
+    const intents = d.top_intents || [];
+    const maxCount = Math.max(...intents.map(i => i.count), 1);
+    document.getElementById('intents-list').innerHTML = intents.map(intent => {
+      const pct2 = Math.round((intent.count / maxCount) * 100);
+      return `<div class="intent-row">
+        <div class="intent-name">${esc(intent.intent)}</div>
+        <div class="intent-track"><div class="intent-fill" style="width:0%" data-w="${pct2}"></div></div>
+        <div class="intent-count">${intent.count}</div>
+      </div>`;
+    }).join('');
+    setTimeout(() => {
+      document.querySelectorAll('.intent-fill').forEach(el => { el.style.width = el.dataset.w + '%'; });
+    }, 100);
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

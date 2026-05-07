@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Review Invites — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.2rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select, input[type=number], input[type=text], input[type=url] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus, input:focus { border-color: var(--accent); }
+    input[type=number] { width: 80px; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .8rem; padding: .55rem .75rem; outline: none; resize: vertical; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .28rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .field-wrap { margin-bottom: .9rem; }
+    .platform-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .8rem 1rem; margin-bottom: .5rem; display: flex; align-items: center; gap: .75rem; }
+    .platform-name { font-size: .85rem; font-weight: 700; flex: 1; }
+    .platform-priority { font-size: .68rem; color: var(--muted); }
+    .token-list { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .35rem; }
+    .token { font-size: .67rem; background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.25); border-radius: 5px; padding: .1rem .4rem; color: var(--accent); font-family: monospace; cursor: pointer; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Review Invites</div>
+  <p class="page-sub">Automatically send review requests after completed appointments. More reviews build trust and drive new bookings.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-sent">—</div>
+      <div class="stat-lbl">Sent (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-clicks" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Clicks</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-rate" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Click Rate</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-rating" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Avg Rating</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Invite Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Review Invites</div><div class="row-sub">Auto-send after completed appointments</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Send Via</div></div>
+      <select id="send-via">
+        <option value="sms">SMS</option>
+        <option value="email">Email</option>
+        <option value="both">SMS + Email</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Send Delay (hours after visit)</div></div>
+      <input type="number" id="send-delay" min="0" max="48" placeholder="3">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Only After Completed</div><div class="row-sub">Skip cancelled/no-show appointments</div></div>
+      <label class="toggle"><input type="checkbox" id="only-completed"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Skip If Already Reviewed</div><div class="row-sub">Don't ask repeat reviewers</div></div>
+      <label class="toggle"><input type="checkbox" id="skip-reviewed"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Cooldown (days)</div><div class="row-sub">Min days between requests per client</div></div>
+      <input type="number" id="cooldown" min="7" max="365" placeholder="90">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Filter Low Ratings First</div><div class="row-sub">Ask for internal survey before public review</div></div>
+      <label class="toggle"><input type="checkbox" id="filter-rating"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Filter Threshold (stars)</div></div>
+      <select id="filter-threshold">
+        <option value="3">3+</option>
+        <option value="4">4+</option>
+        <option value="5">5 only</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Review Platforms</div>
+    <div id="platform-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Message Template</div>
+    <div class="field-wrap">
+      <div class="field-label">Invite Message</div>
+      <textarea id="message-template" rows="3"></textarea>
+      <div class="token-list">
+        <span class="token" onclick="insertToken('{first_name}')">{first_name}</span>
+        <span class="token" onclick="insertToken('{business_name}')">{business_name}</span>
+        <span class="token" onclick="insertToken('{review_link}')">{review_link}</span>
+      </div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Review Invite Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let platformsData = [];
+
+  function insertToken(t) {
+    const ta = document.getElementById('message-template');
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    ta.value = ta.value.slice(0, s) + t + ta.value.slice(e);
+    ta.selectionStart = ta.selectionEnd = s + t.length;
+    ta.focus();
+  }
+
+  async function load() {
+    const d = await fetch('/api/settings/review-invite-cfg').then(r => r.json());
+    document.getElementById('h-sent').textContent = d.total_sent_30d;
+    document.getElementById('h-clicks').textContent = d.total_clicks_30d;
+    document.getElementById('h-rate').textContent = d.click_rate_pct.toFixed(1) + '%';
+    document.getElementById('h-rating').textContent = d.avg_rating_from_invites.toFixed(1) + ' ★';
+    document.getElementById('enabled').checked = d.enabled ?? true;
+    document.getElementById('send-via').value = d.send_via || 'sms';
+    document.getElementById('send-delay').value = d.send_delay_hours ?? 3;
+    document.getElementById('only-completed').checked = d.only_send_after_completed ?? true;
+    document.getElementById('skip-reviewed').checked = d.skip_if_already_reviewed ?? true;
+    document.getElementById('cooldown').value = d.cooldown_days ?? 90;
+    document.getElementById('filter-rating').checked = d.filter_below_rating ?? false;
+    document.getElementById('filter-threshold').value = d.filter_rating_threshold ?? 4;
+    document.getElementById('message-template').value = d.message_template || '';
+    platformsData = d.platforms || [];
+    renderPlatforms();
+  }
+
+  function renderPlatforms() {
+    const list = document.getElementById('platform-list');
+    list.innerHTML = '';
+    platformsData.forEach((p, i) => {
+      const item = document.createElement('div');
+      item.className = 'platform-item';
+      item.innerHTML = `
+        <div class="platform-name">${p.name}</div>
+        <span class="platform-priority">Priority ${p.priority}</span>
+        <label class="toggle"><input type="checkbox" data-i="${i}" class="plat-toggle" ${p.enabled ? 'checked' : ''}><span class="slider"></span></label>
+      `;
+      list.appendChild(item);
+    });
+    list.querySelectorAll('.plat-toggle').forEach(cb => {
+      cb.addEventListener('change', e => { platformsData[+e.target.dataset.i].enabled = e.target.checked; });
+    });
+  }
+
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      send_via: document.getElementById('send-via').value,
+      send_delay_hours: parseInt(document.getElementById('send-delay').value) || 3,
+      only_send_after_completed: document.getElementById('only-completed').checked,
+      skip_if_already_reviewed: document.getElementById('skip-reviewed').checked,
+      cooldown_days: parseInt(document.getElementById('cooldown').value) || 90,
+      filter_below_rating: document.getElementById('filter-rating').checked,
+      filter_rating_threshold: parseInt(document.getElementById('filter-threshold').value) || 4,
+      message_template: document.getElementById('message-template').value,
+      platforms: platformsData,
+    };
+    await fetch('/api/settings/review-invite-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

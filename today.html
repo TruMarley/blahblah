@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Today's Schedule — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .date-badge { font-size: .83rem; color: var(--accent); font-weight: 700; }
+    .refresh-note { font-size: .7rem; color: var(--muted); }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    @media (max-width: 600px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; }
+    .stat-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .3rem; }
+    .stat-value { font-size: 1.4rem; font-weight: 900; letter-spacing: -.03em; }
+    .stat-value.green { color: var(--green); }
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.yellow { color: var(--yellow); }
+    /* Legend */
+    .legend { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .73rem; color: var(--muted); }
+    .legend-bar { width: 12px; height: 12px; border-radius: 3px; }
+    /* Timeline */
+    .timeline { position: relative; }
+    .time-now-line { position: absolute; left: 0; right: 0; height: 2px; background: var(--red); z-index: 10; pointer-events: none; }
+    .time-now-dot { position: absolute; left: -4px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--red); }
+    .time-now-label { position: absolute; left: 12px; top: -9px; font-size: .65rem; font-weight: 800; color: var(--red); white-space: nowrap; }
+    .hour-block { display: flex; gap: 1rem; margin-bottom: .15rem; }
+    .hour-label { width: 52px; flex-shrink: 0; font-size: .7rem; color: var(--muted); padding-top: .5rem; text-align: right; font-variant-numeric: tabular-nums; }
+    .hour-line { flex: 1; border-top: 1px solid var(--border); padding-top: .35rem; padding-bottom: .35rem; min-height: 36px; position: relative; }
+    .appt-card { border-radius: 8px; padding: .6rem .85rem; margin-bottom: .4rem; border-left: 3px solid transparent; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .appt-confirmed { background: rgba(52,211,153,.07); border-color: var(--green); }
+    .appt-arrived { background: rgba(167,139,250,.09); border-color: var(--accent); }
+    .appt-pending { background: rgba(251,191,36,.06); border-color: var(--yellow); }
+    .appt-canceled { background: rgba(248,113,113,.06); border-color: var(--red); opacity: .6; }
+    .appt-left { flex: 1; }
+    .appt-client { font-size: .85rem; font-weight: 800; }
+    .appt-detail { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .appt-right { text-align: right; flex-shrink: 0; }
+    .appt-staff { font-size: .72rem; color: var(--muted); }
+    .appt-price { font-size: .78rem; font-weight: 700; color: var(--green); }
+    .status-chip { font-size: .65rem; font-weight: 800; padding: .12rem .45rem; border-radius: 99px; }
+    .chip-confirmed { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .chip-arrived { background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); }
+    .chip-pending { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+    .chip-canceled { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+    .empty-slot { font-size: .72rem; color: var(--border); font-style: italic; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="header-row">
+    <div>
+      <div class="page-title">Today's Schedule</div>
+      <div class="date-badge" id="date-badge">—</div>
+    </div>
+    <div class="refresh-note">Auto-refreshes every 60s</div>
+  </div>
+
+  <div class="stats-row" id="stats-row">
+    <div class="stat"><div class="stat-label">Total</div><div class="stat-value">—</div></div>
+    <div class="stat"><div class="stat-label">Confirmed</div><div class="stat-value green">—</div></div>
+    <div class="stat"><div class="stat-label">Pending</div><div class="stat-value yellow">—</div></div>
+    <div class="stat"><div class="stat-label">Arrived</div><div class="stat-value accent">—</div></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-bar" style="background:var(--green)"></div>Confirmed</div>
+    <div class="legend-item"><div class="legend-bar" style="background:var(--yellow)"></div>Pending</div>
+    <div class="legend-item"><div class="legend-bar" style="background:var(--accent)"></div>Arrived</div>
+    <div class="legend-item"><div class="legend-bar" style="background:var(--red)"></div>Canceled</div>
+  </div>
+
+  <div class="timeline" id="timeline">Loading...</div>
+</div>
+<script>
+  const HOURS = Array.from({length: 11}, (_, i) => i + 8); // 8am–6pm
+
+  function fmt12(h) {
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h > 12 ? h - 12 : h || 12;
+    return `${h12}:00 ${ampm}`;
+  }
+
+  function nowMinutes() {
+    const n = new Date();
+    return n.getHours() * 60 + n.getMinutes();
+  }
+
+  function apptMinutes(isoStr) {
+    const d = new Date(isoStr);
+    return d.getHours() * 60 + d.getMinutes();
+  }
+
+  async function load() {
+    const r = await fetch('/api/appointments/today');
+    const d = await r.json();
+    const appts = d.appointments || [];
+    const dateStr = d.date ? new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'}) : '';
+    document.getElementById('date-badge').textContent = dateStr;
+
+    const confirmed = appts.filter(a => a.status === 'confirmed').length;
+    const pending = appts.filter(a => a.status === 'pending').length;
+    const arrived = appts.filter(a => a.status === 'arrived').length;
+    document.getElementById('stats-row').innerHTML = `
+      <div class="stat"><div class="stat-label">Total Appts</div><div class="stat-value">${appts.length}</div></div>
+      <div class="stat"><div class="stat-label">Confirmed</div><div class="stat-value green">${confirmed}</div></div>
+      <div class="stat"><div class="stat-label">Pending</div><div class="stat-value yellow">${pending}</div></div>
+      <div class="stat"><div class="stat-label">Arrived</div><div class="stat-value accent">${arrived}</div></div>
+    `;
+
+    const nowMin = nowMinutes();
+    const startMin = 8 * 60;
+    const endMin = 19 * 60;
+    const totalMin = endMin - startMin;
+    const nowPct = Math.min(Math.max((nowMin - startMin) / totalMin * 100, 0), 100);
+
+    // Build hour blocks with appointments slotted in
+    const apptsByHour = {};
+    appts.forEach(a => {
+      if (!a.time) return;
+      const h = new Date(a.time).getHours();
+      if (!apptsByHour[h]) apptsByHour[h] = [];
+      apptsByHour[h].push(a);
+    });
+
+    let html = `<div style="position:relative">`;
+    // Now line
+    if (nowPct > 0 && nowPct < 100) {
+      const nowTime = new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+      html += `<div class="time-now-line" style="top:${nowPct}%">
+        <div class="time-now-dot"></div>
+        <div class="time-now-label">${nowTime}</div>
+      </div>`;
+    }
+
+    HOURS.forEach(h => {
+      const hAppts = apptsByHour[h] || [];
+      const cardsHtml = hAppts.map(a => {
+        const st = a.status || 'confirmed';
+        const dur = a.duration_min ? `${a.duration_min}min` : '';
+        return `<div class="appt-card appt-${st}">
+          <div class="appt-left">
+            <div class="appt-client">${esc(a.client_name || 'Client')}</div>
+            <div class="appt-detail">${esc(a.service || '')}${dur ? ' · ' + dur : ''}</div>
+          </div>
+          <div class="appt-right">
+            <div class="appt-staff">${esc(a.staff || '')}</div>
+            ${a.price ? `<div class="appt-price">$${a.price}</div>` : ''}
+            <span class="status-chip chip-${st}">${st}</span>
+          </div>
+        </div>`;
+      }).join('');
+      html += `<div class="hour-block">
+        <div class="hour-label">${fmt12(h)}</div>
+        <div class="hour-line">${cardsHtml || ''}</div>
+      </div>`;
+    });
+    html += '</div>';
+    document.getElementById('timeline').innerHTML = html;
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+  setInterval(load, 60000);
+</script>
+</body>
+</html>

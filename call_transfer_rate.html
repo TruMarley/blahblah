@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Transfer Rate — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: 1.25rem; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+    .chart-wrap { height: 260px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Transfer Rate</div>
+  <p class="page-sub">How often your AI hands calls off to a human — a rising transfer rate may indicate gaps in your AI's training or escalation triggers set too low.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg Transfer Rate</div>
+      <div class="hero-val" id="h-avg" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total Transferred (6 wk)</div>
+      <div class="hero-val" id="h-total" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Best Week Rate</div>
+      <div class="hero-val" id="h-best" style="color:var(--green)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Calls Transferred vs. Transfer Rate by Week</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(167,139,250,.5)"></div>Calls Transferred</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow);border-radius:50%"></div>Transfer Rate %</div>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/call-transfer-rate');
+    const d = await r.json();
+    const weeks = d.weeks || [];
+    const avgRate = (weeks.reduce((s,w)=>s+w.transfer_rate_pct,0)/weeks.length).toFixed(1);
+    const totalXfer = weeks.reduce((s,w)=>s+w.calls_transferred,0);
+    const bestWeek = weeks.reduce((a,b)=>b.transfer_rate_pct<a.transfer_rate_pct?b:a,weeks[0]);
+    document.getElementById('h-avg').textContent = avgRate + '%';
+    document.getElementById('h-total').textContent = totalXfer;
+    document.getElementById('h-best').textContent = bestWeek ? bestWeek.transfer_rate_pct + '%' : '—';
+
+    const svg = document.getElementById('chart');
+    const W=700,H=260,pL=44,pR=50,pT=14,pB=28;
+    const cW=W-pL-pR,cH=H-pT-pB;
+    const n=weeks.length,xStep=cW/n,bW=xStep*0.42;
+    const maxXfer=Math.max(...weeks.map(w=>w.calls_transferred))*1.3||1;
+    const xOf=i=>pL+i*xStep+xStep/2;
+    const yOfC=v=>pT+cH-v/maxXfer*cH;
+    const yOfP=v=>pT+cH-v/100*cH;
+
+    [5,10,15,20,30].filter(v=>v<maxXfer).forEach(v=>{
+      const y=yOfC(v);
+      svg.innerHTML+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML+=`<text x="${pL-4}" y="${y+3.5}" font-size="8" fill="#555" text-anchor="end">${v}</text>`;
+    });
+    [5,10,15,20].forEach(v=>{
+      svg.innerHTML+=`<text x="${W-pR+4}" y="${yOfP(v)+3.5}" font-size="8" fill="#666">${v}%</text>`;
+    });
+
+    weeks.forEach((w,i)=>{
+      const cx=xOf(i);
+      const bH=cH*w.calls_transferred/maxXfer;
+      svg.innerHTML+=`<rect x="${cx-bW/2}" y="${pT+cH-bH}" width="${bW}" height="${bH}" rx="3" fill="rgba(167,139,250,.5)"/>`;
+      svg.innerHTML+=`<text x="${cx}" y="${H-4}" font-size="8.5" fill="#555" text-anchor="middle">${esc(w.week)}</text>`;
+    });
+    const pts=weeks.map((w,i)=>`${xOf(i)},${yOfP(w.transfer_rate_pct)}`).join(' ');
+    svg.innerHTML+=`<polyline points="${pts}" fill="none" stroke="rgba(251,191,36,.85)" stroke-width="2.5"/>`;
+    weeks.forEach((w,i)=>{
+      svg.innerHTML+=`<circle cx="${xOf(i)}" cy="${yOfP(w.transfer_rate_pct)}" r="3.5" fill="var(--yellow)"/>`;
+      svg.innerHTML+=`<text x="${xOf(i)}" y="${yOfP(w.transfer_rate_pct)-7}" font-size="8" fill="var(--yellow)" text-anchor="middle">${w.transfer_rate_pct}%</text>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

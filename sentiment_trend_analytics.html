@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sentiment Trends — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .sentiment-bar-wrap { background: var(--surface2); border-radius: 8px; height: 28px; overflow: hidden; display: flex; margin-bottom: 1rem; }
+    .s-seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: .65rem; font-weight: 700; color: #000; transition: width .4s; }
+    .monthly-row { display: flex; align-items: flex-end; gap: 3px; height: 100px; }
+    .monthly-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .m-pos { width: 100%; background: var(--green); opacity: .75; }
+    .m-neu { width: 100%; background: var(--muted); opacity: .6; }
+    .m-neg { width: 100%; background: var(--red); opacity: .7; }
+    .m-lbl { font-size: .55rem; color: var(--muted); margin-top: 3px; }
+    .trigger-row { display: flex; gap: 1rem; }
+    .trigger-box { flex: 1; background: var(--surface2); border-radius: 10px; padding: .85rem 1rem; }
+    .trigger-label { font-size: .65rem; color: var(--muted); margin-bottom: .3rem; text-transform: uppercase; letter-spacing: .06em; }
+    .trigger-val { font-size: .85rem; font-weight: 700; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Sentiment Trends</div>
+  <p class="page-sub">Track caller sentiment across all AI-handled calls. Identify emotional patterns, top positive and negative triggers, and month-over-month sentiment shifts.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-score" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Avg Sentiment Score</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-pos" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Positive Calls</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-neu" style="color:var(--muted)">—</div>
+      <div class="stat-lbl">Neutral Calls</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-neg" style="color:var(--red)">—</div>
+      <div class="stat-lbl">Negative Calls</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-esc" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Escalated</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Overall Sentiment Split</div>
+    <div class="sentiment-bar-wrap" id="sentiment-bar"></div>
+    <div class="trigger-row">
+      <div class="trigger-box">
+        <div class="trigger-label">Top Positive Trigger</div>
+        <div class="trigger-val" id="pos-trigger" style="color:var(--green)">—</div>
+      </div>
+      <div class="trigger-box">
+        <div class="trigger-label">Top Negative Trigger</div>
+        <div class="trigger-val" id="neg-trigger" style="color:var(--red)">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Sentiment Breakdown</div>
+    <div class="monthly-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/sentiment-trend-stats').then(r => r.json());
+    document.getElementById('h-score').textContent = '★ ' + data.avg_sentiment_score.toFixed(2);
+    document.getElementById('h-pos').textContent = data.positive_calls_pct.toFixed(1) + '%';
+    document.getElementById('h-neu').textContent = data.neutral_calls_pct.toFixed(1) + '%';
+    document.getElementById('h-neg').textContent = data.negative_calls_pct.toFixed(1) + '%';
+    document.getElementById('h-esc').textContent = data.escalated_calls_pct.toFixed(1) + '%';
+    document.getElementById('pos-trigger').textContent = data.top_positive_trigger;
+    document.getElementById('neg-trigger').textContent = data.top_negative_trigger;
+
+    const bar = document.getElementById('sentiment-bar');
+    bar.innerHTML = `
+      <div class="s-seg" style="width:${data.positive_calls_pct}%;background:var(--green)">${data.positive_calls_pct.toFixed(0)}%</div>
+      <div class="s-seg" style="width:${data.neutral_calls_pct}%;background:#444;color:#aaa">${data.neutral_calls_pct.toFixed(0)}%</div>
+      <div class="s-seg" style="width:${data.negative_calls_pct}%;background:var(--red)">${data.negative_calls_pct.toFixed(0)}%</div>`;
+
+    const monthly = data.monthly || [];
+    const maxTotal = Math.max(...monthly.map(m => m.positive + m.neutral + m.negative), 1);
+    const bars = document.getElementById('monthly-bars');
+    monthly.forEach(m => {
+      const ph = Math.max((m.positive / maxTotal * 90).toFixed(0), 1);
+      const nh = Math.max((m.neutral / maxTotal * 90).toFixed(0), 1);
+      const ng = Math.max((m.negative / maxTotal * 90).toFixed(0), 1);
+      bars.innerHTML += `
+        <div class="monthly-col">
+          <div class="m-pos" style="height:${ph}px" title="${m.month}: ${m.positive} positive (score ${m.avg_score})"></div>
+          <div class="m-neu" style="height:${nh}px"></div>
+          <div class="m-neg" style="height:${ng}px"></div>
+          <div class="m-lbl">${m.month.slice(0,3)}</div>
+        </div>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Appointment Density — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .bar-wrap { display: flex; align-items: flex-end; gap: .25rem; height: 120px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .22rem; }
+    .bar { width: 100%; border-radius: 3px 3px 0 0; min-height: 3px; }
+    .bar-lbl { font-size: .52rem; color: var(--muted); writing-mode: vertical-rl; transform: rotate(180deg); height: 28px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Appointment Density</div>
+  <p class="page-sub">Bookings by hour of day. Identify your busiest windows to optimise staffing and your quietest hours to target with fill-in promotions.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-peak" style="color:var(--accent)">—</div><div class="stat-lbl">Peak Hour</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-avg" style="color:var(--green)">—</div><div class="stat-lbl">Avg Bookings/Hour</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-util" style="color:var(--yellow)">—</div><div class="stat-lbl">Chair Utilisation</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Hourly Booking Distribution</div>
+    <div class="bar-wrap" id="bar-wrap"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/appointment-density-stats').then(r => r.json());
+    document.getElementById('h-peak').textContent = d.peak_hour;
+    document.getElementById('h-avg').textContent = d.avg_hourly_bookings;
+    document.getElementById('h-util').textContent = d.utilisation_pct + '%';
+    const bw = document.getElementById('bar-wrap');
+    const maxB = Math.max(...d.bookings);
+    d.hours.forEach((h, i) => {
+      const ht = Math.max(4, Math.round((d.bookings[i] / maxB) * 100));
+      const isPeak = h === d.peak_hour;
+      const col = isPeak ? 'var(--accent)' : 'rgba(167,139,250,.25)';
+      bw.innerHTML += '<div class="bar-col"><div class="bar" style="height:' + ht + 'px;background:' + col + '"></div><div class="bar-lbl">' + h + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

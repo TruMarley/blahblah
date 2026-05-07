@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Rules — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select, input[type=number], input[type=time] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus, input:focus { border-color: var(--accent); }
+    input[type=number] { width: 80px; }
+    input[type=time] { width: 105px; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Booking Rules</div>
+  <p class="page-sub">Set constraints on how and when clients can book. Your AI enforces these rules during calls — explaining limitations politely and offering compliant alternatives.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-blacklisted" style="color:var(--red)">—</div>
+      <div class="stat-lbl">Blacklisted Numbers</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-blocked" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Attempts Blocked (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-min-notice" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Min Notice (hrs)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Timing Rules</div>
+    <div class="row">
+      <div><div class="row-label">Enable Booking Rules</div><div class="row-sub">Enforce constraints during booking</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Minimum Notice (hours)</div><div class="row-sub">Earliest a same-/next-day slot can be booked</div></div>
+      <input type="number" id="min-notice" min="0" max="72">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Maximum Advance (days)</div><div class="row-sub">How far ahead clients can book</div></div>
+      <input type="number" id="max-advance" min="7" max="365">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Allow Same-Day Booking</div><div class="row-sub">Clients can book for today</div></div>
+      <label class="toggle"><input type="checkbox" id="allow-sameday"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Same-Day Cutoff Time</div><div class="row-sub">No same-day bookings after this time</div></div>
+      <input type="time" id="sameday-cutoff">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Buffer Between Appointments (min)</div><div class="row-sub">Minimum gap between consecutive bookings</div></div>
+      <input type="number" id="buffer-min" min="0" max="60">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Client Restrictions</div>
+    <div class="row">
+      <div><div class="row-label">Require Card on File</div><div class="row-sub">All clients must have card saved to book</div></div>
+      <label class="toggle"><input type="checkbox" id="require-card"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Require Card for New Clients</div><div class="row-sub">First-time clients must save a card</div></div>
+      <label class="toggle"><input type="checkbox" id="require-card-new"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Bookings per Client/Day</div></div>
+      <input type="number" id="max-per-day" min="1" max="10">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Allow Staff Double-Booking</div><div class="row-sub">Staff can be booked for overlapping slots</div></div>
+      <label class="toggle"><input type="checkbox" id="double-book"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Block Blacklisted Numbers</div><div class="row-sub">Prevent known problem callers from booking</div></div>
+      <label class="toggle"><input type="checkbox" id="block-blacklist"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">AI Behavior</div>
+    <div class="row">
+      <div><div class="row-label">AI Enforces Rules</div><div class="row-sub">AI declines non-compliant booking requests</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-enforces"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Explains Constraints</div><div class="row-sub">AI tells callers why a slot isn't available</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-explains"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Offer Waitlist if Full</div><div class="row-sub">AI offers waitlist when no slots available</div></div>
+      <label class="toggle"><input type="checkbox" id="waitlist-if-full"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Booking Rules</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/booking-rules-cfg').then(r => r.json());
+    document.getElementById('h-blacklisted').textContent = data.blacklisted_count;
+    document.getElementById('h-blocked').textContent = data.booking_attempts_blocked_30d;
+    document.getElementById('h-min-notice').textContent = data.min_notice_hours;
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('min-notice').value = data.min_notice_hours;
+    document.getElementById('max-advance').value = data.max_advance_days;
+    document.getElementById('allow-sameday').checked = data.allow_same_day;
+    document.getElementById('sameday-cutoff').value = data.same_day_cutoff_time;
+    document.getElementById('buffer-min').value = data.buffer_between_appts_min;
+    document.getElementById('require-card').checked = data.require_card_on_file;
+    document.getElementById('require-card-new').checked = data.require_card_for_new_clients;
+    document.getElementById('max-per-day').value = data.max_bookings_per_client_per_day;
+    document.getElementById('double-book').checked = data.allow_double_booking_staff;
+    document.getElementById('block-blacklist').checked = data.block_blacklisted_numbers;
+    document.getElementById('ai-enforces').checked = data.ai_enforces_rules;
+    document.getElementById('ai-explains').checked = data.ai_explains_constraints;
+    document.getElementById('waitlist-if-full').checked = data.waitlist_if_full;
+  }
+  async function save() {
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      min_notice_hours: parseInt(document.getElementById('min-notice').value)||2,
+      max_advance_days: parseInt(document.getElementById('max-advance').value)||90,
+      allow_same_day: document.getElementById('allow-sameday').checked,
+      same_day_cutoff_time: document.getElementById('sameday-cutoff').value,
+      buffer_between_appts_min: parseInt(document.getElementById('buffer-min').value)||10,
+      require_card_on_file: document.getElementById('require-card').checked,
+      require_card_for_new_clients: document.getElementById('require-card-new').checked,
+      max_bookings_per_client_per_day: parseInt(document.getElementById('max-per-day').value)||2,
+      allow_double_booking_staff: document.getElementById('double-book').checked,
+      block_blacklisted_numbers: document.getElementById('block-blacklist').checked,
+      ai_enforces_rules: document.getElementById('ai-enforces').checked,
+      ai_explains_constraints: document.getElementById('ai-explains').checked,
+      waitlist_if_full: document.getElementById('waitlist-if-full').checked,
+    };
+    await fetch('/api/settings/booking-rules-cfg', {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recurring Appointments — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    .freq-chip-wrap { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .5rem; }
+    .freq-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: .2rem .55rem; font-size: .75rem; cursor: pointer; user-select: none; }
+    .freq-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .remind-row { display: flex; gap: .4rem; align-items: center; margin-bottom: .5rem; }
+    .remind-row:last-child { margin-bottom: 0; }
+    .remind-label { font-size: .8rem; color: var(--muted); flex: 1; }
+    .remind-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-size: .78rem; padding: .3rem .55rem; outline: none; }
+    .remind-select:focus { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Recurring Appointments</div>
+  <p class="page-sub">Let clients lock in a standing slot — weekly blowouts, bi-weekly cuts, monthly brow maintenance. Your AI automatically re-books them at the right cadence without requiring another call.</p>
+  <div class="card">
+    <div class="card-title">General Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Recurring Bookings</div><div class="row-sub">Allow clients to set standing appointments</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Can Offer Recurring</div><div class="row-sub">AI suggests recurring at end of booking call</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-offer"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Client Can Self-Manage</div><div class="row-sub">Client portal to pause, skip, or cancel series</div></div>
+      <label class="toggle"><input type="checkbox" id="self-manage"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Advance Bookings</div><div class="row-sub">How many future slots to auto-reserve</div></div>
+      <input type="number" id="max-advance" min="1" max="52" placeholder="8">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Hold Slot (hours)</div><div class="row-sub">Reserve slot before confirming recurrence</div></div>
+      <input type="number" id="hold-hours" min="1" placeholder="12">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Default Frequency Options</div>
+    <div class="row-label" style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem">Frequencies offered to clients</div>
+    <div class="freq-chip-wrap" id="freq-chips">
+      <div class="freq-chip" data-v="weekly">Weekly</div>
+      <div class="freq-chip" data-v="biweekly">Bi-Weekly</div>
+      <div class="freq-chip" data-v="every3weeks">Every 3 Weeks</div>
+      <div class="freq-chip" data-v="monthly">Monthly</div>
+      <div class="freq-chip" data-v="every6weeks">Every 6 Weeks</div>
+      <div class="freq-chip" data-v="every8weeks">Every 8 Weeks</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Conflict & Cancellation Handling</div>
+    <div class="row">
+      <div><div class="row-label">On Slot Conflict</div><div class="row-sub">What to do when recurring slot is taken</div></div>
+      <select id="conflict-action">
+        <option value="notify">Notify Client</option>
+        <option value="nearest">Book Nearest Open</option>
+        <option value="skip">Skip That Week</option>
+        <option value="waitlist">Add to Waitlist</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Allow Mid-Series Cancel</div><div class="row-sub">Client can cancel remaining occurrences</div></div>
+      <label class="toggle"><input type="checkbox" id="allow-cancel"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Pause After No-Show</div><div class="row-sub">Pause series after 1 missed standing appt</div></div>
+      <label class="toggle"><input type="checkbox" id="pause-noshow"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Consecutive No-Shows Before Cancel</div><div class="row-sub">Auto-cancel series after N missed in a row</div></div>
+      <input type="number" id="noshow-limit" min="1" max="10" placeholder="3">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Reminder Schedule</div>
+    <div class="remind-row">
+      <div class="remind-label">First reminder before appointment</div>
+      <select class="remind-select" id="remind1">
+        <option value="48h">48 hours</option>
+        <option value="24h">24 hours</option>
+        <option value="12h">12 hours</option>
+        <option value="off">Off</option>
+      </select>
+    </div>
+    <div class="remind-row">
+      <div class="remind-label">Second reminder before appointment</div>
+      <select class="remind-select" id="remind2">
+        <option value="off">Off</option>
+        <option value="2h">2 hours</option>
+        <option value="4h">4 hours</option>
+        <option value="1h">1 hour</option>
+      </select>
+    </div>
+    <div class="remind-row">
+      <div class="remind-label">Rebook prompt after each visit</div>
+      <select class="remind-select" id="remind3">
+        <option value="off">Off</option>
+        <option value="immediate">Immediately after</option>
+        <option value="1d">1 day after</option>
+        <option value="3d">3 days after</option>
+      </select>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let activeFreqs = [];
+  document.querySelectorAll('.freq-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const v = chip.dataset.v;
+      if (activeFreqs.includes(v)) { activeFreqs = activeFreqs.filter(x=>x!==v); chip.classList.remove('active'); }
+      else { activeFreqs.push(v); chip.classList.add('active'); }
+    });
+  });
+  async function load() {
+    const d = await fetch('/api/settings/recurring-appointment-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('ai-offer').checked = d.ai_can_offer_recurring;
+    document.getElementById('self-manage').checked = d.client_self_manage;
+    document.getElementById('max-advance').value = d.max_advance_bookings ?? 8;
+    document.getElementById('hold-hours').value = d.hold_slot_hours ?? 12;
+    document.getElementById('conflict-action').value = d.conflict_action || 'notify';
+    document.getElementById('allow-cancel').checked = d.allow_mid_series_cancel;
+    document.getElementById('pause-noshow').checked = d.auto_pause_after_noshow;
+    document.getElementById('noshow-limit').value = d.consecutive_noshow_cancel ?? 3;
+    document.getElementById('remind1').value = d.reminder_1 || '24h';
+    document.getElementById('remind2').value = d.reminder_2 || 'off';
+    document.getElementById('remind3').value = d.rebook_prompt || 'off';
+    activeFreqs = d.enabled_frequencies || ['weekly','biweekly','monthly'];
+    document.querySelectorAll('.freq-chip').forEach(chip => {
+      if (activeFreqs.includes(chip.dataset.v)) chip.classList.add('active');
+    });
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      ai_can_offer_recurring: document.getElementById('ai-offer').checked,
+      client_self_manage: document.getElementById('self-manage').checked,
+      max_advance_bookings: parseInt(document.getElementById('max-advance').value) || 8,
+      hold_slot_hours: parseInt(document.getElementById('hold-hours').value) || 12,
+      conflict_action: document.getElementById('conflict-action').value,
+      allow_mid_series_cancel: document.getElementById('allow-cancel').checked,
+      auto_pause_after_noshow: document.getElementById('pause-noshow').checked,
+      consecutive_noshow_cancel: parseInt(document.getElementById('noshow-limit').value) || 3,
+      enabled_frequencies: activeFreqs,
+      reminder_1: document.getElementById('remind1').value,
+      reminder_2: document.getElementById('remind2').value,
+      rebook_prompt: document.getElementById('remind3').value
+    };
+    await fetch('/api/settings/recurring-appointment-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

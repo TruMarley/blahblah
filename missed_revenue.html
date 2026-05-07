@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Missed Revenue — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .hero-sub { font-size: .75rem; color: var(--muted); margin-top: .3rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .hbar-row { display: flex; align-items: center; gap: .85rem; margin-bottom: .65rem; }
+    .hbar-row:last-child { margin-bottom: 0; }
+    .hbar-label { font-size: .78rem; font-weight: 700; width: 80px; flex-shrink: 0; }
+    .hbar-track { flex: 1; background: var(--surface2); border-radius: 5px; height: 20px; overflow: hidden; }
+    .hbar-fill { height: 100%; border-radius: 5px; background: var(--red); opacity: .75; }
+    .hbar-count { font-size: .75rem; font-weight: 800; color: var(--red); width: 48px; text-align: right; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Missed Revenue</div>
+  <p class="page-sub">Estimated revenue lost from unanswered calls — last 30 days.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Missed (Est.)</div>
+      <div class="hero-val" style="color:var(--red)" id="h-total">—</div>
+      <div class="hero-sub">past 30 days</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Per Missed Call</div>
+      <div class="hero-val" style="color:var(--accent)" id="h-avg">—</div>
+      <div class="hero-sub">estimated booking value</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Missed Calls</div>
+      <div class="hero-val" id="h-calls">—</div>
+      <div class="hero-sub">unanswered this month</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">30-Day Trend — Missed Revenue / Day</div>
+    <svg id="trend-svg" width="100%" style="display:block;overflow:visible"></svg>
+  </div>
+  <div class="card">
+    <div class="card-title">Top Miss Hours</div>
+    <div id="hour-bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/missed-revenue');
+    const d = await r.json();
+
+    document.getElementById('h-total').textContent = '$' + (d.total_missed_est||0).toLocaleString();
+    document.getElementById('h-avg').textContent = '$' + (d.avg_per_missed_call||0);
+    document.getElementById('h-calls').textContent = (d.missed_calls_count||0).toLocaleString();
+
+    // 30-day area chart
+    const days = d.by_day || [];
+    const W=620, H=120, PL=8, PR=8, PT=12, PB=28, cW=W-PL-PR, cH=H-PT-PB, n=days.length;
+    const maxRev = Math.max(...days.map(d=>d.est_revenue), 1);
+    const xOf = i => PL + i*cW/(n-1);
+    const yOf = v => PT + cH - (v/maxRev)*cH;
+    const pts = days.map((d,i)=>`${xOf(i)},${yOf(d.est_revenue)}`).join(' ');
+    const area = pts + ` ${xOf(n-1)},${PT+cH} ${xOf(0)},${PT+cH}`;
+    const every5 = days.filter((_,i)=>i%5===0).map((d,i)=>`<text x="${xOf(i*5)}" y="${H-4}" text-anchor="middle" font-size="9" fill="#444">${d.date.slice(5)}</text>`).join('');
+    const svg = document.getElementById('trend-svg');
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+    svg.setAttribute('height', H);
+    svg.innerHTML = `
+      <polygon points="${area}" fill="#f87171" opacity=".2"/>
+      <polyline points="${pts}" fill="none" stroke="#f87171" stroke-width="1.8" opacity=".85"/>
+      ${every5}`;
+
+    // Hour bars
+    const hours = d.top_miss_hours || [];
+    const maxCnt = Math.max(...hours.map(h=>h.count), 1);
+    const fmtHour = h => {
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 || 12;
+      return `${h12}${ampm}`;
+    };
+    document.getElementById('hour-bars').innerHTML = hours.map(h => `
+      <div class="hbar-row">
+        <div class="hbar-label">${fmtHour(h.hour)}</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:${(h.count/maxCnt*100).toFixed(1)}%"></div></div>
+        <div class="hbar-count">${h.count}</div>
+      </div>`).join('');
+  }
+  load();
+</script>
+</body>
+</html>

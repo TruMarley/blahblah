@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Waitlist — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .7rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .85rem 1.25rem; font-size: .82rem; vertical-align: middle; }
+    .name-cell { font-weight: 800; font-size: .88rem; }
+    .phone-cell { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+    .svc-chip { font-size: .7rem; font-weight: 700; padding: .15rem .5rem; border-radius: 6px; background: rgba(167,139,250,.07); color: var(--accent); border: 1px solid rgba(167,139,250,.2); }
+    .time-cell { font-size: .75rem; color: var(--muted); white-space: nowrap; }
+    .wait-cell { font-size: .75rem; color: var(--muted); }
+    .status-badge { font-size: .68rem; font-weight: 800; padding: .18rem .55rem; border-radius: 99px; white-space: nowrap; }
+    .s-waiting  { background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); }
+    .s-notified { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+    .s-booked   { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .notify-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-size: .75rem; font-weight: 700; padding: .35rem .8rem; border-radius: 7px; cursor: pointer; font-family: inherit; transition: all .15s; white-space: nowrap; }
+    .notify-btn:hover { color: var(--text); border-color: #3e3e3e; }
+    .notify-btn.sent { background: rgba(52,211,153,.08); color: var(--green); border-color: rgba(52,211,153,.2); cursor: default; }
+    .empty { text-align: center; color: var(--muted); padding: 3rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Waitlist</div>
+  <p class="page-sub">Clients waiting for an open appointment slot.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Client</th><th>Service</th><th>Preferred Slot</th><th>Waiting</th><th>Status</th><th></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  let entries = [];
+
+  async function load() {
+    const r = await fetch('/api/waitlist');
+    const d = await r.json();
+    entries = d.waitlist || [];
+    render();
+  }
+
+  function render() {
+    document.getElementById('tbody').innerHTML = entries.length ? entries.map(e => {
+      const waitMin = Math.floor((new Date() - new Date(e.added_at)) / 60000);
+      const waitStr = waitMin < 60 ? waitMin + 'm ago' : waitMin < 1440 ? Math.floor(waitMin/60) + 'h ago' : Math.floor(waitMin/1440) + 'd ago';
+      const canNotify = e.status === 'waiting';
+      const btnHtml = canNotify
+        ? `<button class="notify-btn" id="nb-${e.id}" onclick="notify('${esc(e.id)}')">📲 Notify</button>`
+        : `<button class="notify-btn sent" disabled>${e.status === 'booked' ? '✓ Booked' : '✓ Notified'}</button>`;
+      return `<tr>
+        <td><div class="name-cell">${esc(e.client_name)}</div><div class="phone-cell">${esc(e.phone)}</div></td>
+        <td><span class="svc-chip">${esc(e.service)}</span></td>
+        <td class="time-cell">${esc(e.preferred_date)} ${esc(e.preferred_time)}</td>
+        <td class="wait-cell">${waitStr}</td>
+        <td><span class="status-badge s-${e.status}">${e.status}</span></td>
+        <td>${btnHtml}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="6" class="empty">No clients on waitlist.</td></tr>';
+  }
+
+  async function notify(id) {
+    const btn = document.getElementById('nb-' + id);
+    if (btn) { btn.textContent = 'Sending...'; btn.disabled = true; }
+    await fetch(`/api/waitlist/${id}/notify`, { method: 'POST' });
+    const e = entries.find(e => e.id === id);
+    if (e) e.status = 'notified';
+    render();
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

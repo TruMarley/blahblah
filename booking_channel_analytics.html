@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Channels — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .channel-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .7rem; }
+    .channel-label { font-size: .82rem; font-weight: 600; width: 120px; flex-shrink: 0; }
+    .channel-bar-wrap { flex: 1; background: var(--surface2); border-radius: 6px; height: 24px; overflow: hidden; }
+    .channel-bar { height: 100%; border-radius: 6px; }
+    .channel-pct { font-size: .8rem; font-weight: 700; width: 42px; text-align: right; flex-shrink: 0; }
+    .chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px,1fr)); gap: .4rem; align-items: flex-end; }
+    .chart-col { display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+    .chart-bar-wrap { width: 100%; display: flex; flex-direction: column; justify-content: flex-end; height: 110px; position: relative; }
+    .chart-bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 3px; position: absolute; bottom: 0; }
+    .chart-label { font-size: .6rem; color: var(--muted); text-align: center; }
+    .chart-val { font-size: .62rem; color: var(--text); font-weight: 700; }
+    .ai-trend-line { background: rgba(167,139,250,.07); border: 1px solid rgba(167,139,250,.2); border-radius: 10px; padding: .8rem 1rem; font-size: .8rem; color: var(--accent); margin-top: .75rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Booking Channels</div>
+  <p class="page-sub">See where your bookings are coming from. Use this to understand the AI's impact on call volume and optimize your marketing by channel.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-total" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Total Bookings (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-phone" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Via Phone</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-online" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Via Online</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-ai" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Handled by AI</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Channel Breakdown</div>
+    <div id="channels"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Volume by Channel</div>
+    <div class="chart-grid" id="monthly-chart"></div>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.75rem">
+      <div style="display:flex;align-items:center;gap:.35rem;font-size:.72rem;color:var(--muted)"><div style="width:10px;height:10px;border-radius:3px;background:var(--accent)"></div>Phone</div>
+      <div style="display:flex;align-items:center;gap:.35rem;font-size:.72rem;color:var(--muted)"><div style="width:10px;height:10px;border-radius:3px;background:var(--green)"></div>Online</div>
+      <div style="display:flex;align-items:center;gap:.35rem;font-size:.72rem;color:var(--muted)"><div style="width:10px;height:10px;border-radius:3px;background:var(--yellow)"></div>Walk-in</div>
+    </div>
+    <div class="ai-trend-line" id="ai-insight"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/booking-channel-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = data.total_bookings_30d;
+    document.getElementById('h-phone').textContent = data.phone_pct.toFixed(1) + '%';
+    document.getElementById('h-online').textContent = data.online_pct.toFixed(1) + '%';
+    document.getElementById('h-ai').textContent = data.ai_pct.toFixed(1) + '%';
+
+    const chEl = document.getElementById('channels');
+    const maxPct = Math.max(...(data.channels||[]).map(c => c.pct), 1);
+    (data.channels||[]).forEach(c => {
+      const row = document.createElement('div');
+      row.className = 'channel-row';
+      row.innerHTML = `
+        <div class="channel-label">${c.label}</div>
+        <div class="channel-bar-wrap"><div class="channel-bar" style="width:${(c.pct/maxPct*100).toFixed(1)}%;background:${c.color};opacity:.82"></div></div>
+        <div class="channel-pct" style="color:${c.color}">${c.pct.toFixed(1)}%</div>
+      `;
+      chEl.appendChild(row);
+    });
+
+    const monthly = data.monthly || [];
+    const maxTotal = Math.max(...monthly.map(m => m.phone + m.online + m.walkin), 1);
+    const chart = document.getElementById('monthly-chart');
+    monthly.forEach(m => {
+      const total = m.phone + m.online + m.walkin;
+      const ph = Math.round((m.phone / maxTotal) * 105);
+      const oh = Math.round((m.online / maxTotal) * 105);
+      const wh = Math.round((m.walkin / maxTotal) * 105);
+      const col = document.createElement('div');
+      col.className = 'chart-col';
+      col.innerHTML = `
+        <div class="chart-bar-wrap">
+          <div class="chart-bar" style="height:${ph}px;background:var(--accent);opacity:.75"></div>
+          <div class="chart-bar" style="height:${oh}px;background:var(--green);opacity:.75;margin-bottom:${ph}px"></div>
+          <div class="chart-bar" style="height:${wh}px;background:var(--yellow);opacity:.75;margin-bottom:${ph+oh}px"></div>
+        </div>
+        <div class="chart-val">${total}</div>
+        <div class="chart-label">${m.month}</div>
+      `;
+      chart.appendChild(col);
+    });
+
+    const lastAi = (data.ai_vs_human_trend||[]).slice(-1)[0];
+    document.getElementById('ai-insight').textContent =
+      `AI handled ${data.ai_pct.toFixed(1)}% of all phone bookings this month. As AI adoption grows, human receptionist hours can be reallocated to in-person client experience.`;
+  }
+  load();
+</script>
+</body>
+</html>

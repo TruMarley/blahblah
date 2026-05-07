@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue Loss — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .loss-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .6rem; margin-bottom: 1.1rem; }
+    .loss-tile { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem; }
+    .loss-tile-val { font-size: 1.05rem; font-weight: 900; margin-bottom: .2rem; }
+    .loss-tile-lbl { font-size: .65rem; color: var(--muted); }
+    .recovery-bar-wrap { background: var(--surface2); border-radius: 8px; height: 28px; overflow: hidden; position: relative; margin-bottom: .5rem; }
+    .recovery-fill { height: 100%; border-radius: 8px; background: var(--green); opacity: .85; transition: width .6s ease; }
+    .recovery-label { position: absolute; right: .75rem; top: 50%; transform: translateY(-50%); font-size: .75rem; font-weight: 700; color: var(--green); }
+    .chart-scroll { overflow-x: auto; padding-bottom: .5rem; }
+    .stacked-chart { display: flex; gap: .45rem; align-items: flex-end; min-width: max-content; }
+    .stacked-col { display: flex; flex-direction: column; align-items: center; gap: .3rem; width: 52px; }
+    .stacked-bars { display: flex; flex-direction: column; justify-content: flex-end; width: 100%; height: 130px; gap: 1px; border-radius: 4px; overflow: hidden; }
+    .stacked-seg { width: 100%; min-height: 2px; transition: height .5s ease; }
+    .stacked-lbl { font-size: .58rem; color: var(--muted); text-align: center; }
+    .stacked-total { font-size: .62rem; font-weight: 700; color: var(--text); }
+    .legend { display: flex; gap: 1.1rem; flex-wrap: wrap; margin-top: .75rem; }
+    .leg-item { display: flex; align-items: center; gap: .35rem; font-size: .72rem; color: var(--muted); }
+    .leg-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+    .recovery-card { background: rgba(52,211,153,.07); border: 1px solid rgba(52,211,153,.2); border-radius: 10px; padding: 1rem; }
+    .recovery-title { font-size: .72rem; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .75rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue Loss Analysis</div>
+  <p class="page-sub">Track revenue lost to missed calls, no-shows, and late cancellations — and see how much your AI receptionist recovers automatically.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-monthly" style="color:var(--red)">—</div>
+      <div class="stat-lbl">Est. Monthly Loss</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-recovered" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Recovered by AI</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-rate" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Recovery Rate</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-avg-missed" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Avg Missed Call Value</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Loss Breakdown (30 days)</div>
+    <div class="loss-grid">
+      <div class="loss-tile">
+        <div class="loss-tile-val" style="color:var(--red)" id="t-missed-call">—</div>
+        <div class="loss-tile-lbl">Missed Calls</div>
+      </div>
+      <div class="loss-tile">
+        <div class="loss-tile-val" style="color:var(--yellow)" id="t-noshow">—</div>
+        <div class="loss-tile-lbl">No-Shows</div>
+      </div>
+      <div class="loss-tile">
+        <div class="loss-tile-val" style="color:var(--accent)" id="t-late-cancel">—</div>
+        <div class="loss-tile-lbl">Late Cancellations</div>
+      </div>
+    </div>
+
+    <div class="recovery-card">
+      <div class="recovery-title">AI Recovery Rate</div>
+      <div class="recovery-bar-wrap">
+        <div class="recovery-fill" id="recovery-fill"></div>
+        <div class="recovery-label" id="recovery-pct">—</div>
+      </div>
+      <div style="font-size:.75rem;color:var(--muted)" id="recovery-sub"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Loss Trend</div>
+    <div class="chart-scroll">
+      <div class="stacked-chart" id="stacked-chart"></div>
+    </div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Missed Calls</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--yellow)"></div>No-Shows</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--accent)"></div>Late Cancels</div>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/revenue-loss-stats').then(r => r.json());
+    document.getElementById('h-monthly').textContent = '$' + data.est_monthly_loss.toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0});
+    document.getElementById('h-recovered').textContent = '$' + data.recovered_by_ai_30d.toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0});
+    document.getElementById('h-rate').textContent = data.recovered_by_ai_pct.toFixed(1) + '%';
+    document.getElementById('h-avg-missed').textContent = '$' + data.avg_missed_call_value.toFixed(2);
+    document.getElementById('t-missed-call').textContent = '$' + data.missed_call_loss_30d.toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0});
+    document.getElementById('t-noshow').textContent = '$' + data.no_show_loss_30d.toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0});
+    document.getElementById('t-late-cancel').textContent = '$' + data.late_cancel_loss_30d.toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0});
+    document.getElementById('recovery-fill').style.width = data.recovered_by_ai_pct + '%';
+    document.getElementById('recovery-pct').textContent = data.recovered_by_ai_pct.toFixed(1) + '%';
+    document.getElementById('recovery-sub').textContent = `Your AI recovered $${data.recovered_by_ai_30d.toFixed(0)} of an estimated $${data.est_monthly_loss.toFixed(0)} lost this month.`;
+
+    const chart = document.getElementById('stacked-chart');
+    const monthly = data.monthly || [];
+    const maxTotal = Math.max(...monthly.map(m => m.total_loss), 1);
+    monthly.forEach(m => {
+      const col = document.createElement('div');
+      col.className = 'stacked-col';
+      const mcH = Math.round((m.missed_call_loss / maxTotal) * 120);
+      const nsH = Math.round((m.no_show_loss / maxTotal) * 120);
+      const lcH = Math.round((m.late_cancel_loss / maxTotal) * 120);
+      col.innerHTML = `
+        <div class="stacked-bars">
+          <div class="stacked-seg" style="height:${mcH}px;background:var(--red);opacity:.8"></div>
+          <div class="stacked-seg" style="height:${nsH}px;background:var(--yellow);opacity:.8"></div>
+          <div class="stacked-seg" style="height:${lcH}px;background:var(--accent);opacity:.8"></div>
+        </div>
+        <div class="stacked-total">$${(m.total_loss/1000).toFixed(1)}k</div>
+        <div class="stacked-lbl">${m.month}</div>
+      `;
+      chart.appendChild(col);
+    });
+  }
+  load();
+</script>
+</body>
+</html>

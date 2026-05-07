@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Points & Rewards — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    .info-card { background: rgba(167,139,250,.07); border: 1px solid rgba(167,139,250,.2); border-radius: 10px; padding: .85rem 1rem; margin-top: 1rem; }
+    .info-text { font-size: .75rem; color: var(--muted); line-height: 1.5; }
+    .info-text strong { color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Points & Rewards</div>
+  <p class="page-sub">Reward clients for every dollar spent, referrals, and reviews. The AI announces point balances during calls and reminds clients when they're close to a reward — turning one-time visits into loyal relationships.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-members" style="color:var(--accent)">—</div><div class="stat-lbl">Members Enrolled</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-redeemed" style="color:var(--yellow)">—</div><div class="stat-lbl">Points Redeemed (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-rev" style="color:var(--green)">—</div><div class="stat-lbl">Redemption Value (30d)</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Program Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Points Program</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Points per Dollar Spent</div></div>
+      <input type="number" id="pts-per-dollar" min="1" max="10">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Redemption Threshold (pts)</div><div class="row-sub">Points needed to earn a reward</div></div>
+      <input type="number" id="threshold" min="50" max="1000" step="25">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Reward Value ($)</div><div class="row-sub">Dollar value of reward at threshold</div></div>
+      <input type="number" id="reward-val" min="1" max="100">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Bonus Points — Referral</div></div>
+      <input type="number" id="ref-bonus" min="0" max="500">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Bonus Points — Review</div></div>
+      <input type="number" id="review-bonus" min="0" max="200">
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Announces Points on Call</div><div class="row-sub">AI tells client their current balance</div></div>
+      <label class="toggle"><input type="checkbox" id="announce"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Reminds Balance on Booking</div><div class="row-sub">AI mentions points progress at booking confirmation</div></div>
+      <label class="toggle"><input type="checkbox" id="remind"><span class="slider"></span></label>
+    </div>
+    <div class="info-card" id="rate-preview"></div>
+    <button class="save-btn" onclick="save()">Save Rewards Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  function updatePreview() {
+    const ppd = parseInt(document.getElementById('pts-per-dollar').value) || 1;
+    const thr = parseInt(document.getElementById('threshold').value) || 200;
+    const val = parseInt(document.getElementById('reward-val').value) || 10;
+    const needed = Math.ceil(thr / ppd);
+    document.getElementById('rate-preview').innerHTML = '<div class="info-text">At <strong>' + ppd + ' pt / $1</strong>, clients earn a <strong>$' + val + ' reward</strong> after spending <strong>$' + needed + '</strong>. That\'s a <strong>' + (val/needed*100).toFixed(1) + '% effective discount</strong> for loyal clients.</div>';
+  }
+  async function load() {
+    data = await fetch('/api/settings/points-rewards-cfg').then(r => r.json());
+    document.getElementById('h-members').textContent = data.members_enrolled;
+    document.getElementById('h-redeemed').textContent = data.points_redeemed_30d;
+    document.getElementById('h-rev').textContent = '$' + data.redemption_value_30d;
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('pts-per-dollar').value = data.points_per_dollar;
+    document.getElementById('threshold').value = data.redemption_threshold_points;
+    document.getElementById('reward-val').value = data.redemption_value_dollars;
+    document.getElementById('ref-bonus').value = data.bonus_points_on_referral;
+    document.getElementById('review-bonus').value = data.bonus_points_on_review;
+    document.getElementById('announce').checked = data.ai_announces_points_on_call;
+    document.getElementById('remind').checked = data.ai_reminds_balance_on_booking;
+    updatePreview();
+    ['pts-per-dollar','threshold','reward-val'].forEach(id => document.getElementById(id).addEventListener('input', updatePreview));
+  }
+  async function save() {
+    const payload = { ...data,
+      enabled: document.getElementById('enabled').checked,
+      points_per_dollar: parseInt(document.getElementById('pts-per-dollar').value) || 1,
+      redemption_threshold_points: parseInt(document.getElementById('threshold').value) || 200,
+      redemption_value_dollars: parseInt(document.getElementById('reward-val').value) || 10,
+      bonus_points_on_referral: parseInt(document.getElementById('ref-bonus').value) || 50,
+      bonus_points_on_review: parseInt(document.getElementById('review-bonus').value) || 25,
+      ai_announces_points_on_call: document.getElementById('announce').checked,
+      ai_reminds_balance_on_booking: document.getElementById('remind').checked,
+    };
+    await fetch('/api/settings/points-rewards-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Utilization — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .provider-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .85rem; }
+    .provider-name { font-size: .8rem; font-weight: 700; width: 80px; flex-shrink: 0; }
+    .util-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+    .util-fill { height: 100%; border-radius: 4px; }
+    .util-pct { font-size: .75rem; font-weight: 700; width: 44px; text-align: right; }
+    .util-meta { font-size: .65rem; color: var(--muted); width: 100px; text-align: right; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Utilization</div>
+  <p class="page-sub">See what percentage of available hours each provider is booked. High utilization means strong demand — low utilization reveals scheduling inefficiencies the AI can help backfill.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-avg" style="color:var(--accent)">—</div><div class="stat-lbl">Avg Utilization</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-peak" style="color:var(--yellow)">—</div><div class="stat-lbl">Peak Utilization</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-idle" style="color:var(--red)">—</div><div class="stat-lbl">Total Idle Hrs (30d)</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Provider Breakdown</div>
+    <div id="provider-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/staff-utilization-rate-stats').then(r => r.json());
+    document.getElementById('h-avg').textContent = d.avg_utilization_pct.toFixed(1) + '%';
+    document.getElementById('h-peak').textContent = d.peak_utilization_pct.toFixed(1) + '%';
+    document.getElementById('h-idle').textContent = d.idle_hours_30d + 'h';
+    const pl = document.getElementById('provider-list');
+    d.providers.forEach(p => {
+      const col = p.utilization_pct >= 80 ? 'var(--green)' : p.utilization_pct >= 60 ? 'var(--yellow)' : 'var(--red)';
+      pl.innerHTML += '<div class="provider-row"><div class="provider-name">' + p.name + '</div><div class="util-track"><div class="util-fill" style="width:' + p.utilization_pct.toFixed(0) + '%;background:' + col + '"></div></div><div class="util-pct" style="color:' + col + '">' + p.utilization_pct.toFixed(1) + '%</div><div class="util-meta">' + p.booked_hours_30d + 'h booked / ' + p.idle_hours_30d + 'h idle</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

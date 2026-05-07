@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue by Staff &amp; Service — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .matrix-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    th { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: .5rem .75rem; text-align: right; border-bottom: 1px solid var(--border); }
+    th:first-child { text-align: left; }
+    td { padding: .55rem .75rem; border-bottom: 1px solid #141414; text-align: right; }
+    td:first-child { text-align: left; font-weight: 700; color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    .cell-bar { display: flex; align-items: center; justify-content: flex-end; gap: .4rem; }
+    .bar-inner { height: 8px; border-radius: 3px; min-width: 4px; }
+    .chart-wrap { height: 240px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+    .staff-tag { display: inline-block; font-size: .65rem; font-weight: 700; padding: .1rem .38rem; border-radius: 4px; margin-right: .3rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue by Staff &amp; Service</div>
+  <p class="page-sub">Which staff members generate the most revenue, and from which services — identify your top earners and upsell opportunities.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Revenue</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Top Staff</div>
+      <div class="hero-val" id="h-top-staff" style="color:var(--green);font-size:1.1rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Top Service</div>
+      <div class="hero-val" id="h-top-svc" style="color:var(--yellow);font-size:1.1rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Revenue Matrix — Staff × Service</div>
+    <div class="matrix-wrap" id="matrix-wrap"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Staff Total Revenue — Grouped Bar</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 700 240" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  const COLORS = ['rgba(167,139,250,.75)','rgba(52,211,153,.7)','rgba(251,191,36,.7)','rgba(248,113,113,.7)'];
+
+  async function load() {
+    const r = await fetch('/api/analytics/revenue-by-staff-and-service');
+    const d = await r.json();
+    const cells = d.cells || [];
+    const staff = d.staff || [];
+    const services = d.services || [];
+
+    // compute totals
+    const grandTotal = cells.reduce((s,c)=>s+c.revenue,0);
+    const staffTotals = staff.map(s=>cells.filter(c=>c.staff===s).reduce((t,c)=>t+c.revenue,0));
+    const svcTotals = services.map(sv=>cells.filter(c=>c.service===sv).reduce((t,c)=>t+c.revenue,0));
+    const topStaff = staff[staffTotals.indexOf(Math.max(...staffTotals))];
+    const topSvc = services[svcTotals.indexOf(Math.max(...svcTotals))];
+
+    document.getElementById('h-total').textContent = '$'+grandTotal.toLocaleString();
+    document.getElementById('h-top-staff').textContent = topStaff||'—';
+    document.getElementById('h-top-svc').textContent = topSvc||'—';
+
+    // matrix table
+    const maxCell = Math.max(...cells.map(c=>c.revenue));
+    let html = '<table><thead><tr><th>Staff</th>';
+    services.forEach(sv=>{ html+=`<th>${esc(sv)}</th>`; });
+    html+='<th>Total</th></tr></thead><tbody>';
+    staff.forEach((s,si)=>{
+      html+=`<tr><td>${esc(s)}</td>`;
+      services.forEach((sv,vi)=>{
+        const cell = cells.find(c=>c.staff===s&&c.service===sv);
+        const rev = cell ? cell.revenue : 0;
+        const pct = maxCell>0 ? (rev/maxCell) : 0;
+        html+=`<td><div class="cell-bar"><div class="bar-inner" style="width:${Math.max(4,pct*60)}px;background:${COLORS[vi%COLORS.length]}"></div>$${rev.toLocaleString()}</div></td>`;
+      });
+      html+=`<td style="color:var(--accent);font-weight:800">$${staffTotals[si].toLocaleString()}</td></tr>`;
+    });
+    html+='<tr style="border-top:1px solid var(--border)"><td style="color:var(--muted)">Total</td>';
+    services.forEach((_,vi)=>{ html+=`<td style="color:var(--muted)">$${svcTotals[vi].toLocaleString()}</td>`; });
+    html+=`<td style="color:var(--green);font-weight:800">$${grandTotal.toLocaleString()}</td></tr>`;
+    html+='</tbody></table>';
+    document.getElementById('matrix-wrap').innerHTML = html;
+
+    // grouped bar chart
+    const svg = document.getElementById('chart');
+    const W=700,H=240,pL=60,pR=16,pT=14,pB=28;
+    const cW=W-pL-pR,cH=H-pT-pB;
+    const nStaff=staff.length,xStep=cW/nStaff,gW=xStep*0.75,bW=gW/services.length;
+    const maxRev=Math.max(...staffTotals)*1.2||1;
+    const xOf=i=>pL+i*xStep+xStep/2;
+    const yOf=v=>pT+cH-v/maxRev*cH;
+
+    [500,1000,1500,2000].filter(v=>v<maxRev).forEach(v=>{
+      const y=yOf(v);
+      svg.innerHTML+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML+=`<text x="${pL-4}" y="${y+3.5}" font-size="8" fill="#555" text-anchor="end">$${v}</text>`;
+    });
+
+    staff.forEach((s,si)=>{
+      const cx=xOf(si);
+      const left=cx-gW/2;
+      services.forEach((sv,vi)=>{
+        const cell=cells.find(c=>c.staff===s&&c.service===sv);
+        const rev=cell?cell.revenue:0;
+        const bH=cH*rev/maxRev;
+        svg.innerHTML+=`<rect x="${left+vi*bW}" y="${pT+cH-bH}" width="${bW-2}" height="${bH}" rx="2" fill="${COLORS[vi%COLORS.length]}"/>`;
+      });
+      svg.innerHTML+=`<text x="${cx}" y="${H-4}" font-size="8.5" fill="#555" text-anchor="middle">${esc(s)}</text>`;
+      svg.innerHTML+=`<text x="${cx}" y="${yOf(staffTotals[si])-6}" font-size="8" fill="var(--accent)" text-anchor="middle">$${staffTotals[si].toLocaleString()}</text>`;
+    });
+
+    // service legend
+    let lx=pL;
+    services.forEach((sv,vi)=>{
+      svg.innerHTML+=`<rect x="${lx}" y="${pT-10}" width="9" height="9" rx="2" fill="${COLORS[vi%COLORS.length]}"/>`;
+      svg.innerHTML+=`<text x="${lx+11}" y="${pT-2}" font-size="8" fill="#666">${esc(sv)}</text>`;
+      lx+=70;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

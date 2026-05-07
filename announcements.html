@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Announcements — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .new-btn { background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: .55rem 1.1rem; font-size: .83rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+    /* Compose panel */
+    .compose { background: var(--surface); border: 1px solid rgba(167,139,250,.25); border-radius: 14px; padding: 1.5rem; margin-bottom: 2rem; display: none; }
+    .compose.open { display: block; }
+    .compose-title { font-size: .85rem; font-weight: 800; margin-bottom: 1.25rem; color: var(--accent); }
+    .compose-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .field-input, .field-textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-size: .85rem; padding: .6rem .9rem; border-radius: 8px; font-family: inherit; outline: none; }
+    .field-textarea { resize: vertical; min-height: 100px; }
+    .field-input:focus, .field-textarea:focus { border-color: var(--accent); }
+    .channel-row { display: flex; gap: 1rem; margin-top: .5rem; }
+    .ch-label { display: flex; align-items: center; gap: .4rem; font-size: .83rem; cursor: pointer; }
+    .ch-label input { accent-color: var(--accent); }
+    .phone-preview { background: #1a1a2e; border-radius: 20px; padding: 1rem; min-height: 100px; display: flex; flex-direction: column; gap: .5rem; }
+    .phone-preview-label { font-size: .65rem; color: var(--muted); text-align: center; margin-bottom: .25rem; }
+    .sms-bubble { background: #2d2d2d; border-radius: 14px 14px 14px 4px; padding: .6rem .9rem; font-size: .78rem; color: var(--text); max-width: 85%; line-height: 1.5; }
+    .compose-footer { display: flex; justify-content: flex-end; gap: .75rem; margin-top: 1.25rem; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: .45rem .9rem; font-size: .8rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .btn-send { background: var(--green); color: #000; border: none; border-radius: 8px; padding: .45rem 1.1rem; font-size: .8rem; font-weight: 800; cursor: pointer; font-family: inherit; }
+    .btn-draft { background: transparent; border: 1px solid var(--accent); color: var(--accent); border-radius: 8px; padding: .45rem .9rem; font-size: .8rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+    /* Card list */
+    .ann-list { display: flex; flex-direction: column; gap: .85rem; }
+    .ann-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.4rem; }
+    .ann-card-top { display: flex; align-items: flex-start; gap: .75rem; margin-bottom: .5rem; }
+    .ann-title { font-weight: 800; font-size: .9rem; flex: 1; }
+    .draft-badge { font-size: .65rem; font-weight: 800; padding: .15rem .5rem; background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.2); color: var(--yellow); border-radius: 99px; }
+    .ann-body { font-size: .8rem; color: var(--muted); line-height: 1.6; margin-bottom: .75rem; }
+    .ann-meta { display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: center; }
+    .ch-pill { display: inline-flex; align-items: center; gap: .3rem; font-size: .68rem; font-weight: 700; padding: .15rem .5rem; border-radius: 6px; }
+    .ch-sms { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .ch-dashboard { background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); }
+    .ann-stat { font-size: .75rem; color: var(--muted); }
+    .ann-stat strong { color: var(--text); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="header-row">
+    <div class="page-title">Announcements</div>
+    <button class="new-btn" onclick="toggleCompose()">+ New Announcement</button>
+  </div>
+
+  <div class="compose" id="compose">
+    <div class="compose-title">Compose Announcement</div>
+    <div style="margin-bottom:1rem">
+      <div class="field-label">Title</div>
+      <input class="field-input" id="f-title" placeholder="e.g. Holiday Hours – Memorial Day" oninput="updatePreview()">
+    </div>
+    <div class="compose-grid">
+      <div>
+        <div class="field-label">Message Body</div>
+        <textarea class="field-textarea" id="f-body" placeholder="Write your announcement…" oninput="updatePreview()"></textarea>
+        <div style="margin-top:1rem">
+          <div class="field-label">Channels</div>
+          <div class="channel-row">
+            <label class="ch-label"><input type="checkbox" id="ch-sms" checked onchange="updatePreview()"> SMS</label>
+            <label class="ch-label"><input type="checkbox" id="ch-dash" checked onchange="updatePreview()"> Dashboard</label>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="field-label">SMS Preview</div>
+        <div class="phone-preview">
+          <div class="phone-preview-label">Elite Cuts · RingDesk</div>
+          <div class="sms-bubble" id="preview-bubble">Your message will appear here…</div>
+        </div>
+      </div>
+    </div>
+    <div class="compose-footer">
+      <button class="btn-ghost" onclick="toggleCompose()">Cancel</button>
+      <button class="btn-draft" onclick="saveAnnouncement('draft')">Save Draft</button>
+      <button class="btn-send" onclick="saveAnnouncement('sent')">Send Now →</button>
+    </div>
+  </div>
+
+  <div class="ann-list" id="ann-list"></div>
+</div>
+<script>
+  function toggleCompose() {
+    const c = document.getElementById('compose');
+    c.classList.toggle('open');
+    if (c.classList.contains('open')) c.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+  function updatePreview() {
+    const body = document.getElementById('f-body').value || 'Your message will appear here…';
+    document.getElementById('preview-bubble').textContent = body.slice(0, 160);
+  }
+  async function saveAnnouncement(status) {
+    const title = document.getElementById('f-title').value.trim();
+    const body = document.getElementById('f-body').value.trim();
+    if (!title || !body) { alert('Title and message are required.'); return; }
+    const channels = [];
+    if (document.getElementById('ch-sms').checked) channels.push('sms');
+    if (document.getElementById('ch-dash').checked) channels.push('dashboard');
+    await fetch('/api/announcements', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({title, body, channels, status, recipient_count: status === 'sent' ? 142 : 0})});
+    document.getElementById('f-title').value = '';
+    document.getElementById('f-body').value = '';
+    document.getElementById('compose').classList.remove('open');
+    load();
+  }
+
+  async function load() {
+    const r = await fetch('/api/announcements');
+    const d = await r.json();
+    const anns = d.announcements || [];
+    document.getElementById('ann-list').innerHTML = anns.map(a => `
+      <div class="ann-card">
+        <div class="ann-card-top">
+          <div class="ann-title">${esc(a.title)}</div>
+          ${a.status === 'draft' ? '<span class="draft-badge">Draft</span>' : ''}
+        </div>
+        <div class="ann-body">${esc(a.body)}</div>
+        <div class="ann-meta">
+          ${(a.channels||[]).map(c => `<span class="ch-pill ${c === 'sms' ? 'ch-sms' : 'ch-dashboard'}">${c === 'sms' ? '💬 SMS' : '📊 Dashboard'}</span>`).join('')}
+          ${a.status === 'sent' ? `<span class="ann-stat"><strong>${a.recipient_count}</strong> recipients · ${relTime(a.sent_at)}</span>` : '<span class="ann-stat" style="color:var(--yellow)">Not sent yet</span>'}
+        </div>
+      </div>`).join('');
+  }
+
+  function relTime(iso) {
+    if (!iso) return '—';
+    const diff = Math.floor((new Date() - new Date(iso)) / 86400000);
+    if (diff === 0) return 'today'; if (diff === 1) return 'yesterday'; return diff + 'd ago';
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

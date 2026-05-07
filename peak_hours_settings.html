@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Peak Hours — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=time] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 110px; }
+    input[type=time]:focus { border-color: var(--accent); }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    .day-grid { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .5rem; }
+    .day-btn { border: 1px solid var(--border); background: var(--surface2); border-radius: 8px; padding: .35rem .6rem; font-size: .75rem; color: var(--muted); cursor: pointer; font-weight: 700; transition: .15s; user-select: none; }
+    .day-btn.on { background: rgba(251,191,36,.12); border-color: var(--yellow); color: var(--yellow); }
+    .info-box { background: rgba(251,191,36,.05); border: 1px solid rgba(251,191,36,.18); border-radius: 10px; padding: .8rem 1rem; margin-top: .5rem; }
+    .info-box p { font-size: .74rem; color: var(--yellow); line-height: 1.55; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Peak Hours</div>
+  <p class="page-sub">Define your busiest windows so the AI can apply surge pricing, cap bookings, or suggest off-peak slots to balance demand. Peak hour settings help protect your team from burnout while maximizing revenue during high-demand periods.</p>
+
+  <div class="card">
+    <div class="card-title">Peak Hour Configuration</div>
+    <div class="row">
+      <div><div class="row-label">Enable Peak Overrides</div><div class="row-sub">Apply surge pricing and booking limits during peak</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div class="row-label">Peak Start Time</div>
+      <input type="time" id="peak-start">
+    </div>
+    <div class="row">
+      <div class="row-label">Peak End Time</div>
+      <input type="time" id="peak-end">
+    </div>
+    <div class="row" style="align-items:flex-start">
+      <div><div class="row-label">Peak Days</div><div class="row-sub">Days this window applies</div></div>
+    </div>
+    <div class="day-grid" id="day-grid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Surge &amp; Capacity Settings</div>
+    <div class="row">
+      <div><div class="row-label">Surge Pricing (%)</div><div class="row-sub">Price increase applied during peak hours</div></div>
+      <input type="number" id="surge-pct" min="0" max="50" placeholder="10">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Limit Bookings During Peak</div><div class="row-sub">AI suggests off-peak when approaching capacity</div></div>
+      <label class="toggle"><input type="checkbox" id="limit-bookings"><span class="slider"></span></label>
+    </div>
+    <div class="info-box">
+      <p>When surge is active, the AI transparently mentions the peak-hour rate during booking. Clients who prefer standard pricing are offered the next available off-peak slot — this naturally distributes demand without turning anyone away.</p>
+    </div>
+    <button class="save-btn" onclick="save()">Save Peak Hour Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  const ALL_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let peakDays = [];
+  function renderDays() {
+    const el = document.getElementById('day-grid');
+    el.innerHTML = '';
+    ALL_DAYS.forEach(d => {
+      const btn = document.createElement('div');
+      btn.className = 'day-btn' + (peakDays.includes(d) ? ' on' : '');
+      btn.textContent = d;
+      btn.onclick = () => {
+        const idx = peakDays.indexOf(d);
+        if (idx >= 0) { peakDays.splice(idx, 1); btn.classList.remove('on'); }
+        else { peakDays.push(d); btn.classList.add('on'); }
+      };
+      el.appendChild(btn);
+    });
+  }
+  async function load() {
+    const d = await fetch('/api/settings/peak-hours-override-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled ?? false;
+    document.getElementById('peak-start').value = d.peak_start || '11:00';
+    document.getElementById('peak-end').value = d.peak_end || '16:00';
+    document.getElementById('surge-pct').value = d.surge_pct ?? 10;
+    document.getElementById('limit-bookings').checked = d.limit_bookings_in_peak ?? false;
+    peakDays = d.peak_days || ['Fri','Sat'];
+    renderDays();
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      peak_days: peakDays,
+      peak_start: document.getElementById('peak-start').value,
+      peak_end: document.getElementById('peak-end').value,
+      surge_pct: parseInt(document.getElementById('surge-pct').value) || 0,
+      limit_bookings_in_peak: document.getElementById('limit-bookings').checked
+    };
+    await fetch('/api/settings/peak-hours-override-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

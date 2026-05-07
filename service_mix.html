@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Mix — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.5rem; }
+    .donut-section { display: flex; align-items: center; gap: 2.5rem; flex-wrap: wrap; }
+    .donut-wrap { flex-shrink: 0; }
+    .legend-list { flex: 1; min-width: 180px; }
+    .legend-item { display: flex; align-items: center; gap: .65rem; margin-bottom: .75rem; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+    .legend-name { font-size: .82rem; font-weight: 700; flex: 1; }
+    .legend-pct { font-size: .8rem; font-weight: 900; }
+    /* Table */
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .6rem .9rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th.right, tbody td.right { text-align: right; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .7rem .9rem; font-size: .82rem; vertical-align: middle; }
+    .svc-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: .4rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Service Mix</div>
+  <p class="page-sub">Revenue and appointment breakdown by service type.</p>
+
+  <div class="card">
+    <div class="card-title">Revenue Distribution</div>
+    <div class="donut-section">
+      <div class="donut-wrap">
+        <svg id="donut" width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div class="legend-list" id="legend"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Service Breakdown</div>
+    <table>
+      <thead><tr>
+        <th>Service</th>
+        <th class="right">Appointments</th>
+        <th class="right">Revenue</th>
+        <th class="right">Avg Ticket</th>
+        <th class="right">% of Revenue</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  const PALETTE = ['#a78bfa','#34d399','#60a5fa','#fbbf24','#f87171','#e879f9','#2dd4bf'];
+
+  async function load() {
+    const r = await fetch('/api/analytics/service-mix');
+    const d = await r.json();
+    const svcs = d.services || [];
+
+    // Donut chart via stroke-dasharray
+    const R = 70, CX = 100, CY = 100;
+    const circumference = 2 * Math.PI * R;
+    let offset = 0;
+    let slices = '';
+    svcs.forEach((s, i) => {
+      const pct = s.pct_of_total_revenue / 100;
+      const dash = pct * circumference;
+      const gap = circumference - dash;
+      const color = PALETTE[i % PALETTE.length];
+      const rotation = -90 + (offset / circumference) * 360;
+      slices += `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${color}" stroke-width="28"
+        stroke-dasharray="${dash} ${gap}" stroke-dashoffset="0"
+        transform="rotate(${rotation} ${CX} ${CY})"><title>${s.service_name}: ${s.pct_of_total_revenue}%</title></circle>`;
+      offset += dash;
+    });
+    // Center hole
+    slices += `<circle cx="${CX}" cy="${CY}" r="44" fill="var(--surface)"/>`;
+    document.getElementById('donut').innerHTML = slices;
+
+    document.getElementById('legend').innerHTML = svcs.map((s, i) => {
+      const color = PALETTE[i % PALETTE.length];
+      return `<div class="legend-item">
+        <div class="legend-dot" style="background:${color}"></div>
+        <div class="legend-name">${esc(s.service_name)}</div>
+        <div class="legend-pct" style="color:${color}">${s.pct_of_total_revenue}%</div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('tbody').innerHTML = svcs.map((s, i) => {
+      const color = PALETTE[i % PALETTE.length];
+      return `<tr>
+        <td><span class="svc-dot" style="background:${color}"></span>${esc(s.service_name)}</td>
+        <td class="right">${s.appointment_count}</td>
+        <td class="right">$${(s.revenue||0).toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+        <td class="right">$${(s.avg_ticket||0).toFixed(2)}</td>
+        <td class="right" style="color:${color};font-weight:800">${s.pct_of_total_revenue}%</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

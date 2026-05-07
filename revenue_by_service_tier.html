@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue by Service Tier — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { height: 240px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue by Service Tier</div>
+  <p class="page-sub">How Basic, Premium, and Luxury services contribute to total revenue and booking volume.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Revenue</div>
+      <div class="hero-val" id="h-rev" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Top Tier</div>
+      <div class="hero-val" id="h-top" style="font-size:1.1rem;padding-top:.5rem;color:var(--yellow)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Revenue &amp; Bookings by Tier</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 740 240" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/revenue-by-service-tier');
+    const d = await r.json();
+    document.getElementById('h-rev').textContent = '$' + Math.round(d.total_revenue).toLocaleString();
+    const tiers = d.tiers || [];
+    const top = tiers.reduce((a,b) => a.revenue > b.revenue ? a : b, {});
+    document.getElementById('h-top').textContent = (top.tier || '—') + ' Tier';
+
+    const svg = document.getElementById('chart');
+    const W=740, H=240, pL=56, pR=16, pT=14, pB=44;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n = tiers.length;
+    const slotW = cW/n;
+    const bW = slotW * 0.28;
+    const maxRev = Math.max(...tiers.map(t=>t.revenue), 1);
+    const maxBook = Math.max(...tiers.map(t=>t.bookings), 1);
+
+    [0,.25,.5,.75,1].forEach(f => {
+      const y = pT + cH*(1-f);
+      svg.innerHTML += `<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML += `<text x="${pL-4}" y="${y+3}" font-size="8.5" fill="#555" text-anchor="end">$${Math.round(maxRev*f/1000)}k</text>`;
+    });
+
+    tiers.forEach((t,i) => {
+      const cx = pL + i*slotW + slotW/2;
+      const revH = (t.revenue/maxRev)*cH;
+      const bookH = (t.bookings/maxBook)*cH;
+      svg.innerHTML += `<rect x="${cx-bW-2}" y="${pT+cH-revH}" width="${bW}" height="${revH}" rx="3" fill="${t.color}" opacity=".75"/>`;
+      svg.innerHTML += `<rect x="${cx+2}" y="${pT+cH-bookH}" width="${bW}" height="${bookH}" rx="3" fill="${t.color}" opacity=".35"/>`;
+      svg.innerHTML += `<text x="${cx}" y="${H-24}" font-size="10" fill="${t.color}" font-weight="900" text-anchor="middle">${t.tier}</text>`;
+      svg.innerHTML += `<text x="${cx}" y="${H-11}" font-size="8" fill="#555" text-anchor="middle">${t.price_range}</text>`;
+    });
+
+    // legend
+    svg.innerHTML += `<rect x="${pL}" y="${pT}" width="10" height="10" rx="2" fill="#a78bfa" opacity=".75"/>`;
+    svg.innerHTML += `<text x="${pL+14}" y="${pT+8}" font-size="8.5" fill="#888">Revenue</text>`;
+    svg.innerHTML += `<rect x="${pL+70}" y="${pT}" width="10" height="10" rx="2" fill="#a78bfa" opacity=".35"/>`;
+    svg.innerHTML += `<text x="${pL+84}" y="${pT+8}" font-size="8.5" fill="#888">Bookings</text>`;
+  }
+  load();
+</script>
+</body>
+</html>

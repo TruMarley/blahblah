@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conversion Funnel — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .funnel-stage { margin-bottom: .75rem; }
+    .funnel-stage:last-child { margin-bottom: 0; }
+    .stage-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .3rem; }
+    .stage-name { font-size: .85rem; font-weight: 700; }
+    .stage-meta { font-size: .75rem; color: var(--muted); }
+    .stage-bar-wrap { height: 14px; background: var(--surface2); border-radius: 7px; position: relative; overflow: visible; }
+    .stage-bar { height: 14px; border-radius: 7px; transition: width .4s ease; }
+    .drop-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .7rem; }
+    .drop-row:last-child { margin-bottom: 0; }
+    .drop-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .drop-name { font-size: .82rem; flex: 1; }
+    .drop-bar-wrap { width: 120px; height: 8px; background: var(--surface2); border-radius: 8px; }
+    .drop-bar { height: 8px; border-radius: 8px; }
+    .drop-count { font-size: .78rem; font-weight: 700; min-width: 28px; text-align: right; }
+    .insight-box { background: rgba(167,139,250,.07); border: 1px solid rgba(167,139,250,.18); border-radius: 10px; padding: .85rem 1rem; margin-top: 1rem; font-size: .78rem; color: var(--text); line-height: 1.6; }
+    .insight-box strong { color: var(--accent); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Conversion Funnel</div>
+  <p class="page-sub">Track how inbound calls progress from initial ring to confirmed booking. Each drop-off point is an optimization opportunity — improve AI engagement, slot availability, or handoff quality to lift your booking rate.</p>
+
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Calls</div>
+      <div class="hero-val" id="h-calls" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Booking Conversion</div>
+      <div class="hero-val" id="h-conv" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">AI Containment</div>
+      <div class="hero-val" id="h-contain" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Funnel Stages</div>
+    <div id="funnel-stages"></div>
+    <div class="insight-box" id="insight-box"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Drop-Off Reasons</div>
+    <div id="drop-reasons"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/conversion-funnel-stats').then(r => r.json());
+    document.getElementById('h-calls').textContent = d.total_calls != null ? d.total_calls.toLocaleString() : '—';
+    document.getElementById('h-conv').textContent = d.booking_conversion_pct != null ? d.booking_conversion_pct + '%' : '—';
+    document.getElementById('h-contain').textContent = d.ai_containment_pct != null ? d.ai_containment_pct + '%' : '—';
+
+    const stages = d.stages || [];
+    const stagesEl = document.getElementById('funnel-stages');
+    stages.forEach((s, i) => {
+      const prev = i > 0 ? stages[i-1].pct : 100;
+      const dropPct = i > 0 ? (prev - s.pct).toFixed(1) : null;
+      stagesEl.innerHTML += `<div class="funnel-stage">
+        <div class="stage-header">
+          <span class="stage-name" style="color:${s.color}">${esc(s.stage)}</span>
+          <span class="stage-meta">${s.count.toLocaleString()} calls &nbsp;·&nbsp; <strong style="color:${s.color}">${s.pct}%</strong>${dropPct ? ` <span style="color:var(--red)">↓${dropPct}%</span>` : ''}</span>
+        </div>
+        <div class="stage-bar-wrap">
+          <div class="stage-bar" style="width:${s.pct}%;background:${s.color}"></div>
+        </div>
+      </div>`;
+    });
+
+    const drops = d.drop_reasons || [];
+    const maxDrop = Math.max(...drops.map(r => r.count), 1);
+    const dropsEl = document.getElementById('drop-reasons');
+    drops.forEach(r => {
+      dropsEl.innerHTML += `<div class="drop-row">
+        <div class="drop-dot" style="background:${r.color}"></div>
+        <div class="drop-name">${esc(r.reason)}</div>
+        <div class="drop-bar-wrap"><div class="drop-bar" style="width:${(r.count/maxDrop*100).toFixed(0)}%;background:${r.color}"></div></div>
+        <div class="drop-count" style="color:${r.color}">${r.count}</div>
+      </div>`;
+    });
+
+    const biggestDrop = stages.reduce((b, s, i) => {
+      if (i === 0) return b;
+      const drop = stages[i-1].pct - s.pct;
+      return drop > (b ? b.drop : 0) ? {stage: s, prev: stages[i-1], drop} : b;
+    }, null);
+    document.getElementById('insight-box').innerHTML =
+      `<strong>${d.booking_conversion_pct}%</strong> of inbound calls convert to a confirmed booking. ` +
+      (biggestDrop ? `The largest drop-off is between <strong>${esc(biggestDrop.prev.stage)}</strong> and <strong>${esc(biggestDrop.stage.stage)}</strong> at <strong>${biggestDrop.drop.toFixed(1)}%</strong>. ` : '') +
+      `Your AI contains <strong>${d.ai_containment_pct}%</strong> of calls without human escalation. Each 1% improvement in booking conversion at your current volume adds approximately <strong>${Math.round(d.total_calls * 0.01)} additional bookings</strong> per month.`;
+  }
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

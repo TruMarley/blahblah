@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Activity Log — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --blue: #60a5fa; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    nav a.back:hover { color: var(--text); }
+
+    .toolbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: .75rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; position: sticky; top: 60px; z-index: 90; }
+    .filters { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .filter-btn { padding: .35rem .85rem; border-radius: 99px; font-size: .75rem; font-weight: 700; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; transition: all .15s; }
+    .filter-btn:hover { color: var(--text); border-color: #444; }
+    .filter-btn.active { background: rgba(167,139,250,.15); border-color: var(--accent); color: var(--accent); }
+    .export-btn { font-size: .78rem; font-weight: 700; color: var(--accent); text-decoration: none; border: 1px solid rgba(167,139,250,.3); border-radius: 8px; padding: .35rem .85rem; transition: background .15s; }
+    .export-btn:hover { background: rgba(167,139,250,.08); }
+
+    .log-wrap { max-width: 820px; margin: 0 auto; padding: 1.5rem 1.5rem 6rem; }
+    .log-entry { display: flex; align-items: flex-start; gap: .85rem; padding: .75rem 0; border-bottom: 1px solid var(--border); }
+    .log-entry:last-child { border-bottom: none; }
+    .log-ts { font-size: .72rem; color: #444; width: 110px; flex-shrink: 0; padding-top: .15rem; font-variant-numeric: tabular-nums; line-height: 1.5; }
+    .log-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-top: .38rem; }
+    .dot-booking  { background: var(--green); }
+    .dot-call     { background: var(--accent); }
+    .dot-sms      { background: var(--blue); }
+    .dot-callback { background: var(--yellow); }
+    .dot-noshows  { background: var(--red); }
+    .dot-reminder { background: var(--blue); }
+    .log-icon { font-size: 1rem; flex-shrink: 0; width: 24px; text-align: center; }
+    .log-body { flex: 1; }
+    .log-action { font-size: .85rem; font-weight: 600; }
+    .log-detail { font-size: .78rem; color: var(--muted); margin-top: .1rem; }
+
+    .no-results { color: var(--muted); font-size: .85rem; padding: 2rem 0; text-align: center; display: none; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+
+<div class="toolbar">
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+    <button class="filter-btn" onclick="setFilter('booking', this)">Bookings</button>
+    <button class="filter-btn" onclick="setFilter('call', this)">Calls</button>
+    <button class="filter-btn" onclick="setFilter('sms', this)">SMS</button>
+    <button class="filter-btn" onclick="setFilter('callback', this)">Callbacks</button>
+  </div>
+  <a href="/api/export/calls" class="export-btn">↓ Export CSV</a>
+</div>
+
+<div class="log-wrap">
+  <div id="log-list"></div>
+  <div class="no-results" id="no-results">No entries match this filter.</div>
+</div>
+
+<script>
+  const ENTRIES = [
+    { type:'booking',  icon:'📅', action:'Booking confirmed',       detail:'Marcus Johnson — Fade — Apr 17 at 2:00 PM',     date:'Apr 17', time:'2:14 PM' },
+    { type:'call',     icon:'📞', action:'Call handled by AI',      detail:'3-min call from (305) 555-0198, pricing inquiry', date:'Apr 17', time:'1:52 PM' },
+    { type:'sms',      icon:'💬', action:'SMS confirmation sent',   detail:'To Marcus Johnson (+1 305 555 0198)',              date:'Apr 17', time:'1:52 PM' },
+    { type:'booking',  icon:'📅', action:'Booking confirmed',       detail:'Sandra Reyes — Color — Apr 17 at 4:30 PM',        date:'Apr 17', time:'11:34 AM' },
+    { type:'sms',      icon:'💬', action:'SMS confirmation sent',   detail:'To Sandra Reyes (+1 713 555 0241)',                date:'Apr 17', time:'11:34 AM' },
+    { type:'call',     icon:'📞', action:'Call handled by AI',      detail:'2-min call from (786) 555-0312, booking request', date:'Apr 17', time:'10:08 AM' },
+    { type:'callback', icon:'🔔', action:'Callback request logged', detail:'Darius King — reason: pricing question',           date:'Apr 17', time:'9:47 AM' },
+    { type:'sms',      icon:'💬', action:'2h reminder sent',        detail:'To Linh Nguyen — Gel Manicure at 11:00 AM',       date:'Apr 17', time:'9:00 AM' },
+    { type:'noshows',  icon:'❌', action:'No-show marked',          detail:'Appointment #31 — client did not arrive',          date:'Apr 16', time:'6:15 PM' },
+    { type:'call',     icon:'📞', action:'Missed call',             detail:'(786) 555-0341 — not forwarded to AI',            date:'Apr 16', time:'5:03 PM' },
+    { type:'booking',  icon:'📅', action:'Booking confirmed',       detail:'Linh Nguyen — Gel Manicure — Apr 17 at 11:00 AM', date:'Apr 16', time:'3:28 PM' },
+    { type:'sms',      icon:'💬', action:'24h reminder sent',       detail:'To Marcus Johnson — Fade tomorrow 2:00 PM',        date:'Apr 16', time:'2:00 PM' },
+    { type:'sms',      icon:'💬', action:'SMS confirmation sent',   detail:'To Linh Nguyen (+1 408 555 0177)',                 date:'Apr 16', time:'3:28 PM' },
+    { type:'call',     icon:'📞', action:'Call handled by AI',      detail:'4-min call from (713) 555-0241, reschedule request',date:'Apr 16', time:'11:19 AM' },
+    { type:'callback', icon:'🔔', action:'Callback request logged', detail:'Unknown caller — reason: not specified',           date:'Apr 15', time:'4:52 PM' },
+    { type:'booking',  icon:'📅', action:'Booking confirmed',       detail:'Alejandro Vega — Edgar Cut — Apr 16 at 3:00 PM',  date:'Apr 15', time:'2:11 PM' },
+    { type:'sms',      icon:'💬', action:'SMS confirmation sent',   detail:'To Alejandro Vega (+1 602 555 0388)',              date:'Apr 15', time:'2:11 PM' },
+    { type:'call',     icon:'📞', action:'Call handled by AI',      detail:'2-min call, after-hours booking at 11:04 PM',      date:'Apr 14', time:'11:04 PM' },
+    { type:'noshows',  icon:'❌', action:'No-show marked',          detail:'Appointment #27 — Tanya Williams',                 date:'Apr 14', time:'5:30 PM' },
+    { type:'sms',      icon:'💬', action:'Missed-call follow-up',  detail:'Sent to (786) 555-0341 — 1h after missed call',   date:'Apr 14', time:'4:45 PM' },
+  ];
+
+  const DOT_CLASS = { booking:'dot-booking', call:'dot-call', sms:'dot-sms', callback:'dot-callback', noshows:'dot-noshows', reminder:'dot-reminder' };
+  let currentFilter = 'all';
+
+  function render() {
+    const list = document.getElementById('log-list');
+    const filtered = currentFilter === 'all' ? ENTRIES : ENTRIES.filter(e => e.type === currentFilter);
+    document.getElementById('no-results').style.display = filtered.length ? 'none' : 'block';
+    list.innerHTML = filtered.map(e => `
+      <div class="log-entry" data-type="${e.type}">
+        <div class="log-ts">${e.date}<br>${e.time}</div>
+        <div class="log-dot ${DOT_CLASS[e.type] || 'dot-call'}"></div>
+        <div class="log-icon">${e.icon}</div>
+        <div class="log-body">
+          <div class="log-action">${e.action}</div>
+          <div class="log-detail">${e.detail}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  function setFilter(type, btn) {
+    currentFilter = type;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  }
+
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Advance Booking — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .bucket-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+    .bucket-label { font-size: .8rem; color: var(--text); width: 90px; flex-shrink: 0; }
+    .bucket-bar-wrap { flex: 1; background: var(--surface2); border-radius: 6px; height: 22px; overflow: hidden; }
+    .bucket-bar { height: 100%; border-radius: 6px; transition: width .6s ease; }
+    .bucket-pct { font-size: .78rem; font-weight: 700; width: 42px; text-align: right; flex-shrink: 0; }
+    .chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: .5rem; align-items: flex-end; }
+    .chart-col { display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+    .chart-bar-wrap { width: 100%; display: flex; flex-direction: column; justify-content: flex-end; height: 120px; }
+    .chart-bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--accent); opacity: .85; min-height: 4px; transition: height .5s ease; }
+    .chart-label { font-size: .6rem; color: var(--muted); text-align: center; }
+    .chart-val { font-size: .65rem; color: var(--text); font-weight: 700; }
+    .insight-box { background: rgba(167,139,250,.07); border: 1px solid rgba(167,139,250,.2); border-radius: 10px; padding: .9rem 1rem; font-size: .8rem; color: var(--accent); margin-top: .75rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Advance Booking Patterns</div>
+  <p class="page-sub">Understand how far ahead clients book. Use this to time promotions, manage staff schedules, and optimize last-minute availability.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-avg" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Avg Lead Time (days)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-median" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Median Lead Time</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-sameday" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Same-Day Bookings</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-furthest" style="color:var(--red)">—</div>
+      <div class="stat-lbl">Furthest Advance</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Booking Distribution</div>
+    <div id="buckets"></div>
+    <div class="insight-box" id="insight-box"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Avg Lead Time (days)</div>
+    <div class="chart-grid" id="monthly-chart"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/advance-booking-stats').then(r => r.json());
+    document.getElementById('h-avg').textContent = data.avg_lead_time_days.toFixed(1) + 'd';
+    document.getElementById('h-median').textContent = data.median_lead_time_days.toFixed(1) + 'd';
+    document.getElementById('h-sameday').textContent = data.same_day_pct.toFixed(1) + '%';
+    document.getElementById('h-furthest').textContent = data.furthest_advance_days + 'd';
+
+    const buckets = document.getElementById('buckets');
+    (data.buckets || []).forEach(b => {
+      const row = document.createElement('div');
+      row.className = 'bucket-row';
+      row.innerHTML = `
+        <div class="bucket-label">${b.label}</div>
+        <div class="bucket-bar-wrap"><div class="bucket-bar" style="width:${b.pct}%;background:${b.color}"></div></div>
+        <div class="bucket-pct" style="color:${b.color}">${b.pct.toFixed(1)}%</div>
+      `;
+      buckets.appendChild(row);
+    });
+
+    const weekOf = (data.buckets || []).find(b => b.label && b.label.includes('week'));
+    document.getElementById('insight-box').textContent =
+      `${data.booked_week_of_pct.toFixed(1)}% of bookings happen within 7 days — consider sending a week-ahead slot reminder to drive early commitments.`;
+
+    const chart = document.getElementById('monthly-chart');
+    const monthly = data.monthly || [];
+    const maxVal = Math.max(...monthly.map(m => m.avg_lead_days), 1);
+    monthly.forEach(m => {
+      const col = document.createElement('div');
+      col.className = 'chart-col';
+      const h = Math.round((m.avg_lead_days / maxVal) * 110) + 10;
+      col.innerHTML = `
+        <div class="chart-bar-wrap"><div class="chart-bar" style="height:${h}px"></div></div>
+        <div class="chart-val">${m.avg_lead_days.toFixed(1)}</div>
+        <div class="chart-label">${m.month}</div>
+      `;
+      chart.appendChild(col);
+    });
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Payouts — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    nav a.back:hover { color: var(--text); }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+
+    .kpi-row { display: grid; grid-template-columns: repeat(3,1fr); gap: .75rem; margin-bottom: 2rem; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; }
+    .kpi-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .35rem; }
+    .kpi-val { font-size: 1.75rem; font-weight: 900; letter-spacing: -.04em; color: var(--green); }
+    .kpi-sub { font-size: .72rem; color: var(--muted); margin-top: .2rem; }
+
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .71rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .7rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th.right { text-align: right; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody tr.current { background: rgba(167,139,250,.05); border-left: 2px solid var(--accent); }
+    tbody td { padding: .85rem 1.25rem; font-size: .83rem; vertical-align: middle; }
+    tbody td.right { text-align: right; }
+    .period-cell { font-weight: 700; }
+    .period-tag { display: inline-block; font-size: .65rem; font-weight: 700; color: var(--accent); background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.25); border-radius: 99px; padding: .1rem .45rem; margin-left: .4rem; vertical-align: middle; }
+    .amount-cell { font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; }
+    .txn-cell { color: var(--muted); font-size: .78rem; }
+    .status-badge { display: inline-block; padding: .2rem .65rem; border-radius: 99px; font-size: .7rem; font-weight: 800; }
+    .s-paid { background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.25); color: var(--green); }
+    .s-pending { background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.2); color: var(--yellow); }
+    .s-processing { background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.2); color: var(--accent); }
+    .note-cell { font-size: .75rem; color: var(--muted); }
+    .spinner { display: flex; justify-content: center; align-items: center; padding: 3rem; }
+    .spin { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Payouts</div>
+  <p class="page-sub">Monthly revenue payouts from RingDesk — deposited to your linked bank account.</p>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">YTD Paid</div><div class="kpi-val" id="k-ytd">—</div><div class="kpi-sub">total deposited this year</div></div>
+    <div class="kpi"><div class="kpi-label">Pending</div><div class="kpi-val" id="k-pending" style="color:var(--yellow)">—</div><div class="kpi-sub">current period, not yet paid</div></div>
+    <div class="kpi"><div class="kpi-label">Last Payout</div><div class="kpi-val" id="k-last">—</div><div class="kpi-sub" id="k-last-date">—</div></div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="spinner" id="spinner"><div class="spin"></div></div>
+    <table id="payout-table" style="display:none">
+      <thead><tr>
+        <th>Period</th>
+        <th>Transactions</th>
+        <th class="right">Gross</th>
+        <th class="right">Fees</th>
+        <th class="right">Net Payout</th>
+        <th>Status</th>
+        <th>Note</th>
+      </tr></thead>
+      <tbody id="payout-body"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/payouts');
+    const d = await r.json();
+    const payouts = d.payouts || [];
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('payout-table').style.display = '';
+
+    let ytd = 0, pending = 0, lastAmt = null, lastDate = null;
+    payouts.forEach(p => {
+      if (p.status === 'paid') { ytd += p.net; if (!lastAmt || p.period > lastDate) { lastAmt = p.net; lastDate = p.period; } }
+      if (p.status === 'pending' || p.status === 'processing') pending += p.net;
+    });
+
+    document.getElementById('k-ytd').textContent = '$' + ytd.toLocaleString();
+    document.getElementById('k-pending').textContent = '$' + pending.toLocaleString();
+    document.getElementById('k-last').textContent = lastAmt !== null ? '$' + lastAmt.toLocaleString() : '—';
+    document.getElementById('k-last-date').textContent = lastDate ? fmtPeriod(lastDate) : '—';
+
+    const now = new Date();
+    const curPeriod = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+
+    document.getElementById('payout-body').innerHTML = payouts.map(p => {
+      const isCurrent = p.period === curPeriod;
+      const sc = p.status === 'paid' ? 's-paid' : p.status === 'pending' ? 's-pending' : 's-processing';
+      return `<tr class="${isCurrent ? 'current' : ''}">
+        <td class="period-cell">${fmtPeriod(p.period)}${isCurrent ? '<span class="period-tag">Current</span>' : ''}</td>
+        <td class="txn-cell">${p.transaction_count} txns</td>
+        <td class="right" style="color:var(--text);font-weight:600">$${p.gross.toLocaleString()}</td>
+        <td class="right" style="color:var(--muted);font-size:.78rem">−$${p.fees.toLocaleString()}</td>
+        <td class="amount-cell right">$${p.net.toLocaleString()}</td>
+        <td><span class="status-badge ${sc}">${p.status.charAt(0).toUpperCase()+p.status.slice(1)}</span></td>
+        <td class="note-cell">${p.note || '—'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function fmtPeriod(ym) {
+    if (!ym) return '—';
+    const [y, m] = ym.split('-');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return (months[parseInt(m)-1] || m) + ' ' + y;
+  }
+
+  load();
+</script>
+</body>
+</html>

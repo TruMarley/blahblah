@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Review Analytics — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --gold: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .top-grid { display: grid; grid-template-columns: 260px 1fr 200px; gap: 1.5rem; margin-bottom: 1.5rem; }
+    @media (max-width: 800px) { .top-grid { grid-template-columns: 1fr; } }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    /* Rating hero */
+    .rating-hero { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+    .rating-big { font-size: 4.5rem; font-weight: 900; letter-spacing: -.06em; color: var(--gold); line-height: 1; }
+    .stars-row { font-size: 1.4rem; color: var(--gold); letter-spacing: .1em; margin: .5rem 0; }
+    .rating-count { font-size: .78rem; color: var(--muted); }
+    /* Distribution bars */
+    .dist-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .dist-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; }
+    .dist-label { font-size: .78rem; color: var(--gold); width: 20px; text-align: right; flex-shrink: 0; }
+    .dist-track { flex: 1; background: var(--surface2); border-radius: 99px; height: 8px; }
+    .dist-fill { height: 8px; border-radius: 99px; background: var(--gold); transition: width .6s ease; }
+    .dist-count { font-size: .72rem; color: var(--muted); width: 28px; text-align: right; }
+    /* Response rate ring */
+    .ring-card { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ring-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .ring-wrap { position: relative; width: 100px; height: 100px; }
+    .ring-svg { transform: rotate(-90deg); }
+    .ring-bg { fill: none; stroke: var(--surface2); stroke-width: 10; }
+    .ring-fg { fill: none; stroke: var(--green); stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset .8s ease; }
+    .ring-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ring-pct { font-size: 1.3rem; font-weight: 900; color: var(--green); }
+    .ring-sub { font-size: .6rem; color: var(--muted); margin-top: .1rem; }
+    /* Platform table */
+    .section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem; margin-bottom: 1.5rem; }
+    .section-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .plat-table { width: 100%; border-collapse: collapse; }
+    .plat-table th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .4rem .75rem; border-bottom: 1px solid var(--border); text-align: left; }
+    .plat-table th:last-child, .plat-table td:last-child { text-align: right; }
+    .plat-table td { padding: .65rem .75rem; font-size: .83rem; border-bottom: 1px solid var(--border); }
+    .plat-table tr:last-child td { border-bottom: none; }
+    .plat-stars { color: var(--gold); }
+    /* Sparkline */
+    .spark-wrap { overflow: hidden; }
+    .spark-svg { width: 100%; height: 60px; }
+    .spark-labels { display: flex; justify-content: space-between; margin-top: .35rem; }
+    .spark-label { font-size: .6rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/reviews" class="back">← Reviews</a>
+</nav>
+<div class="main">
+  <div class="page-title">Review Analytics</div>
+  <p class="page-sub">Performance across all platforms.</p>
+
+  <div class="top-grid">
+    <div class="card rating-hero" id="hero">—</div>
+    <div class="card">
+      <div class="dist-title">Rating Distribution</div>
+      <div id="dist-bars">—</div>
+    </div>
+    <div class="card ring-card">
+      <div class="ring-title">Response Rate</div>
+      <div class="ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 100 100" width="100" height="100">
+          <circle class="ring-bg" cx="50" cy="50" r="40"/>
+          <circle class="ring-fg" id="ring-fg" cx="50" cy="50" r="40" stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+        </svg>
+        <div class="ring-label">
+          <div class="ring-pct" id="ring-pct">—</div>
+          <div class="ring-sub">responded</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Rating Trend — Last 6 Months</div>
+    <div class="spark-wrap" id="spark-wrap">—</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">By Platform</div>
+    <table class="plat-table" id="plat-table">
+      <thead><tr><th>Platform</th><th>Reviews</th><th>Avg Rating</th></tr></thead>
+      <tbody id="plat-body">—</tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/reviews/stats');
+    const d = await r.json();
+
+    // Hero
+    const stars = '★'.repeat(Math.floor(d.avg_rating)) + (d.avg_rating % 1 >= 0.5 ? '★' : '');
+    document.getElementById('hero').innerHTML = `
+      <div class="rating-big">${d.avg_rating.toFixed(1)}</div>
+      <div class="stars-row">${'★'.repeat(Math.round(d.avg_rating))}</div>
+      <div class="rating-count">${d.total_reviews} total reviews</div>
+    `;
+
+    // Distribution
+    const maxCount = Math.max(...Object.values(d.rating_breakdown), 1);
+    document.getElementById('dist-bars').innerHTML = [5,4,3,2,1].map(n => {
+      const cnt = d.rating_breakdown[String(n)] || 0;
+      const pct = Math.round(cnt / maxCount * 100);
+      return `<div class="dist-row">
+        <div class="dist-label">${n}★</div>
+        <div class="dist-track"><div class="dist-fill" style="width:${pct}%"></div></div>
+        <div class="dist-count">${cnt}</div>
+      </div>`;
+    }).join('');
+
+    // Ring
+    const rr = d.response_rate || 0;
+    document.getElementById('ring-pct').textContent = rr + '%';
+    setTimeout(() => {
+      const circumference = 251.2;
+      const offset = circumference - (rr / 100) * circumference;
+      document.getElementById('ring-fg').style.strokeDashoffset = offset;
+    }, 100);
+
+    // Sparkline
+    const trend = d.trend || [];
+    if (trend.length) {
+      const vals = trend.map(t => t.avg);
+      const minV = Math.min(...vals) - 0.5;
+      const maxV = 5;
+      const W = 600, H = 60, pad = 10;
+      const xs = vals.map((_, i) => pad + (i / (vals.length - 1)) * (W - pad * 2));
+      const ys = vals.map(v => H - pad - ((v - minV) / (maxV - minV)) * (H - pad * 2));
+      const points = xs.map((x, i) => `${x},${ys[i]}`).join(' ');
+      const labels = trend.map(t => t.month.slice(0, 7)).join('|').split('|');
+      document.getElementById('spark-wrap').innerHTML = `
+        <svg class="spark-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+          <polyline points="${points}" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          ${xs.map((x, i) => `<circle cx="${x}" cy="${ys[i]}" r="3.5" fill="var(--gold)"/>`).join('')}
+          ${xs.map((x, i) => `<text x="${x}" y="${ys[i] - 8}" text-anchor="middle" fill="var(--gold)" font-size="9" font-weight="700">${vals[i]}</text>`).join('')}
+        </svg>
+        <div class="spark-labels">${trend.map(t => `<span class="spark-label">${t.month.slice(5)}</span>`).join('')}</div>
+      `;
+    }
+
+    // Platform table
+    document.getElementById('plat-body').innerHTML = (d.platform_breakdown || []).map(p => `
+      <tr>
+        <td>${esc(p.platform)}</td>
+        <td>${p.count}</td>
+        <td><span class="plat-stars">${'★'.repeat(Math.round(p.avg))}</span> ${p.avg.toFixed(1)}</td>
+      </tr>`).join('') || '<tr><td colspan="3" style="color:var(--muted);text-align:center">No platform data</td></tr>';
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

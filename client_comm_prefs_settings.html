@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Communication Preferences — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select, input[type=number], input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus, input:focus { border-color: var(--accent); }
+    input[type=number] { width: 90px; }
+    input[type=text] { width: 110px; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .79rem; padding: .5rem .72rem; outline: none; resize: vertical; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .warning { background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.22); border-radius: 8px; padding: .65rem .9rem; font-size: .75rem; color: var(--yellow); margin-bottom: 1rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Communication Preferences</div>
+  <p class="page-sub">Control how clients opt in to SMS, email, and call communications. Stay compliant with consent laws and give clients control over how they hear from you.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-optin-both" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Opted In (Both)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-sms-out" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">SMS Opt-Outs</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-email-out" style="color:var(--red)">—</div>
+      <div class="stat-lbl">Email Opt-Outs</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Default Opt-In Settings</div>
+    <div class="row">
+      <div><div class="row-label">Default Opt-In: SMS</div><div class="row-sub">New clients opted in to SMS by default</div></div>
+      <label class="toggle"><input type="checkbox" id="default-sms"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Default Opt-In: Email</div><div class="row-sub">New clients opted in to email by default</div></div>
+      <label class="toggle"><input type="checkbox" id="default-email"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Default Opt-In: Calls</div><div class="row-sub">New clients can receive outbound calls</div></div>
+      <label class="toggle"><input type="checkbox" id="default-calls"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Require Explicit Consent</div><div class="row-sub">Clients must actively check a box</div></div>
+      <label class="toggle"><input type="checkbox" id="explicit-consent"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Show Consent at Booking</div><div class="row-sub">Display consent message during booking flow</div></div>
+      <label class="toggle"><input type="checkbox" id="show-consent"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Send Consent Confirmation</div><div class="row-sub">Send SMS/email confirming their preferences</div></div>
+      <label class="toggle"><input type="checkbox" id="send-confirm"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Client Self-Manage</div><div class="row-sub">Clients can update their own preferences</div></div>
+      <label class="toggle"><input type="checkbox" id="self-manage"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">GDPR Mode</div><div class="row-sub">Stricter EU-compliant consent handling</div></div>
+      <label class="toggle"><input type="checkbox" id="gdpr-mode"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Data Retention</div>
+    <div class="row">
+      <div><div class="row-label">Data Retention (days)</div><div class="row-sub">How long to keep client records</div></div>
+      <input type="number" id="retention-days" min="30" max="3650">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Purge Inactive (years)</div><div class="row-sub">Delete clients with no activity after N years</div></div>
+      <input type="number" id="purge-years" min="1" max="10">
+    </div>
+    <div class="row">
+      <div><div class="row-label">SMS Opt-Out Keyword</div></div>
+      <input type="text" id="opt-out-kw">
+    </div>
+    <div class="row">
+      <div><div class="row-label">SMS Opt-In Keyword</div></div>
+      <input type="text" id="opt-in-kw">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Unsubscribe Link in Emails</div><div class="row-sub">Required for CAN-SPAM compliance</div></div>
+      <label class="toggle"><input type="checkbox" id="unsub-link"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Consent Message</div>
+    <textarea id="consent-message" rows="3"></textarea>
+    <button class="save-btn" onclick="save()">Save Communication Preferences</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/client-comm-prefs-cfg').then(r => r.json());
+    document.getElementById('h-optin-both').textContent = data.opted_in_both_pct.toFixed(1) + '%';
+    document.getElementById('h-sms-out').textContent = data.opted_out_sms_count;
+    document.getElementById('h-email-out').textContent = data.opted_out_email_count;
+    document.getElementById('default-sms').checked = data.default_opt_in_sms;
+    document.getElementById('default-email').checked = data.default_opt_in_email;
+    document.getElementById('default-calls').checked = data.default_opt_in_calls;
+    document.getElementById('explicit-consent').checked = data.require_explicit_consent;
+    document.getElementById('show-consent').checked = data.show_consent_at_booking;
+    document.getElementById('send-confirm').checked = data.send_consent_confirmation;
+    document.getElementById('self-manage').checked = data.allow_client_self_manage;
+    document.getElementById('gdpr-mode').checked = data.gdpr_mode;
+    document.getElementById('retention-days').value = data.data_retention_days;
+    document.getElementById('purge-years').value = data.auto_purge_inactive_clients_years;
+    document.getElementById('opt-out-kw').value = data.sms_opt_out_keyword;
+    document.getElementById('opt-in-kw').value = data.sms_opt_in_keyword;
+    document.getElementById('unsub-link').checked = data.email_unsubscribe_link_required;
+    document.getElementById('consent-message').value = data.consent_message;
+  }
+  async function save() {
+    const payload = {
+      ...data,
+      default_opt_in_sms: document.getElementById('default-sms').checked,
+      default_opt_in_email: document.getElementById('default-email').checked,
+      default_opt_in_calls: document.getElementById('default-calls').checked,
+      require_explicit_consent: document.getElementById('explicit-consent').checked,
+      show_consent_at_booking: document.getElementById('show-consent').checked,
+      send_consent_confirmation: document.getElementById('send-confirm').checked,
+      allow_client_self_manage: document.getElementById('self-manage').checked,
+      gdpr_mode: document.getElementById('gdpr-mode').checked,
+      data_retention_days: parseInt(document.getElementById('retention-days').value)||1095,
+      auto_purge_inactive_clients_years: parseInt(document.getElementById('purge-years').value)||3,
+      sms_opt_out_keyword: document.getElementById('opt-out-kw').value,
+      sms_opt_in_keyword: document.getElementById('opt-in-kw').value,
+      email_unsubscribe_link_required: document.getElementById('unsub-link').checked,
+      consent_message: document.getElementById('consent-message').value,
+    };
+    await fetch('/api/settings/client-comm-prefs-cfg', {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancellation Trends — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem .9rem; text-align: center; }
+    .hero-label { font-size: .6rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.3rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1.1rem; margin-bottom: 1rem; }
+    .legend-item { display: flex; align-items: center; gap: .35rem; font-size: .7rem; color: var(--muted); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .chart-wrap { display: flex; align-items: flex-end; gap: 6px; height: 120px; margin-bottom: .5rem; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; height: 100%; }
+    .bar-stack { width: 100%; flex: 1; display: flex; flex-direction: column; justify-content: flex-end; }
+    .bar-seg { width: 100%; }
+    .bar-lbl { font-size: .6rem; color: var(--muted); font-weight: 600; }
+    .reason-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .8rem; }
+    .reason-row:last-child { margin-bottom: 0; }
+    .reason-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .reason-name { font-size: .82rem; flex: 1; }
+    .reason-bar-wrap { flex: 1; height: 8px; background: var(--surface2); border-radius: 8px; }
+    .reason-bar { height: 8px; border-radius: 8px; }
+    .reason-pct { font-size: .78rem; font-weight: 700; min-width: 36px; text-align: right; }
+    .insight-box { background: rgba(248,113,113,.06); border: 1px solid rgba(248,113,113,.18); border-radius: 10px; padding: .85rem 1rem; margin-top: 1rem; font-size: .78rem; color: var(--text); line-height: 1.6; }
+    .insight-box strong { color: var(--red); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Cancellation Trends</div>
+  <p class="page-sub">Track cancellations, late cancellations, and no-shows over time. Identify patterns and root causes so you can reduce revenue loss through smarter reminder timing and deposit policies.</p>
+
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Cancel Rate</div>
+      <div class="hero-val" id="h-cancel" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Late Cancel Rate</div>
+      <div class="hero-val" id="h-late" style="color:var(--red)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">No-Show Rate</div>
+      <div class="hero-val" id="h-noshow" style="color:var(--red)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Revenue Lost (30d)</div>
+      <div class="hero-val" id="h-rev" style="color:var(--muted)">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Cancellation Volume</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>Cancellations</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red);opacity:.7"></div>Late Cancels</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>No-Shows</div>
+    </div>
+    <div class="chart-wrap" id="monthly-chart"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Cancellation Reasons</div>
+    <div id="reason-list"></div>
+    <div class="insight-box" id="insight-box"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/cancellation-trend-stats').then(r => r.json());
+    document.getElementById('h-cancel').textContent = d.cancellation_rate_pct != null ? d.cancellation_rate_pct + '%' : '—';
+    document.getElementById('h-late').textContent = d.late_cancel_rate_pct != null ? d.late_cancel_rate_pct + '%' : '—';
+    document.getElementById('h-noshow').textContent = d.no_show_rate_pct != null ? d.no_show_rate_pct + '%' : '—';
+    document.getElementById('h-rev').textContent = d.revenue_lost_30d != null ? '$' + d.revenue_lost_30d.toLocaleString() : '—';
+
+    const monthly = d.monthly || [];
+    const maxVal = Math.max(...monthly.map(m => m.cancellations + m.late_cancellations + m.no_shows), 1);
+    const chartEl = document.getElementById('monthly-chart');
+    monthly.forEach(m => {
+      const total = m.cancellations + m.late_cancellations + m.no_shows;
+      const cancelH = (m.cancellations / maxVal * 100).toFixed(1);
+      const lateH = (m.late_cancellations / maxVal * 100).toFixed(1);
+      const nsH = (m.no_shows / maxVal * 100).toFixed(1);
+      chartEl.innerHTML += `<div class="bar-col">
+        <div class="bar-stack">
+          <div class="bar-seg" style="height:${cancelH}%;background:var(--yellow);opacity:.75"></div>
+          <div class="bar-seg" style="height:${lateH}%;background:var(--red);opacity:.6"></div>
+          <div class="bar-seg" style="height:${nsH}%;background:var(--red)"></div>
+        </div>
+        <div class="bar-lbl">${esc(m.month)}</div>
+      </div>`;
+    });
+
+    const reasons = d.reasons || [];
+    const maxPct = Math.max(...reasons.map(r => r.pct), 1);
+    const rEl = document.getElementById('reason-list');
+    reasons.forEach(r => {
+      rEl.innerHTML += `<div class="reason-row">
+        <div class="reason-dot" style="background:${r.color}"></div>
+        <div class="reason-name">${esc(r.reason)}</div>
+        <div class="reason-bar-wrap"><div class="reason-bar" style="width:${(r.pct/maxPct*100).toFixed(0)}%;background:${r.color}"></div></div>
+        <div class="reason-pct" style="color:${r.color}">${r.pct}%</div>
+      </div>`;
+    });
+
+    const topReason = reasons[0];
+    document.getElementById('insight-box').innerHTML =
+      `<strong>${d.cancellation_rate_pct}%</strong> cancellation rate with <strong>${d.no_show_rate_pct}%</strong> no-shows is costing you <strong>$${d.revenue_lost_30d.toLocaleString()}</strong> in lost revenue this month. ` +
+      (topReason ? `"<strong>${esc(topReason.reason)}</strong>" is the most common reason at <strong>${topReason.pct}%</strong>. ` : '') +
+      `Enabling deposits for new clients and sending a 2-hour reminder can reduce no-shows by up to 40%.`;
+  }
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

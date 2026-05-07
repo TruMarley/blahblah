@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Return Interval — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .bucket-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .85rem; }
+    .bucket-label { font-size: .78rem; font-weight: 700; width: 88px; flex-shrink: 0; color: var(--text); }
+    .bar-bg { flex: 1; background: #1a1a1a; border-radius: 5px; height: 14px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 5px; transition: width .4s; }
+    .bucket-count { font-size: .75rem; font-weight: 700; color: var(--muted); width: 28px; text-align: right; flex-shrink: 0; }
+    .bucket-pct { font-size: .75rem; font-weight: 800; width: 38px; text-align: right; flex-shrink: 0; }
+    .insight-box { background: rgba(167,139,250,.07); border: 1px solid rgba(167,139,250,.18); border-radius: 10px; padding: .75rem 1rem; font-size: .75rem; color: var(--accent); margin-top: 1.25rem; line-height: 1.5; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Return Interval</div>
+  <p class="page-sub">How long between visits — clients returning in under 30 days are your most loyal, 60+ days signals you may need a win-back campaign.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Most Common Interval</div>
+      <div class="hero-val" id="h-common" style="color:var(--accent);font-size:1.1rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Returning &lt;30 Days</div>
+      <div class="hero-val" id="h-fast" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Lapsed (90d+)</div>
+      <div class="hero-val" id="h-lapsed" style="color:var(--red)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Return Interval Distribution</div>
+    <div id="bucket-list"></div>
+    <div class="insight-box" id="insight-box"></div>
+  </div>
+</div>
+<script>
+  // color gradient: green → yellow → red across 6 buckets
+  const COLORS = [
+    'rgba(52,211,153,.8)',
+    'rgba(52,211,153,.6)',
+    'rgba(251,191,36,.7)',
+    'rgba(251,191,36,.55)',
+    'rgba(248,113,113,.6)',
+    'rgba(248,113,113,.8)',
+  ];
+
+  async function load() {
+    const r = await fetch('/api/analytics/client-return-interval');
+    const d = await r.json();
+    const buckets = d.buckets || [];
+    const total = d.total || 1;
+
+    const mostCommon = buckets.reduce((a,b)=>b.count>a.count?b:a, buckets[0]);
+    const fast30 = buckets.slice(0,3).reduce((s,b)=>s+b.count,0);
+    const fast30Pct = Math.round(fast30/total*100);
+    const lapsedBucket = buckets[5];
+
+    document.getElementById('h-common').textContent = mostCommon ? mostCommon.label : '—';
+    document.getElementById('h-fast').textContent = fast30Pct + '%';
+    document.getElementById('h-lapsed').textContent = lapsedBucket ? lapsedBucket.pct + '%' : '—';
+
+    const maxCount = Math.max(...buckets.map(b=>b.count));
+    document.getElementById('bucket-list').innerHTML = buckets.map((b,i)=>{
+      const pct = (b.count/maxCount)*100;
+      return `<div class="bucket-row">
+        <div class="bucket-label">${esc(b.label)}</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${COLORS[i]}"></div></div>
+        <div class="bucket-count">${b.count}</div>
+        <div class="bucket-pct" style="color:${COLORS[i]}">${b.pct}%</div>
+      </div>`;
+    }).join('');
+
+    const lapsedPct = lapsedBucket ? lapsedBucket.pct : 0;
+    document.getElementById('insight-box').textContent =
+      `${fast30Pct}% of your clients return within 30 days — a sign of strong loyalty. ` +
+      (lapsedPct > 15
+        ? `${lapsedPct}% haven't returned in 90+ days — consider a win-back SMS campaign for this group.`
+        : `Only ${lapsedPct}% are lapsed 90+ days — your retention is above average for this industry.`);
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

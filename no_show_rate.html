@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>No-Show Rate — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { position: relative; height: 200px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+    .tick-label { font-size: .65rem; fill: var(--muted); text-anchor: middle; }
+    .y-label { font-size: .65rem; fill: var(--muted); text-anchor: end; }
+    .grid-line { stroke: var(--border); stroke-width: 1; }
+    .data-line { fill: none; stroke: var(--red); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+    .area-fill { fill: url(#areaGrad); opacity: .4; }
+    .dot { fill: var(--red); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">No-Show Rate</div>
+  <p class="page-sub">Percentage of booked appointments where clients did not show up — tracked weekly.</p>
+
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Current Rate</div>
+      <div class="hero-val" id="h-rate" style="color:var(--red)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total No-Shows</div>
+      <div class="hero-val" id="h-ns" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total Appointments</div>
+      <div class="hero-val" id="h-total">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">8-Week No-Show Trend</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 700 200" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f87171" stop-opacity=".5"/>
+            <stop offset="100%" stop-color="#f87171" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/no-show-rate');
+    const d = await r.json();
+    document.getElementById('h-rate').textContent = d.rate_pct + '%';
+    document.getElementById('h-ns').textContent = d.no_shows;
+    document.getElementById('h-total').textContent = d.total_appointments;
+
+    const trend = d.trend || [];
+    const svg = document.getElementById('chart');
+    const W = 700, H = 200, padL = 40, padR = 20, padT = 16, padB = 36;
+    const cW = W - padL - padR, cH = H - padT - padB;
+    const maxRate = Math.max(...trend.map(t => t.rate_pct), 20);
+    const xStep = cW / (trend.length - 1);
+
+    const pts = trend.map((t, i) => [padL + i * xStep, padT + cH - (t.rate_pct / maxRate * cH)]);
+
+    // grid lines
+    [0, 0.25, 0.5, 0.75, 1].forEach(frac => {
+      const y = padT + cH * (1 - frac);
+      const val = (maxRate * frac).toFixed(0);
+      svg.innerHTML += `<line class="grid-line" x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}"/>`;
+      svg.innerHTML += `<text class="y-label" x="${padL - 5}" y="${y + 4}">${val}%</text>`;
+    });
+
+    // area
+    const areaPath = `M ${pts[0][0]} ${padT + cH} L ${pts.map(p => p.join(',')).join(' L ')} L ${pts[pts.length-1][0]} ${padT + cH} Z`;
+    svg.innerHTML += `<path class="area-fill" d="${areaPath}"/>`;
+
+    // line
+    svg.innerHTML += `<polyline class="data-line" points="${pts.map(p => p.join(',')).join(' ')}"/>`;
+
+    // dots + x-labels
+    pts.forEach((p, i) => {
+      svg.innerHTML += `<circle class="dot" cx="${p[0]}" cy="${p[1]}" r="4"/>`;
+      svg.innerHTML += `<text class="tick-label" x="${p[0]}" y="${H - 4}">${trend[i].week.split(' ')[0]}</text>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

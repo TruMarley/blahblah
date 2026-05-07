@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Work Hours — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number], input[type=time] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    input[type=number] { width: 70px; }
+    input[type=time] { width: 100px; }
+    input:focus { border-color: var(--accent); }
+    .staff-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: .75rem; overflow: hidden; }
+    .staff-header { display: flex; align-items: center; gap: .75rem; padding: .9rem 1.1rem; cursor: pointer; }
+    .staff-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .staff-name { font-size: .92rem; font-weight: 700; flex: 1; }
+    .staff-days-count { font-size: .72rem; color: var(--muted); }
+    .staff-body { padding: 0 1.1rem 1rem; display: none; }
+    .staff-body.open { display: block; }
+    .day-row { display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: .5rem; margin-bottom: .45rem; font-size: .78rem; }
+    .day-name { color: var(--muted); font-weight: 600; }
+    .day-fields { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .day-fields label { font-size: .7rem; color: var(--muted); }
+    .staff-inactive { opacity: .45; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Work Hours</div>
+  <p class="page-sub">Set individual work schedules for each team member. Your AI uses these schedules to offer correct availability during booking calls.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-hours" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Total Staff Hours/Wk</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-util" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Avg Utilization</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-active" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Active Staff</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-lock" style="color:var(--muted)">—</div>
+      <div class="stat-lbl">Schedule Lock (days)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Global Defaults</div>
+    <div class="row">
+      <div><div class="row-label">Default Start Time</div></div>
+      <input type="time" id="default-start">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Default End Time</div></div>
+      <input type="time" id="default-end">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Default Break Duration (min)</div></div>
+      <input type="number" id="default-break" min="0" max="120">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Schedule Locked (days ahead)</div><div class="row-sub">Staff cannot edit shifts this far in advance</div></div>
+      <input type="number" id="lock-days" min="0" max="30">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Staff Can Self-Edit</div><div class="row-sub">Allow staff to update their own hours</div></div>
+      <label class="toggle"><input type="checkbox" id="self-edit"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Individual Schedules</div>
+    <div id="staff-list"></div>
+    <button class="save-btn" onclick="save()">Save Work Hour Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+
+  async function load() {
+    data = await fetch('/api/settings/staff-work-hours-cfg').then(r => r.json());
+    document.getElementById('h-hours').textContent = data.total_staff_hours_week;
+    document.getElementById('h-util').textContent = data.avg_utilization_pct.toFixed(1) + '%';
+    const active = (data.staff || []).filter(s => s.active).length;
+    document.getElementById('h-active').textContent = active + ' / ' + (data.staff || []).length;
+    document.getElementById('h-lock').textContent = data.schedule_locked_days_ahead;
+    document.getElementById('default-start').value = data.default_start;
+    document.getElementById('default-end').value = data.default_end;
+    document.getElementById('default-break').value = data.default_break_duration_min;
+    document.getElementById('lock-days').value = data.schedule_locked_days_ahead;
+    document.getElementById('self-edit').checked = data.allow_staff_self_edit;
+    renderStaff();
+  }
+
+  function renderStaff() {
+    const list = document.getElementById('staff-list');
+    list.innerHTML = '';
+    (data.staff || []).forEach(s => {
+      const card = document.createElement('div');
+      card.className = 'staff-card' + (s.active ? '' : ' staff-inactive');
+      const openDays = (s.schedule || []).filter(d => d.open).length;
+      card.innerHTML = `
+        <div class="staff-header" onclick="toggle(this)">
+          <div class="staff-dot" style="background:${s.color}"></div>
+          <div class="staff-name">${s.name}</div>
+          <div class="staff-days-count">${openDays} day${openDays!==1?'s':''}/wk</div>
+          <label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" class="staff-active" data-id="${s.id}" ${s.active?'checked':''}><span class="slider"></span></label>
+        </div>
+        <div class="staff-body">
+          ${(s.schedule||[]).map(d => `
+            <div class="day-row">
+              <div class="day-name">${d.day.slice(0,3)}</div>
+              <div class="day-fields">
+                <label class="toggle" style="width:32px;height:18px"><input type="checkbox" class="day-open" data-sid="${s.id}" data-day="${d.day}" ${d.open?'checked':''}><span class="slider" style="border-radius:18px"></span></label>
+                <label>Start <input type="time" value="${d.start}" class="day-start" data-sid="${s.id}" data-day="${d.day}" style="width:90px;font-size:.72rem"></label>
+                <label>End <input type="time" value="${d.end}" class="day-end" data-sid="${s.id}" data-day="${d.day}" style="width:90px;font-size:.72rem"></label>
+              </div>
+            </div>`).join('')}
+        </div>
+      `;
+      list.appendChild(card);
+    });
+    list.querySelectorAll('.staff-active').forEach(cb => cb.addEventListener('change', e => {
+      const s = data.staff.find(x => x.id === e.target.dataset.id);
+      if (s) { s.active = e.target.checked; }
+    }));
+  }
+
+  function toggle(header) {
+    header.nextElementSibling.classList.toggle('open');
+  }
+
+  async function save() {
+    const payload = {
+      ...data,
+      default_start: document.getElementById('default-start').value,
+      default_end: document.getElementById('default-end').value,
+      default_break_duration_min: parseInt(document.getElementById('default-break').value)||30,
+      schedule_locked_days_ahead: parseInt(document.getElementById('lock-days').value)||3,
+      allow_staff_self_edit: document.getElementById('self-edit').checked,
+    };
+    await fetch('/api/settings/staff-work-hours-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

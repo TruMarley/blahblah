@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMS Opt-In Rate — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; text-align: center; margin-bottom: 1.25rem; }
+    .hero-val { font-size: 3.5rem; font-weight: 900; color: var(--green); }
+    .hero-sub { font-size: .82rem; color: var(--muted); margin-top: .35rem; }
+    .two-col { display: grid; grid-template-columns: 1fr 220px; gap: 1.25rem; align-items: start; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .donut-wrap { display: flex; flex-direction: column; align-items: center; gap: .75rem; }
+    .donut-legend { display: flex; flex-direction: column; gap: .45rem; width: 100%; }
+    .leg-row { display: flex; align-items: center; gap: .5rem; font-size: .75rem; }
+    .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .leg-label { flex: 1; color: var(--muted); }
+    .leg-val { font-weight: 800; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">SMS Opt-In Rate</div>
+  <p class="page-sub">What percentage of your clients have opted in to receive text messages.</p>
+  <div class="hero">
+    <div class="hero-val" id="h-rate">—</div>
+    <div class="hero-sub">current SMS opt-in rate</div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">8-Week Opt-In Rate Trend</div>
+      <svg id="trend-svg" width="100%" style="display:block;overflow:visible"></svg>
+    </div>
+    <div class="card">
+      <div class="card-title">Opted In vs Out</div>
+      <div class="donut-wrap">
+        <svg id="donut" width="150" height="150" viewBox="0 0 150 150"></svg>
+        <div class="donut-legend" id="donut-legend"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/sms-opt-in-rate');
+    const d = await r.json();
+    document.getElementById('h-rate').textContent = d.current_opt_in_pct + '%';
+
+    // Trend line
+    const trend = d.trend || [];
+    const W=540, H=130, PL=8, PR=8, PT=12, PB=28, cW=W-PL-PR, cH=H-PT-PB, n=trend.length;
+    const vals = trend.map(t=>t.opt_in_rate);
+    const minV = Math.max(0, Math.min(...vals) - 5), maxV = Math.min(100, Math.max(...vals) + 5);
+    const xOf = i => PL + i*cW/(n-1);
+    const yOf = v => PT + cH - ((v-minV)/(maxV-minV))*cH;
+    const pts = trend.map((t,i)=>`${xOf(i)},${yOf(t.opt_in_rate)}`).join(' ');
+    const area = pts + ` ${xOf(n-1)},${PT+cH} ${xOf(0)},${PT+cH}`;
+    const labels = trend.map((t,i)=>`<text x="${xOf(i)}" y="${H-6}" text-anchor="middle" font-size="9" fill="#444">${esc(t.week)}</text>`).join('');
+    const dots = trend.map((t,i)=>`<circle cx="${xOf(i)}" cy="${yOf(t.opt_in_rate)}" r="3" fill="#34d399" opacity=".9"/>`).join('');
+    const svg = document.getElementById('trend-svg');
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+    svg.setAttribute('height', H);
+    svg.innerHTML = `
+      <polygon points="${area}" fill="#34d399" opacity=".15"/>
+      <polyline points="${pts}" fill="none" stroke="#34d399" stroke-width="2" opacity=".9"/>
+      ${dots}${labels}`;
+
+    // Donut
+    const optIn  = d.opted_in  || 0;
+    const optOut = d.opted_out || 0;
+    const total  = optIn + optOut || 1;
+    const cx=75, cy=75, R=54, sw=22, circ=2*Math.PI*R;
+    const inLen  = circ*(optIn/total);
+    const outLen = circ*(optOut/total);
+    document.getElementById('donut').innerHTML = `
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#34d399" stroke-width="${sw}"
+        stroke-dasharray="${inLen} ${circ-inLen}" stroke-dashoffset="${circ*0.25}" opacity=".85"/>
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#f87171" stroke-width="${sw}"
+        stroke-dasharray="${outLen} ${circ-outLen}" stroke-dashoffset="${circ*0.25 - inLen}" opacity=".85"/>`;
+    document.getElementById('donut-legend').innerHTML = `
+      <div class="leg-row"><div class="leg-dot" style="background:#34d399"></div><div class="leg-label">Opted In</div><div class="leg-val" style="color:#34d399">${optIn}</div></div>
+      <div class="leg-row"><div class="leg-dot" style="background:#f87171"></div><div class="leg-label">Opted Out</div><div class="leg-val" style="color:#f87171">${optOut}</div></div>`;
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client LTV — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .client-row { display: flex; align-items: center; gap: .75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .7rem 1rem; margin-bottom: .45rem; }
+    .client-rank { font-size: .7rem; color: var(--muted); width: 20px; text-align: center; flex-shrink: 0; }
+    .client-name { font-size: .88rem; font-weight: 700; flex: 1; }
+    .client-meta { font-size: .7rem; color: var(--muted); }
+    .client-ltv { font-size: .95rem; font-weight: 900; color: var(--green); }
+    .bucket-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; }
+    .bucket-label { font-size: .78rem; width: 85px; flex-shrink: 0; }
+    .bucket-bar-wrap { flex: 1; background: var(--surface2); border-radius: 6px; height: 20px; overflow: hidden; }
+    .bucket-bar { height: 100%; border-radius: 6px; }
+    .bucket-count { font-size: .75rem; font-weight: 700; width: 36px; text-align: right; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Lifetime Value</div>
+  <p class="page-sub">Understand the long-term revenue value of your client base. Focus retention efforts on high-LTV segments and identify what drives repeat visits.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-avg" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Avg LTV</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-median" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Median LTV</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-top10" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Top 10% Threshold</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-analyzed" style="color:var(--muted)">—</div>
+      <div class="stat-lbl">Clients Analyzed</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Top Clients by Lifetime Value</div>
+    <div id="client-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">LTV Distribution</div>
+    <div id="bucket-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/client-ltv-stats').then(r => r.json());
+    document.getElementById('h-avg').textContent = '$' + data.avg_ltv.toFixed(0);
+    document.getElementById('h-median').textContent = '$' + data.median_ltv.toFixed(0);
+    document.getElementById('h-top10').textContent = '$' + data.top_10pct_ltv_threshold.toFixed(0);
+    document.getElementById('h-analyzed').textContent = data.clients_analyzed;
+
+    const list = document.getElementById('client-list');
+    (data.top_clients||[]).forEach((c,i) => {
+      const row = document.createElement('div');
+      row.className = 'client-row';
+      row.innerHTML = `
+        <div class="client-rank">#${i+1}</div>
+        <div class="client-name">${c.name}</div>
+        <div class="client-meta">${c.visits} visits &middot; $${c.avg_ticket.toFixed(0)} avg</div>
+        <div class="client-ltv">$${c.ltv.toFixed(0)}</div>
+      `;
+      list.appendChild(row);
+    });
+
+    const buckets = document.getElementById('bucket-list');
+    const maxCount = Math.max(...(data.ltv_buckets||[]).map(b => b.count), 1);
+    (data.ltv_buckets||[]).forEach(b => {
+      const row = document.createElement('div');
+      row.className = 'bucket-row';
+      row.innerHTML = `
+        <div class="bucket-label">${b.label}</div>
+        <div class="bucket-bar-wrap"><div class="bucket-bar" style="width:${(b.count/maxCount*100).toFixed(1)}%;background:${b.color};opacity:.8"></div></div>
+        <div class="bucket-count" style="color:${b.color}">${b.count}</div>
+      `;
+      buckets.appendChild(row);
+    });
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Personality — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.5rem; }
+    .field-group { margin-bottom: 1.25rem; }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .45rem; display: block; }
+    .field-desc { font-size: .72rem; color: #444; margin-bottom: .45rem; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .85rem; padding: .5rem .75rem; font-family: inherit; width: 100%; outline: none; }
+    .f-input:focus { border-color: rgba(167,139,250,.5); }
+    .f-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .85rem; padding: .5rem .75rem; font-family: inherit; width: 100%; outline: none; cursor: pointer; }
+    .f-textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .85rem; padding: .5rem .75rem; font-family: inherit; width: 100%; outline: none; resize: vertical; min-height: 70px; }
+    .f-textarea:focus { border-color: rgba(167,139,250,.5); }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+    .toggle-info { flex: 1; }
+    .toggle-name { font-size: .85rem; font-weight: 700; }
+    .toggle-desc { font-size: .75rem; color: var(--muted); margin-top: .15rem; }
+    .tog { width: 36px; height: 20px; background: var(--border); border-radius: 99px; position: relative; cursor: pointer; flex-shrink: 0; transition: background .2s; }
+    .tog.on { background: rgba(167,139,250,.6); }
+    .tog::after { content:''; position:absolute; top:3px; left:3px; width:14px; height:14px; background:#fff; border-radius:50%; transition:transform .2s; }
+    .tog.on::after { transform: translateX(16px); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+    .save-row { display: flex; align-items: center; gap: 1rem; margin-top: 1.5rem; }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.5rem; border-radius: 9px; border: 1px solid rgba(52,211,153,.4); background: rgba(52,211,153,.1); color: var(--green); cursor: pointer; font-family: inherit; }
+    .save-btn:hover { background: rgba(52,211,153,.2); }
+    .saved-msg { font-size: .78rem; color: var(--green); font-weight: 700; opacity: 0; transition: opacity .3s; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Personality</div>
+  <p class="page-sub">Customize how your AI receptionist sounds and behaves on every call and SMS.</p>
+
+  <div class="card">
+    <div class="card-title">Voice & Behavior Settings</div>
+
+    <div class="field-group">
+      <label class="field-label" for="ai-name">AI Name</label>
+      <div class="field-desc">The name your AI uses when greeting callers.</div>
+      <input class="f-input" id="ai-name" type="text" maxlength="24" placeholder="e.g. Alex">
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="ai-greeting">Greeting Style</label>
+      <select class="f-select" id="ai-greeting">
+        <option value="warm">Warm — Friendly and welcoming</option>
+        <option value="professional">Professional — Formal and efficient</option>
+        <option value="casual">Casual — Relaxed and conversational</option>
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="ai-pace">Speech Pace</label>
+      <select class="f-select" id="ai-pace">
+        <option value="slow">Slow — Easier for all callers to follow</option>
+        <option value="normal">Normal — Natural conversational pace</option>
+        <option value="fast">Fast — Quick and efficient</option>
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="ai-closing">Closing Phrase</label>
+      <div class="field-desc">Said at the end of every call.</div>
+      <textarea class="f-textarea" id="ai-closing" maxlength="120"></textarea>
+    </div>
+
+    <hr class="divider">
+
+    <div class="field-group">
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-name">Emoji in SMS</div>
+          <div class="toggle-desc">Add friendly emojis to appointment confirmation texts</div>
+        </div>
+        <div class="tog" id="tog-emoji" onclick="toggleField('use_emoji_in_sms')"></div>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-name">Mention Promotions</div>
+          <div class="toggle-desc">AI mentions active promotions during relevant calls</div>
+        </div>
+        <div class="tog" id="tog-promo" onclick="toggleField('mention_promotions')"></div>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-name">Upsell Services</div>
+          <div class="toggle-desc">AI suggests complementary services when booking</div>
+        </div>
+        <div class="tog" id="tog-upsell" onclick="toggleField('upsell_enabled')"></div>
+      </div>
+    </div>
+
+    <div class="save-row">
+      <button class="save-btn" onclick="save()">Save Settings</button>
+      <span class="saved-msg" id="saved-msg">✓ Settings saved</span>
+    </div>
+  </div>
+</div>
+<script>
+  let config = {};
+
+  async function load() {
+    const r = await fetch('/api/ai-personality');
+    config = await r.json();
+    document.getElementById('ai-name').value = config.name || '';
+    document.getElementById('ai-greeting').value = config.greeting_style || 'warm';
+    document.getElementById('ai-pace').value = config.speech_pace || 'normal';
+    document.getElementById('ai-closing').value = config.closing_phrase || '';
+    setTog('tog-emoji', config.use_emoji_in_sms);
+    setTog('tog-promo', config.mention_promotions);
+    setTog('tog-upsell', config.upsell_enabled);
+  }
+
+  function setTog(id, val) {
+    document.getElementById(id).classList.toggle('on', !!val);
+  }
+
+  function toggleField(key) {
+    config[key] = !config[key];
+    const togMap = {use_emoji_in_sms: 'tog-emoji', mention_promotions: 'tog-promo', upsell_enabled: 'tog-upsell'};
+    setTog(togMap[key], config[key]);
+  }
+
+  async function save() {
+    config.name = document.getElementById('ai-name').value.trim() || 'Alex';
+    config.greeting_style = document.getElementById('ai-greeting').value;
+    config.speech_pace = document.getElementById('ai-pace').value;
+    config.closing_phrase = document.getElementById('ai-closing').value.trim();
+    await fetch('/api/ai-personality', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(config)});
+    const msg = document.getElementById('saved-msg');
+    msg.style.opacity = '1';
+    setTimeout(() => { msg.style.opacity = '0'; }, 2200);
+  }
+
+  load();
+</script>
+</body>
+</html>

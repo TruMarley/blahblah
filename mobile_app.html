@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk Mobile App — Coming Q3 2026</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #161616;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+    nav {
+      background: rgba(8,8,8,0.95); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 60px;
+    }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent-light); }
+    nav a.back { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
+
+    /* Hero */
+    .hero {
+      position: relative; overflow: hidden;
+      padding: 5rem 2rem 4rem; text-align: center;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(124,58,237,0.2) 0%, transparent 65%);
+    }
+    .hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        45deg, transparent, transparent 40px,
+        rgba(124,58,237,0.03) 40px, rgba(124,58,237,0.03) 41px
+      );
+    }
+    .coming-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.3);
+      color: var(--accent-light); font-size: 0.72rem; font-weight: 700;
+      padding: 5px 14px; border-radius: 20px; margin-bottom: 1.5rem;
+      text-transform: uppercase; letter-spacing: 0.1em; position: relative; z-index: 1;
+    }
+    .coming-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-light); animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .hero h1 { font-size: clamp(2rem, 6vw, 3.2rem); font-weight: 900; color: #fff; letter-spacing: -0.04em; margin-bottom: 0.75rem; line-height: 1.1; position: relative; z-index: 1; }
+    .hero h1 em { font-style: normal; color: var(--accent-light); }
+    .hero p { font-size: 1rem; color: var(--muted); max-width: 520px; margin: 0 auto 3rem; line-height: 1.7; position: relative; z-index: 1; }
+
+    /* Phone mockup pair */
+    .phones-wrap { display: flex; justify-content: center; align-items: flex-end; gap: 1rem; margin-bottom: 4rem; position: relative; z-index: 1; }
+
+    .phone-mockup {
+      width: 200px; background: #0d0d0d; border: 2px solid #2a2a2a;
+      border-radius: 28px; overflow: hidden; position: relative;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px #1a1a1a;
+    }
+    .phone-mockup.main { width: 220px; transform: translateY(0); }
+    .phone-mockup.back { width: 200px; transform: translateY(24px) scale(0.92); opacity: 0.7; }
+
+    .phone-notch { background: #000; height: 24px; display: flex; align-items: center; justify-content: center; }
+    .phone-notch::after { content:''; width: 64px; height: 16px; background: #0d0d0d; border-radius: 0 0 10px 10px; }
+
+    /* Main phone — dashboard screen */
+    .phone-screen { padding: 0.65rem; }
+    .ps-header { background: var(--accent); border-radius: 10px; padding: 0.6rem 0.75rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; }
+    .ps-header-title { font-size: 0.68rem; font-weight: 800; color: #fff; }
+    .ps-header-sub { font-size: 0.55rem; color: rgba(255,255,255,0.7); }
+    .ps-stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-bottom: 0.4rem; }
+    .ps-stat { background: #1a1a1a; border-radius: 7px; padding: 0.5rem; }
+    .ps-stat-val { font-size: 1rem; font-weight: 900; color: #fff; line-height: 1; }
+    .ps-stat-label { font-size: 0.45rem; color: #666; margin-top: 1px; }
+    .ps-appt { background: #1a1a1a; border-radius: 7px; padding: 0.5rem 0.6rem; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.4rem; }
+    .ps-appt-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+    .ps-appt-name { font-size: 0.52rem; font-weight: 700; color: #e8e8e8; }
+    .ps-appt-time { font-size: 0.48rem; color: #666; }
+    .ps-tab-bar { display: flex; justify-content: space-around; padding: 0.5rem 0 0.35rem; border-top: 1px solid #1a1a1a; margin-top: 0.35rem; }
+    .ps-tab { font-size: 0.5rem; color: #444; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .ps-tab.active { color: var(--accent-light); }
+    .ps-tab-icon { font-size: 0.85rem; }
+
+    /* Back phone — notification screen */
+    .phone-notif-screen { padding: 0.75rem 0.6rem; display: flex; flex-direction: column; gap: 0.5rem; background: #000; min-height: 200px; }
+    .notif-time { font-size: 2rem; font-weight: 100; color: #fff; text-align: center; margin-bottom: 0.25rem; }
+    .notif-date { font-size: 0.6rem; color: #888; text-align: center; margin-bottom: 0.75rem; }
+    .notif-card { background: rgba(28,28,28,0.9); border-radius: 10px; padding: 0.55rem 0.65rem; backdrop-filter: blur(10px); }
+    .notif-header { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.3rem; }
+    .notif-icon { width: 18px; height: 18px; border-radius: 5px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 0.6rem; }
+    .notif-app { font-size: 0.5rem; color: #888; }
+    .notif-title { font-size: 0.58rem; font-weight: 700; color: #fff; margin-bottom: 1px; }
+    .notif-body { font-size: 0.5rem; color: #aaa; line-height: 1.4; }
+
+    .main-content { max-width: 860px; margin: 0 auto; padding: 0 2rem 5rem; }
+
+    /* Features */
+    .features-section { margin-bottom: 4rem; }
+    .section-label { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.25rem; }
+    .features-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .feature-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.5rem; display: flex; gap: 1rem;
+    }
+    .feature-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.2); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+    .feature-title { font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 0.3rem; }
+    .feature-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.6; }
+
+    /* Timeline */
+    .timeline-section { margin-bottom: 3rem; }
+    .timeline-strip {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.5rem; display: flex; gap: 0; position: relative;
+    }
+    .timeline-strip::before { content: ''; position: absolute; top: 50%; left: 1.5rem; right: 1.5rem; height: 1px; background: var(--border2); }
+    .tl-item { flex: 1; text-align: center; position: relative; z-index: 1; }
+    .tl-dot { width: 12px; height: 12px; border-radius: 50%; margin: 0 auto 0.6rem; }
+    .tl-dot.done { background: var(--green); box-shadow: 0 0 8px rgba(34,197,94,0.4); }
+    .tl-dot.active { background: var(--accent); box-shadow: 0 0 8px rgba(124,58,237,0.5); animation: pulse-dot 1.5s infinite; }
+    .tl-dot.upcoming { background: var(--border2); }
+    @keyframes pulse-dot { 0%,100%{transform:scale(1)} 50%{transform:scale(1.4)} }
+    .tl-label { font-size: 0.68rem; font-weight: 700; color: #fff; margin-bottom: 0.2rem; }
+    .tl-date { font-size: 0.6rem; color: var(--muted); }
+    .tl-item.active-item .tl-label { color: var(--accent-light); }
+
+    /* Waitlist form */
+    .waitlist-card {
+      background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2);
+      border-radius: 16px; padding: 2.5rem; text-align: center;
+    }
+    .waitlist-card h2 { font-size: 1.3rem; font-weight: 900; color: #fff; letter-spacing: -0.03em; margin-bottom: 0.5rem; }
+    .waitlist-card p { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.75rem; line-height: 1.6; }
+    .waitlist-form { display: flex; gap: 0.75rem; max-width: 440px; margin: 0 auto; }
+    .waitlist-input {
+      flex: 1; background: rgba(8,8,8,0.8); border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 9px; padding: 12px 14px; color: var(--text); font-size: 0.9rem;
+      font-family: inherit; outline: none; transition: border-color 0.2s;
+    }
+    .waitlist-input:focus { border-color: var(--accent); }
+    .waitlist-input::placeholder { color: var(--muted2); }
+    .waitlist-btn { background: var(--accent); color: #fff; border: none; border-radius: 9px; padding: 12px 20px; font-size: 0.9rem; font-weight: 800; cursor: pointer; white-space: nowrap; font-family: inherit; }
+    .waitlist-btn:hover { background: #6d28d9; }
+    .waitlist-success { display: none; color: var(--green); font-size: 0.9rem; font-weight: 600; margin-top: 1rem; }
+    .platform-chips { display: flex; justify-content: center; gap: 0.75rem; margin-top: 1.25rem; }
+    .platform-chip { background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; padding: 6px 14px; font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+
+    @media (max-width: 640px) {
+      .features-grid { grid-template-columns: 1fr; }
+      .waitlist-form { flex-direction: column; }
+      .phones-wrap { flex-direction: column; align-items: center; }
+      .phone-mockup.back { transform: none; opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/" class="back">← Back to RingDesk</a>
+</nav>
+
+<div class="hero">
+  <div class="coming-badge"><div class="dot"></div> Available Q3 2026</div>
+  <h1>RingDesk, now in your<br><em>pocket</em>.</h1>
+  <p>Push notifications the moment your AI books an appointment. One-tap callbacks. Your daily revenue at a glance. The full power of RingDesk — on iOS and Android.</p>
+
+  <!-- Phone mockups -->
+  <div class="phones-wrap">
+
+    <!-- Notification phone (back) -->
+    <div class="phone-mockup back">
+      <div class="phone-notch"></div>
+      <div class="phone-notif-screen">
+        <div class="notif-time">10:24</div>
+        <div class="notif-date">Saturday, April 19</div>
+        <div class="notif-card">
+          <div class="notif-header">
+            <div class="notif-icon">✂️</div>
+            <div class="notif-app">RINGDESK</div>
+          </div>
+          <div class="notif-title">New booking — Marcus J.</div>
+          <div class="notif-body">Fade with Diego · Sat 10:30 AM · Confirmed ✓</div>
+        </div>
+        <div class="notif-card" style="opacity:0.6">
+          <div class="notif-header">
+            <div class="notif-icon">💰</div>
+            <div class="notif-app">RINGDESK</div>
+          </div>
+          <div class="notif-title">Today's summary</div>
+          <div class="notif-body">8 appointments · Est. $280 revenue · 0 missed</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard phone (front) -->
+    <div class="phone-mockup main">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+        <div class="ps-header">
+          <div>
+            <div class="ps-header-title">Crown & Blade</div>
+            <div class="ps-header-sub">Wynwood, Miami · AI Active</div>
+          </div>
+          <div style="font-size:1.2rem">✂️</div>
+        </div>
+        <div class="ps-stat-row">
+          <div class="ps-stat">
+            <div class="ps-stat-val">8</div>
+            <div class="ps-stat-label">Bookings today</div>
+          </div>
+          <div class="ps-stat">
+            <div class="ps-stat-val" style="color:var(--green)">$280</div>
+            <div class="ps-stat-label">Est. revenue</div>
+          </div>
+        </div>
+        <div class="ps-appt">
+          <div class="ps-appt-dot"></div>
+          <div>
+            <div class="ps-appt-name">Marcus J. — Fade</div>
+            <div class="ps-appt-time">10:30 AM · Diego</div>
+          </div>
+        </div>
+        <div class="ps-appt">
+          <div class="ps-appt-dot" style="background:var(--green)"></div>
+          <div>
+            <div class="ps-appt-name">Jaylen R. — Haircut</div>
+            <div class="ps-appt-time">11:00 AM · Marcus</div>
+          </div>
+        </div>
+        <div class="ps-appt">
+          <div class="ps-appt-dot" style="background:#fbbf24"></div>
+          <div>
+            <div class="ps-appt-name">Darius M. — Beard Trim</div>
+            <div class="ps-appt-time">11:30 AM · Any</div>
+          </div>
+        </div>
+        <div class="ps-tab-bar">
+          <div class="ps-tab active"><div class="ps-tab-icon">📋</div>Today</div>
+          <div class="ps-tab"><div class="ps-tab-icon">📊</div>Stats</div>
+          <div class="ps-tab"><div class="ps-tab-icon">📞</div>Calls</div>
+          <div class="ps-tab"><div class="ps-tab-icon">⚙️</div>Settings</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="main-content">
+
+  <!-- Features -->
+  <div class="features-section">
+    <div class="section-label">What's in the app</div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🔔</div>
+        <div>
+          <div class="feature-title">Instant booking notifications</div>
+          <div class="feature-desc">Get a push notification the moment your AI books an appointment — name, service, time, and barber, all in the notification.</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📞</div>
+        <div>
+          <div class="feature-title">One-tap callback</div>
+          <div class="feature-desc">See every missed call in your feed. Tap once to call back directly from the app — no dialing, no searching.</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💰</div>
+        <div>
+          <div class="feature-title">Daily revenue summary</div>
+          <div class="feature-desc">Wake up to a morning briefing: today's appointments, estimated revenue, and yesterday's performance vs. the week average.</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏪</div>
+        <div>
+          <div class="feature-title">Manage multiple locations</div>
+          <div class="feature-desc">Swipe between locations. See each shop's live status, today's schedule, and performance — all from one app.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div class="timeline-section">
+    <div class="section-label">Launch Timeline</div>
+    <div class="timeline-strip">
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-label">Web App</div>
+        <div class="tl-date">Jan 2026 ✓</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-label">Dashboard</div>
+        <div class="tl-date">Feb 2026 ✓</div>
+      </div>
+      <div class="tl-item active-item">
+        <div class="tl-dot active"></div>
+        <div class="tl-label">API</div>
+        <div class="tl-date">Apr 2026 ← Now</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot upcoming"></div>
+        <div class="tl-label">iOS Beta</div>
+        <div class="tl-date">Jul 2026</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot upcoming"></div>
+        <div class="tl-label">Android</div>
+        <div class="tl-date">Aug 2026</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Waitlist -->
+  <div class="waitlist-card">
+    <h2>Join the early access waitlist</h2>
+    <p>Be the first to know when the RingDesk mobile app is ready. Early access members get 3 months free of any premium mobile features.</p>
+    <form class="waitlist-form" onsubmit="joinWaitlist(event)">
+      <input type="email" class="waitlist-input" id="waitlist-email" placeholder="your@email.com" required>
+      <button type="submit" class="waitlist-btn">Join Waitlist →</button>
+    </form>
+    <div class="waitlist-success" id="waitlist-success">✓ You're on the list! We'll email you when iOS beta opens.</div>
+    <div class="platform-chips">
+      <div class="platform-chip">🍎 iOS 16+</div>
+      <div class="platform-chip">🤖 Android 12+</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function joinWaitlist(e) {
+    e.preventDefault();
+    document.querySelector('.waitlist-form').style.display = 'none';
+    document.getElementById('waitlist-success').style.display = 'block';
+  }
+</script>
+</body>
+</html>

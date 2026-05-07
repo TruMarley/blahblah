@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk — Live Demo</title>
+  <meta property="og:title" content="Try RingDesk Live — Hear Your AI Receptionist">
+  <meta property="og:description" content="Watch a real AI booking call from start to finish. See how RingDesk answers calls, books appointments, and confirms via SMS.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ringdesk.ai/demo">
+  <meta property="og:image" content="https://ringdesk.ai/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Try RingDesk Live Demo">
+  <meta name="twitter:description" content="Watch a real AI booking call play out in real time.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #161616;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --blue: #60a5fa;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    nav {
+      background: rgba(8,8,8,0.95); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 60px;
+    }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent-light); }
+    nav a.back { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
+
+    .hero {
+      padding: 4rem 2rem 2.5rem; text-align: center;
+      background: radial-gradient(ellipse 60% 35% at 50% -5%, rgba(124,58,237,0.1) 0%, transparent 65%);
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25);
+      color: var(--green); font-size: 0.72rem; font-weight: 700;
+      padding: 5px 14px; border-radius: 20px; margin-bottom: 1.25rem;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: blink 1.2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+    .hero h1 { font-size: 2.2rem; font-weight: 900; color: #fff; letter-spacing: -0.04em; margin-bottom: 0.75rem; }
+    .hero p { color: var(--muted); font-size: 0.9rem; max-width: 480px; margin: 0 auto; line-height: 1.6; }
+
+    .main { max-width: 1000px; margin: 0 auto; padding: 2rem 2rem 5rem; }
+
+    /* Layout */
+    .demo-layout { display: grid; grid-template-columns: 320px 1fr; gap: 2rem; margin-bottom: 3rem; }
+
+    /* Phone frame */
+    .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+    .phone-frame {
+      width: 280px; background: #0e0e0e; border: 2px solid #2a2a2a;
+      border-radius: 36px; overflow: hidden; position: relative;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+    .phone-notch {
+      background: #000; height: 28px; display: flex; align-items: center;
+      justify-content: center; position: relative;
+    }
+    .phone-notch::after {
+      content: ''; width: 80px; height: 18px; background: #111;
+      border-radius: 0 0 12px 12px; position: absolute; top: 0;
+    }
+    .phone-header {
+      background: var(--accent); padding: 1rem 1.25rem;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .call-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+    }
+    .call-info-name { font-size: 0.9rem; font-weight: 700; color: #fff; }
+    .call-info-sub { font-size: 0.7rem; color: rgba(255,255,255,0.7); }
+    .call-timer { font-size: 0.72rem; color: rgba(255,255,255,0.6); margin-left: auto; font-variant-numeric: tabular-nums; }
+    .phone-msgs {
+      background: #0a0a0a; min-height: 320px; padding: 1rem;
+      display: flex; flex-direction: column; gap: 0.6rem; overflow-y: auto;
+    }
+    .bubble {
+      max-width: 85%; padding: 8px 12px; border-radius: 16px;
+      font-size: 0.8rem; line-height: 1.5; opacity: 0; animation: bubble-in 0.3s ease forwards;
+    }
+    @keyframes bubble-in { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: none; } }
+    .bubble.ai { background: var(--accent); color: #fff; border-radius: 16px 16px 16px 4px; align-self: flex-start; }
+    .bubble.caller { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); border-radius: 16px 16px 4px 16px; align-self: flex-end; }
+    .typing-indicator {
+      display: none; align-self: flex-start;
+      background: var(--surface2); border: 1px solid var(--border2);
+      padding: 8px 14px; border-radius: 16px 16px 16px 4px;
+    }
+    .typing-indicator.show { display: flex; gap: 4px; align-items: center; }
+    .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: typing 1s infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes typing { 0%,60%,100%{opacity:0.3} 30%{opacity:1} }
+    .phone-footer {
+      background: #111; padding: 1rem; text-align: center;
+      font-size: 0.72rem; color: var(--muted); border-top: 1px solid var(--border);
+    }
+    .sms-sent {
+      background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2);
+      border-radius: 10px; padding: 0.5rem 0.75rem; font-size: 0.72rem;
+      color: var(--green); margin-top: 0.25rem; display: none;
+    }
+
+    /* Replay button */
+    .replay-btn {
+      background: var(--surface); border: 1px solid var(--border2);
+      color: var(--text); padding: 8px 20px; border-radius: 8px;
+      font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    }
+    .replay-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+
+    /* Sidebar steps */
+    .sidebar { display: flex; flex-direction: column; gap: 0; padding-top: 0.5rem; }
+    .step-item {
+      display: flex; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    .step-item:last-child { border-bottom: none; }
+    .step-icon-wrap { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .step-icon {
+      width: 36px; height: 36px; border-radius: 50%; background: var(--surface2);
+      border: 2px solid var(--border2); display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; flex-shrink: 0; transition: all 0.3s;
+    }
+    .step-icon.active { border-color: var(--accent); background: rgba(124,58,237,0.15); }
+    .step-icon.done { border-color: var(--green); background: rgba(34,197,94,0.1); }
+    .step-line { flex: 1; width: 1px; background: var(--border); margin: 4px 0; }
+    .step-content { flex: 1; padding-top: 6px; }
+    .step-title { font-size: 0.88rem; font-weight: 700; color: var(--muted); margin-bottom: 0.25rem; transition: color 0.3s; }
+    .step-title.active { color: #fff; }
+    .step-title.done { color: var(--green); }
+    .step-desc { font-size: 0.75rem; color: var(--muted2); line-height: 1.6; }
+    .step-badge {
+      display: none; font-size: 0.65rem; font-weight: 700; color: var(--green);
+      background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2);
+      padding: 2px 8px; border-radius: 20px; margin-top: 0.35rem;
+    }
+    .step-badge.show { display: inline-block; }
+
+    /* CTA section */
+    .cta-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 2.5rem; text-align: center;
+    }
+    .cta-card h2 { font-size: 1.4rem; font-weight: 900; color: #fff; letter-spacing: -0.03em; margin-bottom: 0.5rem; }
+    .cta-card p { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.75rem; line-height: 1.6; }
+    .phone-input-row { display: flex; gap: 0.75rem; max-width: 400px; margin: 0 auto 1rem; }
+    .phone-input {
+      flex: 1; background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 9px; padding: 12px 14px; color: var(--text);
+      font-size: 0.9rem; font-family: inherit; outline: none; transition: border-color 0.2s;
+    }
+    .phone-input:focus { border-color: var(--accent); }
+    .phone-input::placeholder { color: var(--muted2); }
+    .call-btn {
+      background: var(--green); color: #000; border: none; border-radius: 9px;
+      padding: 12px 20px; font-size: 0.9rem; font-weight: 800; cursor: pointer; white-space: nowrap;
+    }
+    .call-btn:hover { opacity: 0.9; }
+    .cta-sub { font-size: 0.75rem; color: var(--muted); }
+    .or-divider { color: var(--muted2); font-size: 0.8rem; margin: 1.25rem 0; }
+    .start-trial-btn {
+      display: inline-block; background: var(--accent); color: #fff;
+      padding: 13px 32px; border-radius: 9px; font-size: 0.95rem; font-weight: 800;
+      text-decoration: none; transition: background 0.2s;
+    }
+    .start-trial-btn:hover { background: #6d28d9; }
+
+    @media (max-width: 740px) {
+      .demo-layout { grid-template-columns: 1fr; }
+      .phone-wrap { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/" class="back">← Back to RingDesk</a>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge"><div class="live-dot"></div> Live Demo</div>
+  <h1>Watch your AI answer a call</h1>
+  <p>This is what your callers experience. The AI books appointments, handles questions, and confirms via text — all without you lifting a finger.</p>
+</div>
+
+<div class="main">
+
+  <div class="demo-layout">
+
+    <!-- Phone frame -->
+    <div class="phone-wrap">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-header">
+          <div class="call-avatar">✂️</div>
+          <div>
+            <div class="call-info-name">Crown & Blade</div>
+            <div class="call-info-sub">AI Receptionist — Alex</div>
+          </div>
+          <div class="call-timer" id="call-timer">0:00</div>
+        </div>
+        <div class="phone-msgs" id="phone-msgs">
+          <!-- Bubbles injected by JS -->
+        </div>
+        <div class="phone-footer">
+          <div id="sms-sent" class="sms-sent">📱 Confirmation text sent to caller</div>
+          <div id="call-status">Connecting...</div>
+        </div>
+      </div>
+      <button class="replay-btn" onclick="startDemo()">↺ Replay Demo</button>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+
+      <div class="step-item" id="step-0">
+        <div class="step-icon-wrap">
+          <div class="step-icon" id="icon-0">📞</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-content">
+          <div class="step-title" id="title-0">Call answered instantly</div>
+          <div class="step-desc">RingDesk picks up on the first ring — 24/7, even during a cut. No hold music, no voicemail. The AI greets callers by shop name within 400ms.</div>
+          <div class="step-badge" id="badge-0">✓ Done in 0.4s</div>
+        </div>
+      </div>
+
+      <div class="step-item" id="step-1">
+        <div class="step-icon-wrap">
+          <div class="step-icon" id="icon-1">🌍</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-content">
+          <div class="step-title" id="title-1">Language detection</div>
+          <div class="step-desc">The AI listens to the first utterance and automatically switches to Spanish if detected. No button press — seamless for bilingual shops.</div>
+          <div class="step-badge" id="badge-1">✓ English detected</div>
+        </div>
+      </div>
+
+      <div class="step-item" id="step-2">
+        <div class="step-icon-wrap">
+          <div class="step-icon" id="icon-2">🧠</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-content">
+          <div class="step-title" id="title-2">Booking intent recognized</div>
+          <div class="step-desc">Claude Haiku parses the caller's intent and routes to the booking flow — pulling available slots from the calendar in real time.</div>
+          <div class="step-badge" id="badge-2">✓ Haircut intent confirmed</div>
+        </div>
+      </div>
+
+      <div class="step-item" id="step-3">
+        <div class="step-icon-wrap">
+          <div class="step-icon" id="icon-3">📅</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-content">
+          <div class="step-title" id="title-3">Availability offered</div>
+          <div class="step-desc">Available time slots are read aloud. The caller picks a time. If a specific barber is requested, the AI checks that barber's schedule.</div>
+          <div class="step-badge" id="badge-3">✓ Sat 10:30 AM selected</div>
+        </div>
+      </div>
+
+      <div class="step-item" id="step-4">
+        <div class="step-icon-wrap">
+          <div class="step-icon" id="icon-4">✅</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-content">
+          <div class="step-title" id="title-4">Appointment confirmed</div>
+          <div class="step-desc">Name and phone captured. Appointment written to the database. Owner's dashboard updates instantly. No double-bookings possible.</div>
+          <div class="step-badge" id="badge-4">✓ Marcus booked Sat 10:30</div>
+        </div>
+      </div>
+
+      <div class="step-item" id="step-5">
+        <div class="step-icon-wrap">
+          <div class="step-icon" id="icon-5">📱</div>
+        </div>
+        <div class="step-content">
+          <div class="step-title" id="title-5">SMS confirmation sent</div>
+          <div class="step-desc">A confirmation text fires automatically with the appointment details, barber name, and shop address. 24h and 2h reminders are queued.</div>
+          <div class="step-badge" id="badge-5">✓ Text delivered in 3s</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-card">
+    <h2>Ready to try it on your real phone?</h2>
+    <p>Enter your number below and we'll call you right now so you can hear your AI receptionist firsthand. Or start your free trial and be live in 10 minutes.</p>
+    <div class="phone-input-row">
+      <input type="tel" class="phone-input" placeholder="(786) 555-0100" id="demo-phone">
+      <button class="call-btn" onclick="requestDemoCall()">📞 Call Me</button>
+    </div>
+    <div class="cta-sub" id="demo-call-status">We'll call within 30 seconds using your AI voice.</div>
+    <div class="or-divider">— or —</div>
+    <a href="/onboarding" class="start-trial-btn">Start Your 14-Day Free Trial →</a>
+  </div>
+
+</div>
+
+<script>
+  const SCRIPT = [
+    { role:'ai',     text:'Thanks for calling Crown & Blade! I\'m Alex, your AI receptionist. How can I help you today?', step:0, delay:800 },
+    { role:'caller', text:'Hey, I\'d like to book a haircut for Saturday.', step:1, delay:3200 },
+    { role:'ai',     text:'Saturday works great! I have 9 AM, 10:30, and 11:15 available. Which works for you?', step:2, delay:5500 },
+    { role:'caller', text:'10:30 is perfect. Is Diego available?', step:3, delay:8500 },
+    { role:'ai',     text:'Diego is free at 10:30 — great choice! Can I get your name and best callback number?', step:3, delay:11000 },
+    { role:'caller', text:'Marcus. 786-555-9900', step:4, delay:14000 },
+    { role:'ai',     text:'Perfect, Marcus! I\'ve booked you with Diego for a haircut Saturday at 10:30 AM. I\'m texting you the confirmation now. See you Saturday!', step:4, delay:16000 },
+    { role:'sms',    text:'', step:5, delay:19000 },
+  ];
+
+  let timer = null;
+  let timerSecs = 0;
+  let timeouts = [];
+
+  function clearAll() {
+    timeouts.forEach(t => clearTimeout(t));
+    timeouts = [];
+    if (timer) clearInterval(timer);
+    timerSecs = 0;
+    document.getElementById('call-timer').textContent = '0:00';
+  }
+
+  function setStep(idx, state) {
+    const icon = document.getElementById('icon-' + idx);
+    const title = document.getElementById('title-' + idx);
+    const badge = document.getElementById('badge-' + idx);
+    if (!icon) return;
+    icon.className = 'step-icon ' + state;
+    title.className = 'step-title ' + state;
+    if (state === 'done' && badge) badge.classList.add('show');
+  }
+
+  function startDemo() {
+    clearAll();
+    const msgs = document.getElementById('phone-msgs');
+    msgs.innerHTML = '';
+    document.getElementById('sms-sent').style.display = 'none';
+    document.getElementById('call-status').textContent = 'Call connected...';
+
+    // Reset all steps
+    for (let i = 0; i < 6; i++) setStep(i, '');
+
+    // Start timer
+    timer = setInterval(() => {
+      timerSecs++;
+      const m = Math.floor(timerSecs / 60);
+      const s = String(timerSecs % 60).padStart(2, '0');
+      document.getElementById('call-timer').textContent = m + ':' + s;
+    }, 1000);
+
+    // Mark step 0 active immediately
+    setStep(0, 'active');
+
+    SCRIPT.forEach((line, idx) => {
+      const t = setTimeout(() => {
+        if (line.role === 'sms') {
+          document.getElementById('sms-sent').style.display = 'block';
+          document.getElementById('call-status').textContent = 'Call complete ✓';
+          setStep(line.step, 'done');
+          setStep(line.step - 1, 'done');
+          clearInterval(timer);
+          // Auto-replay after 5s
+          const rt = setTimeout(() => startDemo(), 5000);
+          timeouts.push(rt);
+          return;
+        }
+
+        // Mark previous step done
+        if (idx > 0 && SCRIPT[idx-1].step !== line.step) {
+          setStep(SCRIPT[idx-1].step, 'done');
+        }
+        setStep(line.step, 'active');
+
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble ' + line.role;
+        bubble.textContent = line.text;
+        msgs.appendChild(bubble);
+        msgs.scrollTop = msgs.scrollHeight;
+      }, line.delay);
+      timeouts.push(t);
+    });
+  }
+
+  function requestDemoCall() {
+    const phone = document.getElementById('demo-phone').value.trim();
+    if (!phone) { document.getElementById('demo-phone').focus(); return; }
+    document.getElementById('demo-call-status').textContent = '✓ Calling you now! Pick up in the next 30 seconds.';
+    document.getElementById('demo-call-status').style.color = '#22c55e';
+  }
+
+  // Auto-start
+  startDemo();
+</script>
+</body>
+</html>

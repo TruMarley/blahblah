@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat Widget Config — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+
+    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
+    .config-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1.25rem; }
+    .field { margin-bottom: 1.1rem; }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .field-input, .field-textarea, .field-select { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-size: .85rem; padding: .6rem .9rem; border-radius: 8px; font-family: inherit; outline: none; }
+    .field-textarea { resize: vertical; min-height: 70px; }
+    .field-input:focus, .field-textarea:focus, .field-select:focus { border-color: var(--accent); }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: .6rem 0; border-bottom: 1px solid var(--border); }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-label { font-size: .83rem; }
+    .toggle { position: relative; width: 38px; height: 22px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #333; border-radius: 99px; cursor: pointer; transition: background .2s; }
+    .slider::before { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s; }
+    .toggle input:checked + .slider { background: var(--accent); }
+    .toggle input:checked + .slider::before { transform: translateX(16px); }
+    .color-row { display: flex; align-items: center; gap: .75rem; }
+    .color-input { width: 42px; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); cursor: pointer; padding: 2px; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: .7rem; font-size: .88rem; font-weight: 800; cursor: pointer; font-family: inherit; margin-top: 1.25rem; transition: opacity .15s; }
+    .save-btn:hover { opacity: .85; }
+    .save-feedback { text-align: center; font-size: .78rem; color: var(--green); margin-top: .5rem; min-height: 1.2em; }
+
+    /* Widget preview */
+    .preview-wrap { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; min-height: 420px; overflow: hidden; }
+    .preview-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1rem; }
+    .preview-site { background: var(--surface2); border-radius: 10px; height: 200px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: .8rem; border: 1px dashed var(--border); margin-bottom: 1rem; }
+    /* The floating widget */
+    .widget-float { position: absolute; bottom: 1.5rem; right: 1.5rem; display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; }
+    .widget-bubble { background: var(--surface); border: 1px solid var(--border); border-radius: 16px 16px 4px 16px; padding: .75rem 1rem; max-width: 220px; font-size: .78rem; line-height: 1.5; box-shadow: 0 8px 32px rgba(0,0,0,.5); }
+    .widget-bubble .wname { font-size: .65rem; font-weight: 700; margin-bottom: .3rem; }
+    .widget-btn { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; box-shadow: 0 4px 20px rgba(0,0,0,.6); cursor: pointer; border: none; }
+    .widget-links { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .4rem; }
+    .widget-link { font-size: .65rem; font-weight: 700; padding: .15rem .5rem; border-radius: 6px; background: rgba(255,255,255,.08); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Chat Widget Config</div>
+  <p class="page-sub">Customize the AI chat widget that appears on your website. Changes update the live preview instantly.</p>
+
+  <div class="layout">
+    <div class="config-card">
+      <div class="card-title">Widget Settings</div>
+
+      <div class="field">
+        <div class="field-label">Greeting Message</div>
+        <textarea class="field-textarea" id="f-greeting" oninput="syncPreview()"></textarea>
+      </div>
+      <div class="field">
+        <div class="field-label">Away Message</div>
+        <textarea class="field-textarea" id="f-away" oninput="syncPreview()"></textarea>
+      </div>
+      <div class="field">
+        <div class="field-label">Accent Color</div>
+        <div class="color-row">
+          <input type="color" class="color-input" id="f-color" oninput="syncPreview()">
+          <input class="field-input" id="f-color-hex" style="flex:1" oninput="syncColorFromHex()" placeholder="#a78bfa">
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">Widget Position</div>
+        <select class="field-select" id="f-position" onchange="syncPreview()">
+          <option value="bottom-right">Bottom Right</option>
+          <option value="bottom-left">Bottom Left</option>
+        </select>
+      </div>
+      <div class="card-title" style="margin-top:1.25rem">Display Options</div>
+      <div class="toggle-row">
+        <span class="toggle-label">Show phone number</span>
+        <label class="toggle"><input type="checkbox" id="f-phone" onchange="syncPreview()"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Show booking link</span>
+        <label class="toggle"><input type="checkbox" id="f-booking" onchange="syncPreview()"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Widget active</span>
+        <label class="toggle"><input type="checkbox" id="f-active" onchange="syncPreview()"><span class="slider"></span></label>
+      </div>
+
+      <button class="save-btn" onclick="save()">Save Changes</button>
+      <div class="save-feedback" id="save-fb"></div>
+    </div>
+
+    <div class="preview-wrap">
+      <div class="preview-label">Live Preview</div>
+      <div class="preview-site">Your website content here</div>
+      <div class="widget-float" id="widget-float">
+        <div class="widget-bubble" id="w-bubble">
+          <div class="wname" id="w-name" style="color:var(--accent)">RingDesk AI</div>
+          <div id="w-greeting">Loading…</div>
+          <div class="widget-links" id="w-links"></div>
+        </div>
+        <button class="widget-btn" id="w-btn" style="background:var(--accent)">💬</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/chat-widget-config');
+    const d = await r.json();
+    document.getElementById('f-greeting').value = d.greeting_message || '';
+    document.getElementById('f-away').value = d.away_message || '';
+    document.getElementById('f-color').value = d.accent_color || '#a78bfa';
+    document.getElementById('f-color-hex').value = d.accent_color || '#a78bfa';
+    document.getElementById('f-position').value = d.widget_position || 'bottom-right';
+    document.getElementById('f-phone').checked = !!d.show_phone;
+    document.getElementById('f-booking').checked = !!d.show_booking_link;
+    document.getElementById('f-active').checked = !!d.active;
+    syncPreview();
+  }
+
+  function syncColorFromHex() {
+    const hex = document.getElementById('f-color-hex').value;
+    if (/^#[0-9a-fA-F]{6}$/.test(hex)) { document.getElementById('f-color').value = hex; syncPreview(); }
+  }
+
+  function syncPreview() {
+    const color = document.getElementById('f-color').value;
+    document.getElementById('f-color-hex').value = color;
+    document.getElementById('w-btn').style.background = color;
+    document.getElementById('w-name').style.color = color;
+    document.getElementById('w-greeting').textContent = document.getElementById('f-greeting').value || '…';
+    const links = [];
+    if (document.getElementById('f-phone').checked) links.push('📞 Call us');
+    if (document.getElementById('f-booking').checked) links.push('📅 Book online');
+    document.getElementById('w-links').innerHTML = links.map(l => `<span class="widget-link">${l}</span>`).join('');
+    const pos = document.getElementById('f-position').value;
+    const wf = document.getElementById('widget-float');
+    wf.style.left = pos === 'bottom-left' ? '1.5rem' : 'auto';
+    wf.style.right = pos === 'bottom-right' ? '1.5rem' : 'auto';
+    wf.style.alignItems = pos === 'bottom-left' ? 'flex-start' : 'flex-end';
+    const bubble = document.getElementById('w-bubble');
+    bubble.style.borderRadius = pos === 'bottom-left' ? '16px 16px 16px 4px' : '16px 16px 4px 16px';
+    const active = document.getElementById('f-active').checked;
+    document.getElementById('widget-float').style.opacity = active ? '1' : '0.35';
+  }
+
+  async function save() {
+    const cfg = {
+      greeting_message: document.getElementById('f-greeting').value,
+      away_message: document.getElementById('f-away').value,
+      accent_color: document.getElementById('f-color').value,
+      widget_position: document.getElementById('f-position').value,
+      show_phone: document.getElementById('f-phone').checked,
+      show_booking_link: document.getElementById('f-booking').checked,
+      active: document.getElementById('f-active').checked,
+    };
+    await fetch('/api/chat-widget-config', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(cfg)});
+    const fb = document.getElementById('save-fb');
+    fb.textContent = 'Saved!';
+    setTimeout(() => fb.textContent = '', 2000);
+  }
+
+  load();
+</script>
+</body>
+</html>

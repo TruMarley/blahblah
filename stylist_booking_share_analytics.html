@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stylist Booking Share — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; display: inline-block; margin-bottom: 1.25rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; color: var(--accent); }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .stylist-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .7rem; }
+    .stylist-name { font-size: .82rem; font-weight: 700; width: 70px; flex-shrink: 0; }
+    .stylist-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+    .stylist-fill { height: 100%; border-radius: 4px; }
+    .stylist-info { font-size: .72rem; font-weight: 700; width: 80px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Stylist Booking Share</div>
+  <p class="page-sub">See how bookings are distributed across your team. A heavily concentrated share in one stylist creates retention risk — diversifying client relationships improves business resilience.</p>
+  <div class="stat-pill"><div class="stat-val" id="h-total">—</div><div class="stat-lbl">Total Bookings (30d)</div></div>
+  <div class="card">
+    <div class="card-title">Booking Share by Stylist</div>
+    <div id="stylist-list"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['var(--accent)','var(--green)','var(--yellow)','#60a5fa'];
+  async function load() {
+    const d = await fetch('/api/analytics/stylist-booking-share-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_bookings_30d;
+    const sl = document.getElementById('stylist-list');
+    const maxP = Math.max(...d.stylists.map(s => s.share_pct));
+    d.stylists.forEach((s, i) => {
+      const w = (s.share_pct / maxP * 100).toFixed(1);
+      sl.innerHTML += '<div class="stylist-row"><div class="stylist-name" style="color:' + COLORS[i] + '">' + s.name + '</div><div class="stylist-track"><div class="stylist-fill" style="width:' + w + '%;background:' + COLORS[i] + '"></div></div><div class="stylist-info" style="color:' + COLORS[i] + '">' + s.share_pct.toFixed(1) + '% · ' + s.bookings + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

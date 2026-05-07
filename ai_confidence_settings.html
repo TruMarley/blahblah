@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Confidence Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    .suffix { font-size: .78rem; color: var(--muted); margin-left: .35rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Confidence Settings</div>
+  <p class="page-sub">Control how the AI handles situations where it's unsure — set confidence thresholds, fallback actions, and alert rules so uncertain calls never fall through the cracks.</p>
+  <div class="card">
+    <div class="card-title">Confidence Thresholds</div>
+    <div class="row">
+      <div><div class="row-label">Min Confidence Threshold</div><div class="row-sub">Score below which the AI flags a response as uncertain (0–1)</div></div>
+      <div style="display:flex;align-items:center">
+        <input type="number" id="min-confidence" min="0.1" max="1.0" step="0.05">
+      </div>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Low Confidence Action</div><div class="row-sub">What to do when AI confidence is below threshold</div></div>
+      <select id="low-conf-action">
+        <option value="ask_again">Ask caller to repeat</option>
+        <option value="transfer">Transfer to staff</option>
+        <option value="voicemail">Send to voicemail</option>
+        <option value="default_response">Use default response</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Unknown Intent Action</div><div class="row-sub">Response when caller's intent can't be determined</div></div>
+      <select id="unknown-intent">
+        <option value="ask_clarify">Ask for clarification</option>
+        <option value="offer_menu">Play options menu</option>
+        <option value="transfer">Transfer to staff</option>
+        <option value="voicemail">Send to voicemail</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Repeat Questions</div><div class="row-sub">Re-ask limit before escalating to staff</div></div>
+      <div style="display:flex;align-items:center">
+        <input type="number" id="repeat-limit" min="1" max="5">
+        <span class="suffix">times</span>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Logging & Alerts</div>
+    <div class="row">
+      <div><div class="row-label">Log Low-Confidence Calls</div><div class="row-sub">Save transcript + score for review</div></div>
+      <label class="toggle"><input type="checkbox" id="log-low"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Alert Staff on Low Confidence</div><div class="row-sub">Send real-time notification to team</div></div>
+      <label class="toggle"><input type="checkbox" id="alert-staff"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/settings/ai-confidence').then(r => r.json());
+    document.getElementById('min-confidence').value = d.min_confidence_threshold || 0.75;
+    document.getElementById('low-conf-action').value = d.low_confidence_action || 'ask_again';
+    document.getElementById('unknown-intent').value = d.unknown_intent_action || 'ask_clarify';
+    document.getElementById('repeat-limit').value = d.repeat_question_limit || 2;
+    document.getElementById('log-low').checked = d.log_low_confidence;
+    document.getElementById('alert-staff').checked = d.alert_on_low_confidence;
+  }
+  async function save() {
+    const data = {
+      min_confidence_threshold: parseFloat(document.getElementById('min-confidence').value)||0.75,
+      low_confidence_action: document.getElementById('low-conf-action').value,
+      unknown_intent_action: document.getElementById('unknown-intent').value,
+      repeat_question_limit: parseInt(document.getElementById('repeat-limit').value)||2,
+      log_low_confidence: document.getElementById('log-low').checked,
+      alert_on_low_confidence: document.getElementById('alert-staff').checked
+    };
+    await fetch('/api/settings/ai-confidence', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

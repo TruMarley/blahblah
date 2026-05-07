@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .section-title { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin: 1.75rem 0 .9rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
+    .persona-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; }
+    .persona-card { background: var(--surface2); border: 2px solid var(--border); border-radius: 12px; padding: 1rem; cursor: pointer; transition: border-color .15s, background .15s; user-select: none; }
+    .persona-card.selected { border-color: var(--accent); background: rgba(167,139,250,.06); }
+    .persona-icon { font-size: 1.6rem; margin-bottom: .4rem; }
+    .persona-name { font-size: .88rem; font-weight: 800; margin-bottom: .15rem; }
+    .persona-desc { font-size: .7rem; color: var(--muted); line-height: 1.4; }
+    .form-group { margin-bottom: 1.1rem; }
+    label { display: block; font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .35rem; }
+    .label-row { display: flex; justify-content: space-between; align-items: baseline; }
+    .char-count { font-size: .68rem; color: var(--muted); }
+    .char-count.warn { color: #fbbf24; }
+    input[type=text], input[type=tel], textarea { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: .85rem; font-family: inherit; padding: .6rem .85rem; border-radius: 8px; outline: none; transition: border-color .15s; resize: vertical; }
+    input[type=text]:focus, input[type=tel]:focus, textarea:focus { border-color: rgba(167,139,250,.5); }
+    .slider-wrap { display: flex; align-items: center; gap: 1rem; }
+    input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; }
+    .slider-val { font-size: .88rem; font-weight: 800; color: var(--accent); min-width: 48px; text-align: right; }
+    .save-row { margin-top: 2rem; display: flex; justify-content: flex-end; }
+    .save-btn { background: var(--accent); color: #fff; border: none; font-size: .85rem; font-weight: 700; padding: .6rem 1.5rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+    .save-btn:hover { opacity: .85; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(80px); background: #1a1a1a; border: 1px solid rgba(52,211,153,.3); color: var(--green); font-size: .82rem; font-weight: 700; padding: .65rem 1.4rem; border-radius: 10px; transition: transform .3s; z-index: 999; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Voice Settings</div>
+  <p class="page-sub">Configure your AI receptionist's voice and call behavior.</p>
+
+  <div class="section-title">Voice Persona</div>
+  <div class="persona-grid">
+    <div class="persona-card" id="pc-Nova" onclick="selectVoice('Nova')">
+      <div class="persona-icon">🌟</div>
+      <div class="persona-name">Nova</div>
+      <div class="persona-desc">Warm &amp; Professional</div>
+    </div>
+    <div class="persona-card" id="pc-Echo" onclick="selectVoice('Echo')">
+      <div class="persona-icon">✨</div>
+      <div class="persona-name">Echo</div>
+      <div class="persona-desc">Friendly &amp; Upbeat</div>
+    </div>
+    <div class="persona-card" id="pc-Sage" onclick="selectVoice('Sage')">
+      <div class="persona-icon">🎯</div>
+      <div class="persona-name">Sage</div>
+      <div class="persona-desc">Calm &amp; Authoritative</div>
+    </div>
+  </div>
+
+  <div class="section-title">Messages</div>
+  <div class="form-group">
+    <div class="label-row">
+      <label>Greeting Message</label>
+      <span class="char-count" id="greet-count">0 / 300</span>
+    </div>
+    <textarea id="greeting_message" rows="4" maxlength="300" oninput="updateCount('greeting_message','greet-count',300)"></textarea>
+  </div>
+  <div class="form-group">
+    <div class="label-row">
+      <label>After-Hours Message</label>
+      <span class="char-count" id="after-count">0 / 300</span>
+    </div>
+    <textarea id="after_hours_message" rows="3" maxlength="300" oninput="updateCount('after_hours_message','after-count',300)"></textarea>
+  </div>
+
+  <div class="section-title">Call Handling</div>
+  <div class="form-group">
+    <label>Escalation Phone</label>
+    <input type="tel" id="escalation_phone" placeholder="+1 (555) 000-0000">
+  </div>
+  <div class="form-group">
+    <label>Max Hold Time</label>
+    <div class="slider-wrap">
+      <input type="range" id="max_hold_seconds" min="30" max="300" step="15"
+        oninput="document.getElementById('hold-val').textContent=this.value+'s'">
+      <span class="slider-val" id="hold-val">60s</span>
+    </div>
+  </div>
+
+  <div class="save-row">
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Voice settings saved</div>
+<script>
+  let selectedVoice = 'Nova';
+  const VOICES = ['Nova','Echo','Sage'];
+
+  function selectVoice(name) {
+    selectedVoice = name;
+    VOICES.forEach(v => document.getElementById('pc-' + v).classList.toggle('selected', v === name));
+  }
+
+  function updateCount(id, countId, max) {
+    const len = document.getElementById(id).value.length;
+    const el = document.getElementById(countId);
+    el.textContent = `${len} / ${max}`;
+    el.classList.toggle('warn', len > max * 0.85);
+  }
+
+  async function load() {
+    const r = await fetch('/api/voice/settings');
+    const d = await r.json();
+    selectVoice(d.voice_name || 'Nova');
+    document.getElementById('greeting_message').value = d.greeting_message || '';
+    document.getElementById('after_hours_message').value = d.after_hours_message || '';
+    document.getElementById('escalation_phone').value = d.escalation_phone || '';
+    const slider = document.getElementById('max_hold_seconds');
+    slider.value = d.max_hold_seconds || 60;
+    document.getElementById('hold-val').textContent = slider.value + 's';
+    updateCount('greeting_message','greet-count',300);
+    updateCount('after_hours_message','after-count',300);
+  }
+
+  async function save() {
+    const payload = {
+      voice_name: selectedVoice,
+      greeting_message: document.getElementById('greeting_message').value,
+      after_hours_message: document.getElementById('after_hours_message').value,
+      escalation_phone: document.getElementById('escalation_phone').value,
+      max_hold_seconds: parseInt(document.getElementById('max_hold_seconds').value),
+    };
+    await fetch('/api/voice/settings', {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loyalty Multiplier — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    .tier-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .8rem 1rem; margin-bottom: .45rem; display: flex; align-items: center; justify-content: space-between; }
+    .tier-visits { font-size: .78rem; color: var(--muted); }
+    .tier-mult { font-size: .95rem; font-weight: 900; color: var(--yellow); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Loyalty Multiplier</div>
+  <p class="page-sub">Reward returning clients with escalating point multipliers based on visit count. The AI mentions loyalty status and redeemable points during calls to encourage return visits.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-members" style="color:var(--accent)">—</div><div class="stat-lbl">Active Members (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-redeemed" style="color:var(--green)">—</div><div class="stat-lbl">Points Redeemed (30d)</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Program Settings</div>
+    <div class="row">
+      <div><div class="row-label">Base Points / Dollar</div><div class="row-sub">Points earned per $1 spent</div></div>
+      <input type="number" id="base-pts" min="1" max="10">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Points to $ Ratio</div><div class="row-sub">Points needed to redeem $1</div></div>
+      <input type="number" id="pts-ratio" min="10" max="500">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Expiry (days)</div><div class="row-sub">Days before unused points expire</div></div>
+      <input type="number" id="expiry" min="30" max="730">
+    </div>
+    <button class="save-btn" onclick="save()">Save Loyalty Settings</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Multiplier Tiers</div>
+    <div id="tier-list"></div>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/loyalty-multiplier-cfg').then(r => r.json());
+    document.getElementById('h-members').textContent = data.active_members_30d;
+    document.getElementById('h-redeemed').textContent = data.points_redeemed_30d.toLocaleString();
+    document.getElementById('base-pts').value = data.base_points_per_dollar;
+    document.getElementById('pts-ratio').value = data.points_to_dollar_ratio;
+    document.getElementById('expiry').value = data.expiry_days;
+    const tl = document.getElementById('tier-list');
+    data.multiplier_tiers.forEach(t => {
+      tl.innerHTML += '<div class="tier-card"><div class="tier-visits">' + t.visits + '+ visits</div><div class="tier-mult">' + t.multiplier + 'x points</div></div>';
+    });
+  }
+  async function save() {
+    const payload = { ...data,
+      base_points_per_dollar: parseInt(document.getElementById('base-pts').value) || 1,
+      points_to_dollar_ratio: parseInt(document.getElementById('pts-ratio').value) || 100,
+      expiry_days: parseInt(document.getElementById('expiry').value) || 365,
+    };
+    await fetch('/api/settings/loyalty-multiplier-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Duration Accuracy — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .svc-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .8rem 1rem; margin-bottom: .5rem; }
+    .svc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .45rem; }
+    .svc-name { font-size: .85rem; font-weight: 700; }
+    .svc-variance { font-size: .82rem; font-weight: 900; }
+    .svc-detail { display: flex; gap: 1rem; font-size: .67rem; color: var(--muted); }
+    .over-bar-track { flex: 1; background: #1a1a1a; border-radius: 2px; height: 5px; overflow: hidden; margin-top: .45rem; }
+    .over-bar-fill { height: 100%; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Duration Accuracy</div>
+  <p class="page-sub">Compare estimated versus actual service durations. Systematic over-runs cascade into late starts and unhappy clients — recalibrate estimated durations to match reality.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-variance" style="color:var(--yellow)">—</div><div class="stat-lbl">Avg Variance (min)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-overrun" style="color:var(--red)">—</div><div class="stat-lbl">Most Over-Run Service</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-analyzed" style="color:var(--muted)">—</div><div class="stat-lbl">Services Analyzed</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Per-Service Duration Breakdown</div>
+    <div id="svc-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/treatment-duration-accuracy-stats').then(r => r.json());
+    document.getElementById('h-variance').textContent = '±' + d.avg_variance_min.toFixed(1);
+    document.getElementById('h-overrun').textContent = d.most_overrun_service;
+    document.getElementById('h-analyzed').textContent = d.services_analyzed;
+    const sl = document.getElementById('svc-list');
+    d.services.forEach(s => {
+      const isOver = s.variance_min > 0;
+      const color = isOver ? 'var(--red)' : 'var(--green)';
+      const sign = isOver ? '+' : '';
+      sl.innerHTML += '<div class="svc-row"><div class="svc-top"><div class="svc-name">' + s.service + '</div><div class="svc-variance" style="color:' + color + '">' + sign + s.variance_min + ' min</div></div><div class="svc-detail"><span>Est: ' + s.estimated_min + 'min</span><span>Actual: ' + s.actual_avg_min + 'min</span><span>Over-runs: ' + s.over_runs_pct.toFixed(0) + '%</span></div><div class="over-bar-track"><div class="over-bar-fill" style="width:' + s.over_runs_pct + '%;background:' + color + '"></div></div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

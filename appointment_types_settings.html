@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Appointment Types — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .type-list { display: flex; flex-direction: column; gap: .55rem; margin-bottom: 1.1rem; }
+    .type-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .65rem .9rem; display: flex; align-items: center; gap: .65rem; }
+    .type-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 2px solid transparent; }
+    .type-name { font-size: .85rem; font-weight: 700; flex: 1; }
+    .type-dur { font-size: .75rem; color: var(--muted); min-width: 42px; }
+    .type-price { font-size: .82rem; font-weight: 700; min-width: 40px; text-align: right; }
+    .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(16px); background: #fff; }
+    .rm-btn { background: none; border: none; color: var(--red); cursor: pointer; font-size: .9rem; padding: 0 .1rem; opacity: .65; }
+    .rm-btn:hover { opacity: 1; }
+    .add-grid { display: grid; grid-template-columns: 1fr 60px 60px 56px auto; gap: .45rem; align-items: center; }
+    input[type=text], input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .8rem; padding: .38rem .6rem; outline: none; width: 100%; }
+    input[type=color] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: .2rem; outline: none; height: 32px; width: 100%; cursor: pointer; }
+    input:focus { border-color: var(--accent); }
+    .add-btn { background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: .8rem; font-weight: 700; padding: .38rem .8rem; cursor: pointer; white-space: nowrap; }
+    .add-btn:hover { opacity: .88; }
+    .col-hdr { font-size: .6rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; text-align: center; }
+    .empty-note { font-size: .78rem; color: var(--muted); text-align: center; padding: .6rem 0; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Appointment Types</div>
+  <p class="page-sub">Define the services your AI can book. Each type has a name, duration, and price. Your AI uses this list to match what callers ask for to the right slot length and confirm pricing on the call.</p>
+
+  <div class="card">
+    <div class="card-title">Service Types</div>
+    <div class="type-list" id="type-list"></div>
+    <div class="add-grid" style="margin-bottom:.5rem">
+      <div>
+        <div class="col-hdr" style="text-align:left;margin-bottom:.25rem">Name</div>
+        <input type="text" id="new-name" placeholder="e.g. Hot Shave">
+      </div>
+      <div>
+        <div class="col-hdr" style="margin-bottom:.25rem">Min</div>
+        <input type="number" id="new-dur" min="5" max="300" placeholder="30">
+      </div>
+      <div>
+        <div class="col-hdr" style="margin-bottom:.25rem">$</div>
+        <input type="number" id="new-price" min="0" max="999" placeholder="45">
+      </div>
+      <div>
+        <div class="col-hdr" style="margin-bottom:.25rem">Color</div>
+        <input type="color" id="new-color" value="#a78bfa">
+      </div>
+      <div style="padding-top:1.3rem">
+        <button class="add-btn" onclick="addType()">+ Add</button>
+      </div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Appointment Types</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let types = [];
+  let nextId = 100;
+
+  function renderList() {
+    const el = document.getElementById('type-list');
+    if (types.length === 0) { el.innerHTML = '<div class="empty-note">No appointment types yet.</div>'; return; }
+    el.innerHTML = types.map((t, i) => `<div class="type-item">
+      <div class="type-dot" style="background:${esc(t.color)};border-color:${esc(t.color)}"></div>
+      <div class="type-name">${esc(t.name)}</div>
+      <div class="type-dur">${t.duration_min}min</div>
+      <div class="type-price" style="color:${esc(t.color)}">${t.price > 0 ? '$'+t.price : 'Free'}</div>
+      <label class="toggle"><input type="checkbox" ${t.active ? 'checked' : ''} onchange="toggleActive(${i})"><span class="slider"></span></label>
+      <button class="rm-btn" onclick="removeType(${i})">&#x2715;</button>
+    </div>`).join('');
+  }
+
+  function addType() {
+    const name = document.getElementById('new-name').value.trim();
+    if (!name) return;
+    const dur = parseInt(document.getElementById('new-dur').value) || 30;
+    const price = parseFloat(document.getElementById('new-price').value) || 0;
+    const color = document.getElementById('new-color').value;
+    types.push({ id: 't' + (nextId++), name, duration_min: dur, price, active: true, color });
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-dur').value = '';
+    document.getElementById('new-price').value = '';
+    renderList();
+  }
+
+  function removeType(i) { types.splice(i, 1); renderList(); }
+  function toggleActive(i) { types[i].active = !types[i].active; renderList(); }
+
+  async function load() {
+    const d = await fetch('/api/settings/appointment-types-cfg').then(r => r.json());
+    types = d.types || [];
+    renderList();
+  }
+
+  async function save() {
+    await fetch('/api/settings/appointment-types-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ types }) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Lead Time — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem .9rem; text-align: center; }
+    .hero-label { font-size: .6rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.1rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .bucket-row { display: flex; align-items: center; gap: .75rem; padding: .6rem 0; border-bottom: 1px solid var(--border); }
+    .bucket-row:last-child { border-bottom: none; }
+    .bucket-label { font-size: .82rem; font-weight: 600; min-width: 110px; }
+    .bucket-bar { flex: 1; height: 6px; background: var(--surface2); border-radius: 6px; }
+    .bucket-fill { height: 6px; border-radius: 6px; }
+    .bucket-pct { font-size: .78rem; font-weight: 800; min-width: 45px; text-align: right; }
+    .insight-box { background: rgba(167,139,250,.06); border: 1px solid rgba(167,139,250,.15); border-radius: 10px; padding: .75rem 1rem; }
+    .insight-box p { font-size: .78rem; color: var(--accent); line-height: 1.55; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Booking Lead Time</div>
+  <p class="page-sub">How far in advance do clients book? Lead time shapes your staffing needs, cancellation risk, and how much of your schedule to hold back for same-day walk-ins. Short lead times signal strong demand; very long lead times can mean you're harder to reach than competitors.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg Lead Time</div>
+      <div class="hero-val" id="h-avg" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Median Lead Time</div>
+      <div class="hero-val" id="h-med" style="color:var(--muted)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Same-Day Bookings</div>
+      <div class="hero-val" id="h-same" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Most Common Window</div>
+      <div class="hero-val" id="h-popular" style="color:var(--yellow);font-size:.85rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Booking Window Distribution</div>
+    <div id="bucket-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Operational Insight</div>
+    <div class="insight-box">
+      <p id="insight-text">Loading...</p>
+    </div>
+  </div>
+</div>
+<script>
+  const BUCKET_COLORS = ['#34d399','#a78bfa','#60a5fa','#fbbf24','#f87171'];
+  async function load() {
+    const d = await fetch('/api/analytics/booking-lead-time-stats').then(r => r.json());
+    document.getElementById('h-avg').textContent = d.avg_lead_time_days != null ? d.avg_lead_time_days + 'd' : '—';
+    document.getElementById('h-med').textContent = d.median_lead_time_days != null ? d.median_lead_time_days + 'd' : '—';
+    document.getElementById('h-same').textContent = d.same_day_pct != null ? d.same_day_pct + '%' : '—';
+    document.getElementById('h-popular').textContent = d.most_popular_window || '—';
+
+    const buckets = d.buckets || [];
+    const mx = Math.max(...buckets.map(b => b.pct), 1);
+    const el = document.getElementById('bucket-list');
+    buckets.forEach((b, i) => {
+      const color = BUCKET_COLORS[i % BUCKET_COLORS.length];
+      const w = ((b.pct / mx) * 100).toFixed(0);
+      el.innerHTML += `<div class="bucket-row">
+        <div class="bucket-label">${esc(b.label)}</div>
+        <div class="bucket-bar"><div class="bucket-fill" style="width:${w}%;background:${color}"></div></div>
+        <div class="bucket-pct" style="color:${color}">${b.pct}%</div>
+      </div>`;
+    });
+
+    const avg = d.avg_lead_time_days || 0;
+    const tip = avg <= 2 ? 'Most clients book within 2 days — keep at least 30% of your daily slots open for late bookers.'
+      : avg <= 5 ? 'Moderate lead times suggest healthy demand. Consider sending SMS reminders 48h before each appointment.'
+      : 'Long average lead time may indicate clients struggle to find available slots. Consider adding availability or reducing service duration buffers.';
+    document.getElementById('insight-text').textContent = tip;
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

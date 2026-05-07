@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Greeting Script — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 70px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .6rem .75rem; outline: none; width: 100%; resize: vertical; min-height: 72px; margin-top: .5rem; }
+    textarea:focus { border-color: var(--accent); }
+    .preview-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; margin-top: 1rem; }
+    .preview-label { font-size: .65rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
+    .preview-text { font-size: .88rem; color: var(--text); line-height: 1.55; font-style: italic; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Greeting Script</div>
+  <p class="page-sub">Customize how the AI opens every call — style, content, and word-count controls. The preview updates live so you can hear it before saving.</p>
+  <div class="card">
+    <div class="card-title">Greeting Style</div>
+    <div class="row">
+      <div><div class="row-label">Tone</div><div class="row-sub">Overall voice personality for the greeting</div></div>
+      <select id="style">
+        <option value="friendly">Friendly</option>
+        <option value="professional">Professional</option>
+        <option value="casual">Casual</option>
+        <option value="upbeat">Upbeat</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Greeting Words</div><div class="row-sub">AI keeps opening under this limit</div></div>
+      <input type="number" id="max-words" min="10" max="80">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Content Toggles</div>
+    <div class="row">
+      <div><div class="row-label">Use Business Name</div><div class="row-sub">Mention salon/shop name in greeting</div></div>
+      <label class="toggle"><input type="checkbox" id="use-biz"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use AI Name</div><div class="row-sub">AI introduces itself (e.g., "This is Alex")</div></div>
+      <label class="toggle"><input type="checkbox" id="use-ai-name"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Offer Booking First</div><div class="row-sub">Immediately offer to book an appointment</div></div>
+      <label class="toggle"><input type="checkbox" id="offer-booking"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Mention Hours on Request</div><div class="row-sub">State hours if caller seems unsure</div></div>
+      <label class="toggle"><input type="checkbox" id="mention-hours"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Mention Current Specials</div><div class="row-sub">Briefly name any active promotions</div></div>
+      <label class="toggle"><input type="checkbox" id="mention-specials"><span class="slider"></span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Custom Intro Override</div>
+    <div class="row-sub" style="margin-bottom:.5rem">Leave blank to use the auto-generated greeting. Enter text to replace the opening line entirely.</div>
+    <textarea id="custom-intro" placeholder="e.g. Hey there, welcome to Luxe Nails — how can we pamper you today?"></textarea>
+    <div class="preview-box">
+      <div class="preview-label">Greeting Preview</div>
+      <div class="preview-text" id="preview-text">Loading…</div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Greeting Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/ai-greeting-script-cfg').then(r => r.json());
+    document.getElementById('style').value = data.greeting_style;
+    document.getElementById('max-words').value = data.max_greeting_words;
+    document.getElementById('use-biz').checked = data.use_business_name;
+    document.getElementById('use-ai-name').checked = data.use_ai_name;
+    document.getElementById('offer-booking').checked = data.offer_booking_first;
+    document.getElementById('mention-hours').checked = data.mention_hours_on_request;
+    document.getElementById('mention-specials').checked = data.mention_specials;
+    document.getElementById('custom-intro').value = data.custom_intro || '';
+    document.getElementById('preview-text').textContent = data.greeting_preview;
+  }
+  async function save() {
+    const payload = { ...data,
+      greeting_style: document.getElementById('style').value,
+      max_greeting_words: parseInt(document.getElementById('max-words').value) || 30,
+      use_business_name: document.getElementById('use-biz').checked,
+      use_ai_name: document.getElementById('use-ai-name').checked,
+      offer_booking_first: document.getElementById('offer-booking').checked,
+      mention_hours_on_request: document.getElementById('mention-hours').checked,
+      mention_specials: document.getElementById('mention-specials').checked,
+      custom_intro: document.getElementById('custom-intro').value,
+    };
+    await fetch('/api/settings/ai-greeting-script-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

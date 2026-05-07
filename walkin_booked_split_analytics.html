@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Walk-in vs Booked Split — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .split-bar { display: flex; height: 28px; border-radius: 8px; overflow: hidden; margin-bottom: 1rem; }
+    .split-seg { display: flex; align-items: center; justify-content: center; font-size: .72rem; font-weight: 800; color: #fff; transition: width .4s; }
+    .compare-row { display: flex; gap: .8rem; }
+    .compare-card { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+    .compare-type { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: .6rem; }
+    .compare-metric { font-size: .82rem; margin-bottom: .3rem; }
+    .compare-val { font-weight: 800; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: .6rem; font-size: .82rem; }
+    .info-row:last-child { margin-bottom: 0; }
+    .info-label { color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Walk-in vs Booked Split</div>
+  <p class="page-sub">Compare the volume and revenue of walk-in clients versus pre-booked appointments. Pre-booked clients consistently spend more and have zero no-show risk.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Total Visits (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-walkin-pct" style="color:var(--yellow)">—</div><div class="stat-lbl">Walk-in %</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-booked-pct" style="color:var(--green)">—</div><div class="stat-lbl">Pre-booked %</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-wait" style="color:var(--muted)">—</div><div class="stat-lbl">Avg Walk-in Wait</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Visit Split</div>
+    <div class="split-bar" id="split-bar">
+      <div class="split-seg" id="seg-walkin" style="background:var(--yellow)"></div>
+      <div class="split-seg" id="seg-booked" style="background:var(--green)"></div>
+    </div>
+    <div style="display:flex;gap:1rem;font-size:.75rem;margin-bottom:1.25rem">
+      <span style="color:var(--yellow)">■ Walk-in (<span id="lbl-walkin">—</span>)</span>
+      <span style="color:var(--green)">■ Pre-booked (<span id="lbl-booked">—</span>)</span>
+    </div>
+    <div class="compare-row">
+      <div class="compare-card">
+        <div class="compare-type" style="color:var(--yellow)">Walk-in</div>
+        <div class="compare-metric">Avg Ticket: <span class="compare-val" id="walkin-ticket" style="color:var(--yellow)">—</span></div>
+        <div class="compare-metric">Visits: <span class="compare-val" id="walkin-visits">—</span></div>
+      </div>
+      <div class="compare-card">
+        <div class="compare-type" style="color:var(--green)">Pre-booked</div>
+        <div class="compare-metric">Avg Ticket: <span class="compare-val" id="booked-ticket" style="color:var(--green)">—</span></div>
+        <div class="compare-metric">Visits: <span class="compare-val" id="booked-visits">—</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Insights</div>
+    <div class="info-row"><span class="info-label">Walk-in no-show rate</span><span style="color:var(--green);font-weight:700" id="ns-rate">—</span></div>
+    <div class="info-row"><span class="info-label">Avg walk-in wait time</span><span id="wait-val" style="font-weight:700">—</span></div>
+    <div class="info-row"><span class="info-label">Revenue delta (booked vs walk-in)</span><span id="rev-delta" style="color:var(--green);font-weight:700">—</span></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/walkin-booked-split-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_30d;
+    document.getElementById('h-walkin-pct').textContent = d.walkin_pct.toFixed(1) + '%';
+    document.getElementById('h-booked-pct').textContent = d.booked_pct.toFixed(1) + '%';
+    document.getElementById('h-wait').textContent = d.walkin_wait_min_avg + 'm';
+    document.getElementById('seg-walkin').style.width = d.walkin_pct + '%';
+    document.getElementById('seg-walkin').textContent = d.walkin_pct.toFixed(0) + '%';
+    document.getElementById('seg-booked').style.width = d.booked_pct + '%';
+    document.getElementById('seg-booked').textContent = d.booked_pct.toFixed(0) + '%';
+    document.getElementById('lbl-walkin').textContent = d.walkin_30d;
+    document.getElementById('lbl-booked').textContent = d.booked_30d;
+    document.getElementById('walkin-ticket').textContent = '$' + d.walkin_avg_ticket.toFixed(2);
+    document.getElementById('walkin-visits').textContent = d.walkin_30d;
+    document.getElementById('booked-ticket').textContent = '$' + d.booked_avg_ticket.toFixed(2);
+    document.getElementById('booked-visits').textContent = d.booked_30d;
+    document.getElementById('ns-rate').textContent = d.walkin_no_show_pct.toFixed(1) + '%';
+    document.getElementById('wait-val').textContent = d.walkin_wait_min_avg + ' min';
+    const delta = (d.booked_avg_ticket - d.walkin_avg_ticket).toFixed(2);
+    document.getElementById('rev-delta').textContent = '+$' + delta + '/visit';
+  }
+  load();
+</script>
+</body>
+</html>

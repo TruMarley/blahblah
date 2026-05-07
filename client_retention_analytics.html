@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Retention — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { display: flex; align-items: flex-end; gap: 6px; height: 130px; margin-bottom: .6rem; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
+    .bar-stack { width: 100%; flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; border-radius: 4px 4px 0 0; overflow: hidden; }
+    .bar-seg { width: 100%; transition: opacity .2s; }
+    .bar-seg:hover { opacity: .75; }
+    .bar-lbl { font-size: .6rem; color: var(--muted); font-weight: 600; white-space: nowrap; }
+    .legend { display: flex; gap: 1.1rem; margin-bottom: 1rem; }
+    .legend-item { display: flex; align-items: center; gap: .35rem; font-size: .7rem; color: var(--muted); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .ret-line-wrap { overflow-x: auto; }
+    .ret-table { width: 100%; border-collapse: collapse; }
+    .ret-table th { font-size: .62rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: .3rem .5rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .ret-table td { font-size: .8rem; padding: .55rem .5rem; border-bottom: 1px solid rgba(30,30,30,.6); }
+    .ret-table tr:last-child td { border-bottom: none; }
+    .ret-pct { font-weight: 800; }
+    .cohort-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .cohort-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; }
+    .cohort-label { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .7rem; }
+    .cohort-row { display: flex; align-items: center; gap: .6rem; margin-bottom: .45rem; }
+    .cohort-period { font-size: .72rem; color: var(--muted); min-width: 52px; }
+    .cohort-bar-wrap { flex: 1; height: 8px; background: #1e1e1e; border-radius: 8px; }
+    .cohort-bar { height: 8px; border-radius: 8px; }
+    .cohort-val { font-size: .72rem; font-weight: 800; min-width: 38px; text-align: right; }
+    .insight-box { background: rgba(167,139,250,.07); border: 1px solid rgba(167,139,250,.18); border-radius: 10px; padding: .85rem 1rem; margin-top: 1rem; font-size: .78rem; color: var(--text); line-height: 1.6; }
+    .insight-box strong { color: var(--accent); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Retention</div>
+  <p class="page-sub">Track how many clients come back after their first visit. High retention means your AI, staff, and service quality are working together — low retention signals an opportunity to improve follow-up and rebooking.</p>
+
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Retention Rate</div>
+      <div class="hero-val" id="h-ret" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Visits / Year</div>
+      <div class="hero-val" id="h-visits" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Churn Rate</div>
+      <div class="hero-val" id="h-churn" style="color:var(--red)">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Client Mix</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Returning</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>New</div>
+    </div>
+    <div class="chart-wrap" id="monthly-chart"></div>
+    <div class="ret-line-wrap">
+      <table class="ret-table">
+        <thead><tr><th>Month</th><th>Retention %</th><th>Returning</th><th>New</th></tr></thead>
+        <tbody id="monthly-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Cohort Retention</div>
+    <div class="cohort-grid" id="cohort-grid"></div>
+    <div class="insight-box" id="insight-box"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/client-retention-stats').then(r => r.json());
+
+    document.getElementById('h-ret').textContent = d.retention_rate_pct != null ? d.retention_rate_pct.toFixed(1) + '%' : '—';
+    document.getElementById('h-visits').textContent = d.avg_visits_per_year != null ? d.avg_visits_per_year.toFixed(1) : '—';
+    document.getElementById('h-churn').textContent = d.churn_rate_pct != null ? d.churn_rate_pct.toFixed(1) + '%' : '—';
+
+    const monthly = d.monthly || [];
+    const maxClients = Math.max(...monthly.map(m => (m.returning_clients || 0) + (m.new_clients || 0)), 1);
+
+    const chartEl = document.getElementById('monthly-chart');
+    const tableEl = document.getElementById('monthly-table');
+    monthly.forEach(m => {
+      const total = (m.returning_clients || 0) + (m.new_clients || 0);
+      const retH = ((m.returning_clients || 0) / maxClients * 100).toFixed(1);
+      const newH = ((m.new_clients || 0) / maxClients * 100).toFixed(1);
+      chartEl.innerHTML += `<div class="bar-col">
+        <div class="bar-stack">
+          <div class="bar-seg" style="height:${newH}%;background:var(--green);opacity:.8" title="${m.new_clients} new"></div>
+          <div class="bar-seg" style="height:${retH}%;background:var(--accent);opacity:.8" title="${m.returning_clients} returning"></div>
+        </div>
+        <div class="bar-lbl">${esc(m.month)}</div>
+      </div>`;
+      const retColor = m.retention_pct >= 65 ? 'var(--green)' : m.retention_pct >= 55 ? 'var(--yellow)' : 'var(--red)';
+      tableEl.innerHTML += `<tr>
+        <td>${esc(m.month)}</td>
+        <td><span class="ret-pct" style="color:${retColor}">${m.retention_pct}%</span></td>
+        <td>${m.returning_clients}</td>
+        <td>${m.new_clients}</td>
+      </tr>`;
+    });
+
+    const cohorts = d.cohorts || [];
+    const cgEl = document.getElementById('cohort-grid');
+    cohorts.forEach(c => {
+      const rows = [
+        { label: '1 month', val: c.month_1, color: 'var(--accent)' },
+        { label: '3 months', val: c.month_3, color: 'var(--green)' },
+        { label: '6 months', val: c.month_6, color: 'var(--yellow)' },
+      ];
+      let html = `<div class="cohort-card"><div class="cohort-label">${esc(c.cohort)}</div>`;
+      rows.forEach(r => {
+        html += `<div class="cohort-row">
+          <div class="cohort-period">${r.label}</div>
+          <div class="cohort-bar-wrap"><div class="cohort-bar" style="width:${r.val}%;background:${r.color}"></div></div>
+          <div class="cohort-val" style="color:${r.color}">${r.val}%</div>
+        </div>`;
+      });
+      html += '</div>';
+      cgEl.innerHTML += html;
+    });
+
+    document.getElementById('insight-box').innerHTML =
+      `Your overall retention rate is <strong>${d.retention_rate_pct}%</strong> with clients visiting an average of <strong>${d.avg_visits_per_year} times per year</strong>. ` +
+      `<strong>${d.churn_rate_pct}%</strong> of clients don't return — targeting these with automated follow-up and reactivation campaigns can directly increase revenue without acquiring new clients.`;
+  }
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

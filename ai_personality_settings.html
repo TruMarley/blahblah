@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Personality — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 180px; }
+    input[type=text]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-size: .8rem; padding: .6rem .8rem; outline: none; resize: vertical; min-height: 60px; font-family: inherit; line-height: 1.55; margin-top: .5rem; }
+    textarea:focus { border-color: var(--accent); }
+    .var-bar { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .4rem; }
+    .var-chip { background: #1e1e1e; border-radius: 4px; padding: .12rem .35rem; font-size: .64rem; color: var(--accent); font-family: monospace; cursor: pointer; border: 1px solid #2a2a2a; }
+    .var-chip:hover { border-color: var(--accent); }
+    .filler-wrap { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .5rem; }
+    .filler-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: .18rem .5rem; font-size: .75rem; cursor: pointer; user-select: none; }
+    .filler-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Personality</div>
+  <p class="page-sub">Customize how your AI receptionist sounds and speaks — give her a name, set her tone, choose filler words, and write the opening line that greets every caller.</p>
+  <div class="card">
+    <div class="card-title">Voice Identity</div>
+    <div class="row">
+      <div><div class="row-label">Persona Name</div><div class="row-sub">Name the AI uses to introduce herself</div></div>
+      <input type="text" id="persona-name" placeholder="Aria">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Voice Gender</div></div>
+      <select id="voice-gender">
+        <option value="female">Female</option>
+        <option value="male">Male</option>
+        <option value="neutral">Neutral</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Speaking Speed</div></div>
+      <select id="speaking-speed">
+        <option value="slow">Slow</option>
+        <option value="normal">Normal</option>
+        <option value="fast">Fast</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Accent Style</div></div>
+      <select id="accent-style">
+        <option value="neutral">Neutral American</option>
+        <option value="southern">Southern US</option>
+        <option value="british">British</option>
+        <option value="australian">Australian</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Language</div></div>
+      <select id="language">
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="es-US">Spanish (US)</option>
+        <option value="fr-CA">French (CA)</option>
+      </select>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Tone &amp; Style</div>
+    <div class="row">
+      <div><div class="row-label">Tone</div><div class="row-sub">Overall emotional quality of responses</div></div>
+      <select id="tone">
+        <option value="friendly">Friendly</option>
+        <option value="professional">Professional</option>
+        <option value="warm">Warm</option>
+        <option value="energetic">Energetic</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Formality</div></div>
+      <select id="formality">
+        <option value="casual">Casual</option>
+        <option value="semi-formal">Semi-Formal</option>
+        <option value="formal">Formal</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use Client Name</div><div class="row-sub">Address callers by name when known</div></div>
+      <label class="toggle"><input type="checkbox" id="use-name"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use Filler Words</div><div class="row-sub">Natural affirmations like "absolutely" and "sure"</div></div>
+      <label class="toggle"><input type="checkbox" id="use-fillers"><span class="slider"></span></label>
+    </div>
+    <div style="margin-bottom:1rem">
+      <div class="row-label" style="font-size:.78rem;color:var(--muted);margin-bottom:.4rem">Active Filler Words</div>
+      <div class="filler-wrap" id="filler-wrap">
+        <div class="filler-chip" data-v="of course">of course</div>
+        <div class="filler-chip" data-v="absolutely">absolutely</div>
+        <div class="filler-chip" data-v="sure thing">sure thing</div>
+        <div class="filler-chip" data-v="great">great</div>
+        <div class="filler-chip" data-v="perfect">perfect</div>
+        <div class="filler-chip" data-v="wonderful">wonderful</div>
+      </div>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Sign-Off Phrase</div><div class="row-sub">Last thing said at end of every call</div></div>
+      <input type="text" id="sign-off" placeholder="Have a great day!">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Custom Intro</div>
+    <div>
+      <textarea id="custom-intro" rows="2"></textarea>
+      <div class="var-bar">
+        <span class="var-chip" onclick="ins('{business}')">{business}</span>
+      </div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  function ins(v) {
+    const ta = document.getElementById('custom-intro');
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    ta.value = ta.value.slice(0,s)+v+ta.value.slice(e);
+    ta.selectionStart = ta.selectionEnd = s+v.length;
+    ta.focus();
+  }
+  let activeFillers = [];
+  document.querySelectorAll('.filler-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const v = chip.dataset.v;
+      if (activeFillers.includes(v)) { activeFillers = activeFillers.filter(x=>x!==v); chip.classList.remove('active'); }
+      else { activeFillers.push(v); chip.classList.add('active'); }
+    });
+  });
+  async function load() {
+    const d = await fetch('/api/settings/ai-personality-cfg').then(r => r.json());
+    document.getElementById('persona-name').value = d.persona_name || 'Aria';
+    document.getElementById('voice-gender').value = d.voice_gender || 'female';
+    document.getElementById('speaking-speed').value = d.speaking_speed || 'normal';
+    document.getElementById('accent-style').value = d.accent_style || 'neutral';
+    document.getElementById('language').value = d.language || 'en-US';
+    document.getElementById('tone').value = d.tone || 'friendly';
+    document.getElementById('formality').value = d.formality || 'casual';
+    document.getElementById('use-name').checked = d.use_client_name;
+    document.getElementById('use-fillers').checked = d.use_filler_words;
+    document.getElementById('sign-off').value = d.sign_off_phrase || '';
+    document.getElementById('custom-intro').value = d.custom_intro || '';
+    activeFillers = d.filler_words || [];
+    document.querySelectorAll('.filler-chip').forEach(chip => {
+      if (activeFillers.includes(chip.dataset.v)) chip.classList.add('active');
+    });
+  }
+  async function save() {
+    const data = {
+      persona_name: document.getElementById('persona-name').value,
+      voice_gender: document.getElementById('voice-gender').value,
+      speaking_speed: document.getElementById('speaking-speed').value,
+      accent_style: document.getElementById('accent-style').value,
+      language: document.getElementById('language').value,
+      tone: document.getElementById('tone').value,
+      formality: document.getElementById('formality').value,
+      use_client_name: document.getElementById('use-name').checked,
+      use_filler_words: document.getElementById('use-fillers').checked,
+      filler_words: activeFillers,
+      sign_off_phrase: document.getElementById('sign-off').value,
+      custom_intro: document.getElementById('custom-intro').value
+    };
+    await fetch('/api/settings/ai-personality-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Mix Trend — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+    .chart-wrap { height: 270px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Service Mix Trend</div>
+  <p class="page-sub">How your booking mix has shifted across service categories over the past 6 months.</p>
+  <div class="card">
+    <div class="card-title">Service Category Share by Month</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(167,139,250,.8)"></div>Haircut</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(52,211,153,.75)"></div>Color</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(251,191,36,.75)"></div>Treatment</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(100,100,100,.6)"></div>Other</div>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 700 270" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  const CATS = [
+    { key: 'haircut_pct', color: 'rgba(167,139,250,.8)' },
+    { key: 'color_pct',   color: 'rgba(52,211,153,.75)' },
+    { key: 'treatment_pct', color: 'rgba(251,191,36,.75)' },
+    { key: 'other_pct',  color: 'rgba(100,100,100,.55)' },
+  ];
+
+  async function load() {
+    const r = await fetch('/api/analytics/service-mix-trend');
+    const d = await r.json();
+    const months = d.months || [];
+
+    const svg = document.getElementById('chart');
+    const W=700, H=270, pL=36, pR=16, pT=14, pB=30;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n=months.length;
+    const xStep=cW/(n-1||1);
+    const xOf=i=>pL+i*xStep;
+    const yOf=(cumPct)=>pT+cH-cH*cumPct/100;
+
+    // y-axis
+    [25,50,75,100].forEach(v=>{
+      const y=yOf(v);
+      svg.innerHTML+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML+=`<text x="${pL-4}" y="${y+3.5}" font-size="8" fill="#444" text-anchor="end">${v}%</text>`;
+    });
+
+    // stacked areas — draw from bottom up
+    const cumData = months.map(m=>{
+      let cum=0;
+      return CATS.map(c=>{ const v=m[c.key]||0; cum+=v; return cum; });
+    });
+
+    // draw each band (top-down)
+    for(let ci=CATS.length-1; ci>=0; ci--) {
+      const topPts = months.map((m,i)=>`${xOf(i)},${yOf(cumData[i][ci])}`).join(' ');
+      const botPts = ci===0
+        ? months.map((_,i)=>`${xOf(i)},${yOf(0)}`).reverse().join(' ')
+        : months.map((m,i)=>`${xOf(i)},${yOf(cumData[i][ci-1])}`).reverse().join(' ');
+      svg.innerHTML+=`<polygon points="${topPts} ${botPts}" fill="${CATS[ci].color}"/>`;
+    }
+
+    // month labels
+    months.forEach((m,i)=>{
+      svg.innerHTML+=`<text x="${xOf(i)}" y="${H-4}" font-size="9" fill="#555" text-anchor="middle">${esc(m.month)}</text>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

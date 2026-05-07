@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Menu — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .svc-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.25rem; margin-bottom: .6rem; }
+    .svc-card.inactive { opacity: .5; }
+    .svc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .6rem; }
+    .svc-name { font-size: .95rem; font-weight: 800; }
+    .svc-cat { font-size: .6rem; font-weight: 700; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: .1rem .4rem; margin-left: .5rem; }
+    .svc-meta { display: flex; gap: 1rem; margin-bottom: .5rem; }
+    .svc-meta-item { font-size: .78rem; color: var(--muted); }
+    .svc-meta-item strong { color: var(--text); font-weight: 700; }
+    .svc-desc { font-size: .75rem; color: var(--muted); line-height: 1.5; }
+    .svc-actions { display: flex; gap: .5rem; margin-top: .7rem; }
+    .action-btn { font-size: .7rem; font-weight: 700; padding: .25rem .6rem; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); }
+    .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .action-btn.danger:hover { border-color: var(--red); color: var(--red); }
+    .toggle-active { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle-active input { opacity: 0; width: 0; height: 0; }
+    .slider-sm { position: absolute; inset: 0; background: #2a2a2a; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .slider-sm::before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider-sm { background: var(--green); }
+    input:checked + .slider-sm::before { transform: translateX(16px); background: #fff; }
+    .add-form { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem; margin-top: 1rem; }
+    .add-form-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .form-row { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: .7rem; }
+    .form-row input, .form-row select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .8rem; padding: .4rem .65rem; outline: none; flex: 1; min-width: 100px; }
+    .form-row input:focus, .form-row select:focus { border-color: var(--accent); }
+    .form-row textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .8rem; padding: .4rem .65rem; outline: none; width: 100%; resize: vertical; min-height: 48px; font-family: inherit; }
+    .form-row textarea:focus { border-color: var(--accent); }
+    .add-btn { background: var(--accent); color: #fff; font-size: .8rem; font-weight: 800; border: none; border-radius: 8px; padding: .5rem 1.1rem; cursor: pointer; }
+    .add-btn:hover { opacity: .88; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Service Menu</div>
+  <p class="page-sub">Manage the services your AI can describe, book, and price for clients. Keep this list accurate — it's what the AI reads when a client asks "what do you offer?" or "how long does a color take?"</p>
+
+  <div id="service-list"></div>
+
+  <div class="add-form">
+    <div class="add-form-title">Add New Service</div>
+    <div class="form-row">
+      <input type="text" id="new-name" placeholder="Service name">
+      <input type="text" id="new-cat" placeholder="Category (e.g. Hair)">
+    </div>
+    <div class="form-row">
+      <input type="number" id="new-duration" placeholder="Duration (min)" min="5" max="480">
+      <input type="number" id="new-price" placeholder="Price ($)" min="0" step="0.01">
+    </div>
+    <div class="form-row">
+      <textarea id="new-desc" placeholder="Brief description (shown to AI and clients)"></textarea>
+    </div>
+    <button class="add-btn" onclick="addService()">+ Add Service</button>
+  </div>
+
+  <button class="save-btn" onclick="save()">Save Service Menu</button>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let services = [];
+  let nextId = 100;
+
+  function renderServices() {
+    const el = document.getElementById('service-list');
+    el.innerHTML = '';
+    services.forEach((s, i) => {
+      el.innerHTML += `<div class="svc-card${s.active ? '' : ' inactive'}">
+        <div class="svc-header">
+          <div style="display:flex;align-items:center">
+            <span class="svc-name">${esc(s.name)}</span>
+            <span class="svc-cat">${esc(s.category)}</span>
+          </div>
+          <label class="toggle-active"><input type="checkbox" ${s.active ? 'checked' : ''} onchange="toggleActive(${i}, this.checked)"><span class="slider-sm"></span></label>
+        </div>
+        <div class="svc-meta">
+          <div class="svc-meta-item"><strong>${s.duration_min} min</strong> duration</div>
+          <div class="svc-meta-item"><strong>$${s.price}</strong> price</div>
+        </div>
+        ${s.description ? `<div class="svc-desc">${esc(s.description)}</div>` : ''}
+        <div class="svc-actions">
+          <button class="action-btn danger" onclick="removeService(${i})">Remove</button>
+        </div>
+      </div>`;
+    });
+  }
+
+  function toggleActive(i, val) { services[i].active = val; renderServices(); }
+  function removeService(i) { services.splice(i, 1); renderServices(); }
+
+  function addService() {
+    const name = document.getElementById('new-name').value.trim();
+    const cat = document.getElementById('new-cat').value.trim();
+    const dur = parseInt(document.getElementById('new-duration').value) || 30;
+    const price = parseFloat(document.getElementById('new-price').value) || 0;
+    const desc = document.getElementById('new-desc').value.trim();
+    if (!name) return;
+    services.push({ id: 'svc' + (nextId++), name, category: cat || 'General', duration_min: dur, price, active: true, description: desc });
+    ['new-name','new-cat','new-duration','new-price','new-desc'].forEach(id => { document.getElementById(id).value = ''; });
+    renderServices();
+  }
+
+  async function load() {
+    const d = await fetch('/api/settings/service-menu-cfg').then(r => r.json());
+    services = d.services || [];
+    renderServices();
+  }
+
+  async function save() {
+    await fetch('/api/settings/service-menu-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ services }) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

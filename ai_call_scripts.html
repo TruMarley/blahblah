@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Call Scripts — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .script-list { display: flex; flex-direction: column; gap: .85rem; }
+    .script-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.4rem; transition: opacity .2s; }
+    .script-card.inactive { opacity: .5; }
+    .script-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: .65rem; }
+    .script-meta { flex: 1; }
+    .script-name { font-size: .92rem; font-weight: 900; margin-bottom: .3rem; }
+    .trigger-chip { display: inline-block; font-size: .65rem; font-weight: 800; padding: .15rem .55rem; border-radius: 99px; background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); }
+    .script-controls { display: flex; align-items: center; gap: .75rem; flex-shrink: 0; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.active { background: var(--green); }
+    .status-dot.inactive { background: var(--muted); }
+    .toggle-btn { font-size: .72rem; font-weight: 800; padding: .28rem .85rem; border-radius: 7px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-family: inherit; transition: all .15s; }
+    .toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .script-preview { font-size: .8rem; color: var(--muted); line-height: 1.55; font-style: italic; padding: .6rem .85rem; background: var(--surface2); border-radius: 8px; border-left: 3px solid rgba(167,139,250,.3); }
+    .active-count { font-size: .78rem; color: var(--muted); margin-bottom: 1.25rem; }
+    .active-count span { color: var(--green); font-weight: 800; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Call Scripts</div>
+  <p class="page-sub">Configure what Alex says in each scenario — toggle scripts on or off per trigger.</p>
+  <div class="active-count" id="active-count"></div>
+  <div class="script-list" id="script-list"></div>
+</div>
+<script>
+  let scripts = [];
+
+  const TRIGGER_LABELS = {
+    first_call:        'First Call',
+    after_hours:       'After Hours',
+    no_availability:   'No Availability',
+    new_client_booking:'New Client Booking',
+    cancellation:      'Cancellation',
+  };
+
+  async function load() {
+    const r = await fetch('/api/ai-call-scripts');
+    const d = await r.json();
+    scripts = d.scripts || [];
+    render();
+  }
+
+  function render() {
+    const activeN = scripts.filter(s => s.active).length;
+    document.getElementById('active-count').innerHTML = `<span>${activeN}</span> of ${scripts.length} scripts active`;
+    document.getElementById('script-list').innerHTML = scripts.map(s => `
+      <div class="script-card${s.active ? '' : ' inactive'}" id="sc-${s.id}">
+        <div class="script-top">
+          <div class="script-meta">
+            <div class="script-name">${esc(s.name)}</div>
+            <span class="trigger-chip">${esc(TRIGGER_LABELS[s.trigger] || s.trigger)}</span>
+          </div>
+          <div class="script-controls">
+            <div class="status-dot ${s.active ? 'active' : 'inactive'}"></div>
+            <button class="toggle-btn" onclick="toggleScript('${s.id}')">${s.active ? 'Disable' : 'Enable'}</button>
+          </div>
+        </div>
+        <div class="script-preview">"${esc(s.script_text)}"</div>
+      </div>`).join('');
+  }
+
+  async function toggleScript(id) {
+    const r = await fetch(`/api/ai-call-scripts/${id}/toggle`, {method:'POST'});
+    const updated = await r.json();
+    const idx = scripts.findIndex(s => s.id === id);
+    if (idx >= 0) scripts[idx] = updated;
+    render();
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

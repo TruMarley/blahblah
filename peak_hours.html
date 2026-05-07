@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Peak Hours — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.5rem; }
+    .heatmap-scroll { overflow-x: auto; }
+    .heatmap { display: grid; }
+    .hour-label { font-size: .65rem; color: var(--muted); text-align: right; padding-right: .6rem; display: flex; align-items: center; justify-content: flex-end; height: 36px; }
+    .day-label { font-size: .68rem; color: var(--muted); font-weight: 700; text-align: center; padding-bottom: .4rem; }
+    .cell { width: 100%; height: 36px; border-radius: 5px; position: relative; cursor: default; transition: opacity .1s; }
+    .cell:hover { opacity: .85; }
+    .cell:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #222; border: 1px solid #333; color: var(--text); font-size: .68rem; padding: .25rem .55rem; border-radius: 6px; white-space: nowrap; z-index: 10; pointer-events: none; }
+    .peak-star { position: absolute; top: 2px; right: 4px; font-size: .6rem; line-height: 1; }
+    /* Legend */
+    .legend { display: flex; align-items: center; gap: .5rem; margin-top: 1.25rem; font-size: .7rem; color: var(--muted); }
+    .legend-bar { height: 10px; width: 120px; border-radius: 4px; background: linear-gradient(to right, #111, #a78bfa); border: 1px solid #222; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; }
+    .hero-label { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; }
+    .hero-val { font-size: 1.3rem; font-weight: 900; color: var(--accent); }
+    .hero-sub { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Peak Hours</div>
+  <p class="page-sub">Booking intensity heatmap by day and hour — ★ marks the busiest slot.</p>
+  <div class="hero-row" id="heroes"></div>
+  <div class="card">
+    <div class="card-title">Booking Intensity — Mon–Sun × 6am–9pm</div>
+    <div class="heatmap-scroll">
+      <div id="heatmap"></div>
+    </div>
+    <div class="legend">
+      <span>Low</span>
+      <div class="legend-bar"></div>
+      <span>High</span>
+    </div>
+  </div>
+</div>
+<script>
+  const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  function lerpColor(t) {
+    // #111111 → #a78bfa
+    const r = Math.round(0x11 + t * (0xa7 - 0x11));
+    const g = Math.round(0x11 + t * (0x8b - 0x11));
+    const b = Math.round(0x11 + t * (0xfa - 0x11));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function fmtHour(h) {
+    if (h === 0) return '12am';
+    if (h < 12) return h + 'am';
+    if (h === 12) return '12pm';
+    return (h-12) + 'pm';
+  }
+
+  async function load() {
+    const r = await fetch('/api/analytics/peak-hours');
+    const d = await r.json();
+    const data = d.data || {};
+    const hours = d.hours || [];
+
+    // Find global max and peak cell
+    let globalMax = 0, peakDay = '', peakHour = 0;
+    DAYS.forEach(day => {
+      (data[day]||[]).forEach(h => {
+        if (h.intensity > globalMax) { globalMax = h.intensity; peakDay = day; peakHour = h.hour; }
+      });
+    });
+
+    // Hero cards
+    const avgIntensity = (() => {
+      let sum = 0, cnt = 0;
+      DAYS.forEach(day => (data[day]||[]).forEach(h => { sum += h.intensity; cnt++; }));
+      return cnt ? Math.round(sum/cnt) : 0;
+    })();
+    document.getElementById('heroes').innerHTML = [
+      { label: 'Peak Day', val: peakDay || '—', sub: `Highest avg intensity` },
+      { label: 'Peak Hour', val: fmtHour(peakHour), sub: `${peakDay} ${fmtHour(peakHour)}` },
+      { label: 'Avg Intensity', val: avgIntensity + '%', sub: 'Across all slots' }
+    ].map(h => `<div class="hero-card"><div class="hero-label">${h.label}</div><div class="hero-val">${h.val}</div><div class="hero-sub">${h.sub}</div></div>`).join('');
+
+    // Heatmap grid: rows = hours, cols = days, plus labels
+    const nDays = DAYS.length, nHours = hours.length;
+    // CSS grid: 1 label col + nDays cols
+    const container = document.getElementById('heatmap');
+    container.style.display = 'grid';
+    container.style.gridTemplateColumns = `48px repeat(${nDays}, 1fr)`;
+    container.style.gap = '3px';
+    container.style.minWidth = `${48 + nDays * 70}px`;
+
+    // Header row: empty + day labels
+    let html = '<div></div>';
+    DAYS.forEach(day => { html += `<div class="day-label">${day}</div>`; });
+
+    hours.forEach(hour => {
+      html += `<div class="hour-label">${fmtHour(hour)}</div>`;
+      DAYS.forEach(day => {
+        const entry = (data[day]||[]).find(h => h.hour === hour);
+        const intensity = entry ? entry.intensity : 0;
+        const t = globalMax > 0 ? intensity / globalMax : 0;
+        const bg = lerpColor(t);
+        const isPeak = day === peakDay && hour === peakHour;
+        html += `<div class="cell" style="background:${bg}" data-tip="${day} ${fmtHour(hour)}: ${intensity}%">${isPeak ? '<span class="peak-star">★</span>' : ''}</div>`;
+      });
+    });
+
+    container.innerHTML = html;
+  }
+
+  load();
+</script>
+</body>
+</html>

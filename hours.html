@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hours — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    nav a.back:hover { color: var(--text); }
+
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+
+    .hours-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .day-row { display: grid; grid-template-columns: 100px 56px 1fr; align-items: center; gap: 1rem; padding: .85rem 1.25rem; border-bottom: 1px solid var(--border); transition: background .1s; }
+    .day-row:last-child { border-bottom: none; }
+    .day-row.closed-row { opacity: .55; }
+    .day-name { font-size: .88rem; font-weight: 700; }
+    .toggle { width: 38px; height: 22px; border-radius: 99px; background: var(--border); border: none; cursor: pointer; position: relative; transition: background .2s; flex-shrink: 0; }
+    .toggle.on { background: var(--green); }
+    .toggle::after { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: #fff; top: 3px; left: 3px; transition: left .2s; }
+    .toggle.on::after { left: 19px; }
+    .time-row { display: flex; align-items: center; gap: .5rem; }
+    .time-sel { background: #0d0d0d; border: 1px solid var(--border); color: var(--text); font-size: .82rem; padding: .4rem .6rem; border-radius: 7px; font-family: inherit; outline: none; cursor: pointer; }
+    .time-sel:focus { border-color: var(--accent); }
+    .time-sel:disabled { opacity: .35; cursor: default; }
+    .sep { font-size: .78rem; color: var(--muted); }
+    .closed-label { font-size: .8rem; color: var(--muted); font-style: italic; }
+
+    .btn { padding: .55rem 1.15rem; border-radius: 9px; font-size: .82rem; font-weight: 700; border: none; cursor: pointer; font-family: inherit; }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-accent:hover { opacity: .85; }
+    .btn-ghost { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); }
+    .btn-ghost:hover { color: var(--text); }
+    .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(8,8,8,.96); border-top: 1px solid var(--border); padding: 1rem 2rem; display: none; align-items: center; justify-content: flex-end; gap: .75rem; z-index: 200; }
+    .save-bar.show { display: flex; }
+    .save-status { font-size: .8rem; color: var(--green); opacity: 0; transition: opacity .3s; }
+    .save-status.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Business Hours</div>
+  <p class="page-sub">Your AI uses these hours to let callers know when you're open and to schedule appointments.</p>
+  <div class="hours-card" id="hours-card"></div>
+</div>
+
+<div class="save-bar" id="save-bar">
+  <span class="save-status" id="save-status">Hours saved!</span>
+  <button class="btn btn-ghost" onclick="load()">Discard</button>
+  <button class="btn btn-accent" onclick="save()">Save hours</button>
+</div>
+
+<script>
+  let hours = [];
+
+  function makeTimes() {
+    const opts = [];
+    for (let h = 6; h <= 22; h++) {
+      for (let m of [0, 30]) {
+        if (h === 22 && m === 30) continue;
+        const val = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        const label = `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+        opts.push(`<option value="${val}">${label}</option>`);
+      }
+    }
+    return opts.join('');
+  }
+  const TIME_OPTS = makeTimes();
+
+  async function load() {
+    const r = await fetch('/api/hours');
+    const d = await r.json();
+    hours = d.hours || [];
+    render();
+    hideSave();
+  }
+
+  function render() {
+    document.getElementById('hours-card').innerHTML = hours.map((h, i) => `
+      <div class="day-row ${h.closed ? 'closed-row' : ''}" id="row-${i}">
+        <div class="day-name">${h.day}</div>
+        <button class="toggle ${h.closed ? '' : 'on'}" onclick="toggleDay(${i})" title="${h.closed ? 'Closed' : 'Open'}"></button>
+        <div class="time-row" id="times-${i}">
+          ${h.closed
+            ? `<span class="closed-label">Closed</span>`
+            : `<select class="time-sel" id="open-${i}" onchange="updateTime(${i})" ${h.closed ? 'disabled' : ''}>${TIME_OPTS}</select>
+               <span class="sep">to</span>
+               <select class="time-sel" id="close-${i}" onchange="updateTime(${i})" ${h.closed ? 'disabled' : ''}>${TIME_OPTS}</select>`
+          }
+        </div>
+      </div>`).join('');
+    // Set select values after render
+    hours.forEach((h, i) => {
+      if (!h.closed) {
+        const o = document.getElementById(`open-${i}`);
+        const c = document.getElementById(`close-${i}`);
+        if (o) o.value = h.open;
+        if (c) c.value = h.close;
+      }
+    });
+  }
+
+  function toggleDay(i) {
+    hours[i].closed = !hours[i].closed;
+    render();
+    showSave();
+  }
+
+  function updateTime(i) {
+    const o = document.getElementById(`open-${i}`);
+    const c = document.getElementById(`close-${i}`);
+    if (o) hours[i].open = o.value;
+    if (c) hours[i].close = c.value;
+    showSave();
+  }
+
+  async function save() {
+    await fetch('/api/hours', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hours}) });
+    const s = document.getElementById('save-status');
+    s.classList.add('show');
+    setTimeout(() => s.classList.remove('show'), 2200);
+    hideSave();
+  }
+
+  function showSave() { document.getElementById('save-bar').classList.add('show'); }
+  function hideSave() { document.getElementById('save-bar').classList.remove('show'); }
+
+  load();
+</script>
+</body>
+</html>

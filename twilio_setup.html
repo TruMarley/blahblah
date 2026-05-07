@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk — Twilio Setup Guide</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0a; --surface: #111; --surface2: #161616;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --blue: #60a5fa; --orange: #f97316; --red: #f87171;
+      --twilio: #f22f46;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    .header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent-light); }
+    .back { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
+    .back:hover { color: var(--text); }
+
+    .main { max-width: 800px; margin: 0 auto; padding: 3rem 2rem; }
+
+    .page-header { text-align: center; margin-bottom: 3rem; }
+    .twilio-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(242,47,70,0.12); border: 1px solid rgba(242,47,70,0.25);
+      color: var(--twilio); font-size: 0.75rem; font-weight: 700;
+      padding: 5px 14px; border-radius: 20px; margin-bottom: 1.5rem;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .page-header h1 { font-size: 2rem; font-weight: 900; color: #fff; letter-spacing: -0.03em; margin-bottom: 0.5rem; }
+    .page-header p { color: var(--muted); font-size: 0.95rem; max-width: 520px; margin: 0 auto; line-height: 1.6; }
+
+    /* Time estimate bar */
+    .time-bar {
+      display: flex; gap: 1rem; justify-content: center; margin-bottom: 3rem; flex-wrap: wrap;
+    }
+    .time-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.8rem; color: var(--muted);
+    }
+    .time-item .ti { color: var(--accent-light); font-weight: 600; }
+
+    /* Step progress */
+    .step-progress {
+      display: flex; align-items: center; margin-bottom: 3rem;
+    }
+    .sp-step {
+      display: flex; flex-direction: column; align-items: center; flex: 1;
+    }
+    .sp-circle {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--surface2); border: 2px solid var(--border2);
+      color: var(--muted); font-size: 0.85rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.3s;
+    }
+    .sp-circle.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .sp-circle.done { background: var(--green); border-color: var(--green); color: #fff; }
+    .sp-label { font-size: 0.68rem; color: var(--muted); margin-top: 6px; text-align: center; max-width: 80px; }
+    .sp-line { flex: 1; height: 2px; background: var(--border2); margin: 0 8px; margin-bottom: 20px; }
+    .sp-line.done { background: var(--green); }
+
+    /* Steps */
+    .steps { display: flex; flex-direction: column; gap: 1.5rem; }
+    .step {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+    }
+    .step.active { border-color: rgba(124,58,237,0.4); }
+    .step.done { border-color: rgba(34,197,94,0.3); }
+    .step-header {
+      display: flex; align-items: center; gap: 1rem;
+      padding: 1.25rem 1.5rem; cursor: pointer; user-select: none;
+    }
+    .step-num {
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.875rem; font-weight: 800;
+      background: rgba(124,58,237,0.15); border: 1.5px solid rgba(124,58,237,0.3);
+      color: var(--accent-light);
+    }
+    .step.done .step-num { background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.3); color: var(--green); }
+    .step-meta { flex: 1; }
+    .step-title { font-size: 0.95rem; font-weight: 700; color: #fff; }
+    .step-time { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+    .step-toggle { color: var(--muted); font-size: 0.9rem; transition: transform 0.2s; }
+    .step.open .step-toggle { transform: rotate(180deg); }
+    .step-body { display: none; padding: 0 1.5rem 1.5rem; }
+    .step.open .step-body { display: block; }
+
+    .step-desc { font-size: 0.875rem; color: var(--muted); line-height: 1.7; margin-bottom: 1.25rem; }
+
+    /* Sub-steps */
+    .sub-steps { list-style: none; display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 1.25rem; }
+    .sub-steps li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.85rem; color: #ccc; line-height: 1.5; }
+    .sub-num {
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; margin-top: 1px;
+      background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.3);
+      color: var(--accent-light); font-size: 0.7rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sub-steps li strong { color: #fff; }
+    .sub-steps li code { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 4px; padding: 1px 6px; font-size: 0.78rem; color: var(--accent-light); }
+
+    /* Screenshot box */
+    .screenshot-box {
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 10px; padding: 2.5rem 1.5rem;
+      text-align: center; margin: 1rem 0;
+    }
+    .sb-icon { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.6; }
+    .sb-label { font-size: 0.75rem; color: var(--muted); }
+
+    /* Code block */
+    .code-block {
+      background: #0d0d0d; border: 1px solid #1e1e1e; border-radius: 8px;
+      padding: 1rem 1.25rem; margin: 1rem 0; position: relative;
+    }
+    .code-block pre { font-family: 'Menlo', 'Monaco', monospace; font-size: 0.82rem; color: #a3e635; overflow-x: auto; }
+    .code-block .copy-btn {
+      position: absolute; top: 8px; right: 10px;
+      background: var(--border2); border: none; color: var(--muted);
+      font-size: 0.68rem; padding: 3px 8px; border-radius: 4px; cursor: pointer;
+    }
+    .code-block .copy-btn:hover { color: var(--text); }
+
+    /* Alert boxes */
+    .alert {
+      border-radius: 8px; padding: 0.75rem 1rem;
+      font-size: 0.8rem; line-height: 1.5; margin: 0.75rem 0;
+    }
+    .alert-info { background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); color: var(--blue); }
+    .alert-tip { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); color: var(--green); }
+    .alert-warn { background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.2); color: var(--orange); }
+
+    /* Mark done button */
+    .btn-done {
+      background: var(--green); color: #000; border: none;
+      padding: 9px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; margin-top: 1rem; transition: opacity 0.2s;
+    }
+    .btn-done:hover { opacity: 0.85; }
+    .btn-done:disabled { opacity: 0.4; cursor: default; }
+
+    /* Final CTA */
+    .final-cta {
+      background: linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(99,102,241,0.1) 100%);
+      border: 1px solid rgba(124,58,237,0.3); border-radius: 16px;
+      padding: 2rem; text-align: center; margin-top: 2rem;
+    }
+    .final-cta h3 { font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem; }
+    .final-cta p { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .btn-launch {
+      background: var(--accent); color: #fff; border: none;
+      padding: 12px 28px; border-radius: 9px; font-size: 0.95rem; font-weight: 700;
+      text-decoration: none; display: inline-block; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-launch:hover { background: #6d28d9; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</div>
+
+<div class="main">
+  <div class="page-header">
+    <div class="twilio-badge">📞 Twilio Setup</div>
+    <h1>Connect Your Phone Number</h1>
+    <p>Follow these 4 steps to get your AI receptionist answering real calls. Takes about 15 minutes.</p>
+  </div>
+
+  <div class="time-bar">
+    <div class="time-item"><span class="ti">~15 min</span> total setup</div>
+    <div class="time-item"><span class="ti">Free</span> Twilio trial ($15 credit included)</div>
+    <div class="time-item"><span class="ti">~$1/mo</span> per local number after trial</div>
+  </div>
+
+  <div class="step-progress">
+    <div class="sp-step">
+      <div class="sp-circle active" id="prog-1">1</div>
+      <div class="sp-label">Create Account</div>
+    </div>
+    <div class="sp-line" id="line-1"></div>
+    <div class="sp-step">
+      <div class="sp-circle" id="prog-2">2</div>
+      <div class="sp-label">Buy Number</div>
+    </div>
+    <div class="sp-line" id="line-2"></div>
+    <div class="sp-step">
+      <div class="sp-circle" id="prog-3">3</div>
+      <div class="sp-label">Configure Webhook</div>
+    </div>
+    <div class="sp-line" id="line-3"></div>
+    <div class="sp-step">
+      <div class="sp-circle" id="prog-4">4</div>
+      <div class="sp-label">Forward Calls</div>
+    </div>
+  </div>
+
+  <div class="steps">
+
+    <!-- Step 1 -->
+    <div class="step open active" id="step-1">
+      <div class="step-header" onclick="toggleStep(1)">
+        <div class="step-num">1</div>
+        <div class="step-meta">
+          <div class="step-title">Create a Twilio Account</div>
+          <div class="step-time">⏱ ~3 minutes</div>
+        </div>
+        <div class="step-toggle">▾</div>
+      </div>
+      <div class="step-body">
+        <p class="step-desc">Twilio handles all the phone infrastructure — incoming calls, SMS, forwarding. You'll get $15 free credit to start.</p>
+        <ul class="sub-steps">
+          <li><span class="sub-num">1</span>Go to <strong>twilio.com</strong> and click "Start for Free"</li>
+          <li><span class="sub-num">2</span>Create your account with your email and verify your phone number</li>
+          <li><span class="sub-num">3</span>In the Twilio Console, find your <strong>Account SID</strong> and <strong>Auth Token</strong> on the homepage dashboard</li>
+          <li><span class="sub-num">4</span>Add these to your <code>.env</code> file: <code>TWILIO_ACCOUNT_SID=ACxxx</code> and <code>TWILIO_AUTH_TOKEN=xxx</code></li>
+        </ul>
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode(this)">copy</button>
+          <pre># .env file
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_PHONE_NUMBER=+17865550000
+DEEPGRAM_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</pre>
+        </div>
+        <div class="alert alert-tip">💡 Your Account SID starts with "AC" — it's 34 characters long. Never share your Auth Token publicly.</div>
+        <div class="screenshot-box">
+          <div class="sb-icon">🖥️</div>
+          <div class="sb-label">Twilio Console homepage — Account SID and Auth Token</div>
+        </div>
+        <button class="btn-done" onclick="markDone(1)">✓ Done — move to Step 2</button>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step" id="step-2">
+      <div class="step-header" onclick="toggleStep(2)">
+        <div class="step-num">2</div>
+        <div class="step-meta">
+          <div class="step-title">Buy a Local Phone Number</div>
+          <div class="step-time">⏱ ~2 minutes</div>
+        </div>
+        <div class="step-toggle">▾</div>
+      </div>
+      <div class="step-body">
+        <p class="step-desc">Buy a local number in your city. Clients will see this number when your AI calls or texts them. Use the $15 free trial credit.</p>
+        <ul class="sub-steps">
+          <li><span class="sub-num">1</span>In Twilio Console → <strong>Phone Numbers → Manage → Buy a Number</strong></li>
+          <li><span class="sub-num">2</span>Search by your area code (e.g., 305 for Miami) — filter by <strong>Voice + SMS</strong></li>
+          <li><span class="sub-num">3</span>Pick a number and click <strong>"Buy"</strong> (~$1.15/month)</li>
+          <li><span class="sub-num">4</span>Add <code>TWILIO_PHONE_NUMBER=+1XXXXXXXXXX</code> to your <code>.env</code> file</li>
+        </ul>
+        <div class="screenshot-box">
+          <div class="sb-icon">📱</div>
+          <div class="sb-label">Twilio phone number search — filter by area code</div>
+        </div>
+        <div class="alert alert-info">ℹ️ During Twilio trial, you can only call/text verified numbers. Upgrade to a paid account before going live with customers.</div>
+        <button class="btn-done" onclick="markDone(2)">✓ Done — move to Step 3</button>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step" id="step-3">
+      <div class="step-header" onclick="toggleStep(3)">
+        <div class="step-num">3</div>
+        <div class="step-meta">
+          <div class="step-title">Configure the Incoming Call Webhook</div>
+          <div class="step-time">⏱ ~5 minutes</div>
+        </div>
+        <div class="step-toggle">▾</div>
+      </div>
+      <div class="step-body">
+        <p class="step-desc">Tell Twilio where to send incoming calls — your RingDesk server. You'll use <strong>ngrok</strong> to expose your local server to the internet for testing.</p>
+
+        <p style="font-size:0.82rem;color:#aaa;margin-bottom:0.75rem;"><strong style="color:#fff;">First, start ngrok:</strong></p>
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode(this)">copy</button>
+          <pre>ngrok http 5050</pre>
+        </div>
+
+        <div class="alert alert-tip" style="margin-bottom:1rem;">💡 ngrok gives you a public URL like <code style="color:#22c55e">https://abc123.ngrok.io</code> — copy that URL.</div>
+
+        <ul class="sub-steps">
+          <li><span class="sub-num">1</span>In Twilio Console → <strong>Phone Numbers → Manage → Active Numbers</strong></li>
+          <li><span class="sub-num">2</span>Click your phone number to edit it</li>
+          <li><span class="sub-num">3</span>Under <strong>"A call comes in"</strong> → set to <strong>Webhook</strong></li>
+          <li><span class="sub-num">4</span>Paste your ngrok URL + <code>/incoming-call</code>:<br>
+            <code>https://abc123.ngrok.io/incoming-call</code></li>
+          <li><span class="sub-num">5</span>Set method to <strong>HTTP POST</strong> → Save</li>
+        </ul>
+
+        <div class="screenshot-box">
+          <div class="sb-icon">🔗</div>
+          <div class="sb-label">Twilio Phone Number config — "A call comes in" webhook</div>
+        </div>
+        <div class="alert alert-warn">⚠️ ngrok URL changes every restart unless you have a paid plan. For production, deploy RingDesk to a server (Railway, Fly.io, DigitalOcean) and use that URL instead.</div>
+        <button class="btn-done" onclick="markDone(3)">✓ Done — move to Step 4</button>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step" id="step-4">
+      <div class="step-header" onclick="toggleStep(4)">
+        <div class="step-num">4</div>
+        <div class="step-meta">
+          <div class="step-title">Forward Your Existing Number to Twilio</div>
+          <div class="step-time">⏱ ~5 minutes</div>
+        </div>
+        <div class="step-toggle">▾</div>
+      </div>
+      <div class="step-body">
+        <p class="step-desc">Keep your current business number. Set it to forward to your Twilio number when you're busy or after hours. Your AI answers the forwarded calls automatically.</p>
+
+        <p style="font-size:0.85rem;font-weight:700;color:#fff;margin-bottom:0.5rem;">Option A: Forward on No Answer (recommended)</p>
+        <ul class="sub-steps">
+          <li><span class="sub-num">1</span>On most carriers, dial <code>**61*+1XXXXXXXXXX#</code> (replace with your Twilio number) to forward unanswered calls</li>
+          <li><span class="sub-num">2</span>To cancel forwarding: dial <code>##61#</code></li>
+        </ul>
+
+        <p style="font-size:0.85rem;font-weight:700;color:#fff;margin:1rem 0 0.5rem;">Option B: Forward All Calls</p>
+        <ul class="sub-steps">
+          <li><span class="sub-num">1</span>On Android: Settings → Phone → Call Forwarding → Always Forward</li>
+          <li><span class="sub-num">2</span>On iPhone: Contact your carrier (AT&T, Verizon, T-Mobile) — they set it in their app</li>
+          <li><span class="sub-num">3</span>Enter your Twilio number as the forward destination</li>
+        </ul>
+
+        <div class="screenshot-box">
+          <div class="sb-icon">📲</div>
+          <div class="sb-label">Phone call forwarding settings — forward to your Twilio number</div>
+        </div>
+
+        <p style="font-size:0.85rem;font-weight:700;color:#fff;margin:1rem 0 0.5rem;">Test your setup:</p>
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode(this)">copy</button>
+          <pre># Make sure RingDesk is running first:
+cd ~/voice_ai && source venv/bin/activate && python3 server.py
+
+# Then call your Twilio number from another phone.
+# You should hear your AI receptionist answer!</pre>
+        </div>
+
+        <div class="alert alert-tip">💡 Pro tip: Call your own Twilio number from a second phone. You should hear your AI greet you within 1-2 seconds.</div>
+        <button class="btn-done" onclick="markDone(4)">✓ All done — launch RingDesk!</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="final-cta" id="final-cta" style="display:none">
+    <h3>🎉 You're live!</h3>
+    <p>Your AI receptionist is now answering calls 24/7. Check your dashboard to see incoming bookings.</p>
+    <a href="/dashboard" class="btn-launch">Open Dashboard →</a>
+  </div>
+</div>
+
+<script>
+  function toggleStep(n) {
+    const step = document.getElementById(`step-${n}`);
+    step.classList.toggle('open');
+  }
+
+  function markDone(n) {
+    const step = document.getElementById(`step-${n}`);
+    step.classList.add('done');
+    step.classList.remove('active');
+
+    const prog = document.getElementById(`prog-${n}`);
+    prog.classList.remove('active');
+    prog.classList.add('done');
+    prog.textContent = '✓';
+
+    if (n < 4) {
+      const line = document.getElementById(`line-${n}`);
+      if (line) line.classList.add('done');
+      const next = document.getElementById(`step-${n+1}`);
+      next.classList.add('active');
+      next.classList.add('open');
+      const progNext = document.getElementById(`prog-${n+1}`);
+      progNext.classList.add('active');
+      // Scroll to next step
+      next.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      document.getElementById('line-3').classList.add('done');
+      document.getElementById('final-cta').style.display = 'block';
+      document.getElementById('final-cta').scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  function copyCode(btn) {
+    const pre = btn.nextElementSibling;
+    navigator.clipboard.writeText(pre.textContent.trim());
+    btn.textContent = 'copied!';
+    setTimeout(() => btn.textContent = 'copy', 2000);
+  }
+</script>
+</body>
+</html>

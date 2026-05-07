@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue Trend — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-scroll { overflow-x: auto; }
+    .legend { display: flex; gap: 1.25rem; margin-top: .75rem; font-size: .72rem; color: var(--muted); }
+    .leg-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: .35rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; }
+    .stat-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .35rem; }
+    .stat-val { font-size: 1.5rem; font-weight: 900; }
+    .stat-sub { font-size: .7rem; color: var(--muted); margin-top: .15rem; }
+    .best-chip { display: inline-flex; align-items: center; gap: .4rem; background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.2); color: var(--green); font-size: .72rem; font-weight: 700; padding: .2rem .65rem; border-radius: 8px; margin-top: .35rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue Trend</div>
+  <p class="page-sub">30-day daily revenue and appointment volume — dual-axis chart.</p>
+  <div class="card">
+    <div class="card-title">Revenue (bars) vs Appointments (line) — Last 30 Days</div>
+    <div class="chart-scroll">
+      <svg id="chart" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible"></svg>
+    </div>
+    <div class="legend">
+      <span><span class="leg-dot" style="background:#a78bfa"></span>Revenue ($)</span>
+      <span><span class="leg-dot" style="background:#34d399;border-radius:50%"></span>Appointments</span>
+    </div>
+  </div>
+  <div class="stats-row" id="stats-row"></div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/revenue-trend');
+    const d = await r.json();
+    const daily = d.daily || [];
+
+    const W=920, H=200, PL=44, PR=44, PT=16, PB=32;
+    const cW=W-PL-PR, cH=H-PT-PB, n=daily.length;
+    const barW = Math.max(2, Math.floor(cW/n) - 2);
+
+    const maxRev = Math.max(...daily.map(x=>x.revenue), 1);
+    const maxApt = Math.max(...daily.map(x=>x.appointments), 1);
+
+    // Y-axis gridlines (revenue axis)
+    let yLines = '';
+    [0, 0.25, 0.5, 0.75, 1].forEach(f => {
+      const y = PT + cH - f*cH;
+      const v = Math.round(maxRev * f);
+      yLines += `<line x1="${PL}" y1="${y}" x2="${W-PR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      yLines += `<text x="${PL-4}" y="${y+4}" text-anchor="end" font-size="9" fill="#555">$${v}</text>`;
+    });
+
+    // Revenue bars
+    let bars='', xLabels='', aptPts=[];
+    daily.forEach((day, i) => {
+      const x = PL + i*(cW/n) + (cW/n - barW)/2;
+      const bH = Math.max(2, (day.revenue/maxRev)*cH);
+      const y = PT+cH-bH;
+      bars += `<rect x="${x}" y="${y}" width="${barW}" height="${bH}" fill="#a78bfa" opacity=".7" rx="2">
+        <title>${day.date}: $${day.revenue} · ${day.appointments} appts</title></rect>`;
+      // Appointment line point
+      const px = PL + i*(cW/n) + cW/n/2;
+      const py = PT+cH - (day.appointments/maxApt)*cH;
+      aptPts.push({x:px, y:py, val:day.appointments, date:day.date});
+      // Date labels every 5 days
+      if (i%5===0) {
+        const lbl = day.date.slice(5);
+        xLabels += `<text x="${px}" y="${H-4}" text-anchor="middle" font-size="9" fill="#444">${lbl}</text>`;
+      }
+    });
+
+    // Appointment line + right axis
+    const aptLine = `M${aptPts[0].x},${aptPts[0].y}` + aptPts.slice(1).map(p=>`L${p.x},${p.y}`).join('');
+    const aptArea = aptLine + ` L${aptPts[aptPts.length-1].x},${H-PB} L${aptPts[0].x},${H-PB} Z`;
+    let rightAxis = '';
+    [0,0.5,1].forEach(f=>{
+      const y = PT+cH-f*cH;
+      const v = Math.round(maxApt*f);
+      rightAxis += `<text x="${W-PR+4}" y="${y+4}" font-size="9" fill="#34d399">${v}</text>`;
+    });
+
+    const svg = document.getElementById('chart');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('width','100%');
+    svg.setAttribute('height', H);
+    svg.innerHTML = `<defs>
+      <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#34d399" stop-opacity=".15"/>
+        <stop offset="100%" stop-color="#34d399" stop-opacity="0"/>
+      </linearGradient></defs>
+      ${yLines}${bars}
+      <path d="${aptArea}" fill="url(#ag)"/>
+      <path d="${aptLine}" fill="none" stroke="#34d399" stroke-width="2" stroke-linejoin="round"/>
+      ${xLabels}${rightAxis}`;
+
+    // Stats
+    document.getElementById('stats-row').innerHTML = [
+      { label:'Monthly Total', val:'$'+d.monthly_total.toLocaleString(), sub:'last 30 days', color:'var(--accent)', extra: d.best_day ? `<div class="best-chip">★ Best: ${d.best_day} ($${d.best_day_revenue})</div>` : '' },
+      { label:'Weekly Avg',    val:'$'+d.weekly_avg.toLocaleString(),    sub:'per week',    color:'var(--text)', extra:'' },
+      { label:'Daily Avg',     val:'$'+Math.round(d.monthly_total/30).toLocaleString(), sub:'per day', color:'var(--green)', extra:'' },
+    ].map(s=>`<div class="stat-card"><div class="stat-label">${s.label}</div><div class="stat-val" style="color:${s.color}">${s.val}</div><div class="stat-sub">${s.sub}</div>${s.extra}</div>`).join('');
+  }
+  load();
+</script>
+</body>
+</html>

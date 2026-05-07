@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Waitlist — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.2rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select, input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus, input[type=number]:focus { border-color: var(--accent); }
+    input[type=number] { width: 90px; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .79rem; padding: .5rem .72rem; outline: none; resize: vertical; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .token-list { display: flex; flex-wrap: wrap; gap: .28rem; margin-top: .35rem; }
+    .token { font-size: .65rem; background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.25); border-radius: 4px; padding: .08rem .35rem; color: var(--accent); font-family: monospace; cursor: pointer; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Waitlist</div>
+  <p class="page-sub">When your schedule fills up, your AI automatically offers the waitlist. The moment a cancellation comes in, the next client gets notified — filling the slot before revenue is lost.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-current" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">On Waitlist Now</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-filled" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Filled (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-fill-rate" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Fill Rate</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-avg-wait">—</div>
+      <div class="stat-lbl">Avg Wait (hrs)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Waitlist Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Waitlist</div><div class="row-sub">AI offers waitlist when no slots available</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Waitlist Size</div></div>
+      <input type="number" id="max-size" min="5" max="200">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Notify on Cancellation</div><div class="row-sub">Text next on list when a slot opens</div></div>
+      <label class="toggle"><input type="checkbox" id="auto-notify"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notification Method</div></div>
+      <select id="notify-method">
+        <option value="sms">SMS</option>
+        <option value="email">Email</option>
+        <option value="both">Both</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notify Window (minutes)</div><div class="row-sub">How long client has to respond before next</div></div>
+      <input type="number" id="notify-window" min="10" max="120">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Expire After (hours)</div><div class="row-sub">Remove from list if not booked in time</div></div>
+      <input type="number" id="auto-expire" min="6" max="168">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Priority Order</div></div>
+      <select id="priority-order">
+        <option value="first_come">First come, first served</option>
+        <option value="vip_first">VIP clients first</option>
+        <option value="loyalty_first">Loyalty tier first</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Allow Clients to Check Position</div><div class="row-sub">Clients can text to check their spot</div></div>
+      <label class="toggle"><input type="checkbox" id="allow-check"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">AI Flexibility Options</div>
+    <div class="row">
+      <div><div class="row-label">AI Offers Waitlist</div><div class="row-sub">AI proactively mentions waitlist when full</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-offers"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Asks About Flexibility</div><div class="row-sub">Asks if client can come at different times</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-flex"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Flexible Time Range (hours)</div><div class="row-sub">How far before/after preferred time</div></div>
+      <input type="number" id="flex-range" min="1" max="24">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Flexible on Staff</div><div class="row-sub">Offer different stylist if preferred is full</div></div>
+      <label class="toggle"><input type="checkbox" id="flex-staff"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Confirmation Message</div>
+    <div class="row">
+      <div><div class="row-label">Send Confirmation on Add</div></div>
+      <label class="toggle"><input type="checkbox" id="send-confirm"><span class="slider"></span></label>
+    </div>
+    <textarea id="confirm-msg" rows="2" style="margin-top:.75rem"></textarea>
+    <div class="token-list">
+      <span class="token" onclick="ins('{service}')">{service}</span>
+      <span class="token" onclick="ins('{date}')">{date}</span>
+      <span class="token" onclick="ins('{first_name}')">{first_name}</span>
+      <span class="token" onclick="ins('{business_name}')">{business_name}</span>
+    </div>
+    <button class="save-btn" onclick="save()">Save Waitlist Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+
+  function ins(token) {
+    const ta = document.getElementById('confirm-msg');
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    ta.value = ta.value.slice(0,s) + token + ta.value.slice(e);
+    ta.selectionStart = ta.selectionEnd = s + token.length;
+    ta.focus();
+  }
+
+  async function load() {
+    data = await fetch('/api/settings/waitlist-mgmt-cfg').then(r => r.json());
+    document.getElementById('h-current').textContent = data.currently_on_waitlist;
+    document.getElementById('h-filled').textContent = data.filled_from_waitlist_30d;
+    document.getElementById('h-fill-rate').textContent = data.fill_rate_pct.toFixed(0) + '%';
+    document.getElementById('h-avg-wait').textContent = data.avg_wait_hours.toFixed(1);
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('max-size').value = data.max_waitlist_size;
+    document.getElementById('auto-notify').checked = data.auto_notify_on_cancellation;
+    document.getElementById('notify-method').value = data.notification_method;
+    document.getElementById('notify-window').value = data.notify_window_minutes;
+    document.getElementById('auto-expire').value = data.auto_expire_after_hours;
+    document.getElementById('priority-order').value = data.priority_order;
+    document.getElementById('allow-check').checked = data.allow_client_waitlist_check;
+    document.getElementById('ai-offers').checked = data.ai_offers_waitlist;
+    document.getElementById('ai-flex').checked = data.ai_asks_flexibility;
+    document.getElementById('flex-range').value = data.flexible_time_range_hours;
+    document.getElementById('flex-staff').checked = data.flexible_any_staff;
+    document.getElementById('send-confirm').checked = data.send_confirmation_on_add;
+    document.getElementById('confirm-msg').value = data.confirmation_message || '';
+  }
+
+  async function save() {
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      max_waitlist_size: parseInt(document.getElementById('max-size').value) || 50,
+      auto_notify_on_cancellation: document.getElementById('auto-notify').checked,
+      notification_method: document.getElementById('notify-method').value,
+      notify_window_minutes: parseInt(document.getElementById('notify-window').value) || 30,
+      auto_expire_after_hours: parseInt(document.getElementById('auto-expire').value) || 48,
+      priority_order: document.getElementById('priority-order').value,
+      allow_client_waitlist_check: document.getElementById('allow-check').checked,
+      ai_offers_waitlist: document.getElementById('ai-offers').checked,
+      ai_asks_flexibility: document.getElementById('ai-flex').checked,
+      flexible_time_range_hours: parseInt(document.getElementById('flex-range').value) || 2,
+      flexible_any_staff: document.getElementById('flex-staff').checked,
+      send_confirmation_on_add: document.getElementById('send-confirm').checked,
+      confirmation_message: document.getElementById('confirm-msg').value,
+    };
+    await fetch('/api/settings/waitlist-mgmt-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>At-Risk Clients — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .controls { display: flex; gap: .75rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .filter-btn { background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: .75rem; font-weight: 700; padding: .35rem .85rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .filter-btn.active, .filter-btn:hover { border-color: rgba(167,139,250,.4); color: var(--accent); }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .7rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; cursor: pointer; user-select: none; white-space: nowrap; }
+    thead th:hover { color: var(--text); }
+    thead th.sort-asc::after { content: ' ↑'; }
+    thead th.sort-desc::after { content: ' ↓'; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .85rem 1.25rem; font-size: .82rem; vertical-align: middle; }
+    .name-cell { font-weight: 800; font-size: .88rem; }
+    .phone-cell { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+    .risk-chip { font-size: .68rem; font-weight: 800; padding: .2rem .6rem; border-radius: 99px; white-space: nowrap; }
+    .r-drifting { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+    .r-fading   { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+    .r-critical { background: rgba(248,113,113,.18); color: #ff5555; border: 1px solid rgba(248,113,113,.35); }
+    .days-cell { font-size: .78rem; color: var(--muted); }
+    .rev-cell { font-size: .82rem; font-weight: 700; }
+    .wb-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-size: .72rem; font-weight: 700; padding: .32rem .75rem; border-radius: 7px; cursor: pointer; font-family: inherit; transition: all .15s; white-space: nowrap; }
+    .wb-btn:hover { color: var(--green); border-color: rgba(52,211,153,.3); }
+    .wb-btn.sent { color: var(--green); border-color: rgba(52,211,153,.3); cursor: default; }
+    .empty { text-align: center; color: var(--muted); padding: 3rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">At-Risk Clients</div>
+  <p class="page-sub">Clients who haven't visited recently — sorted by days since last visit.</p>
+  <div class="controls">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('drifting',this)">Drifting (60-89d)</button>
+    <button class="filter-btn" onclick="setFilter('fading',this)">Fading (90-119d)</button>
+    <button class="filter-btn" onclick="setFilter('critical',this)">Critical (120d+)</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th onclick="sortBy('client_name')">Client</th>
+        <th onclick="sortBy('days_since_visit')">Days Away</th>
+        <th onclick="sortBy('total_visits')">Visits</th>
+        <th onclick="sortBy('lifetime_value')">LTV</th>
+        <th>Risk</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  let all = [], filter = 'all', sortKey = 'days_since_visit', sortDir = 1;
+  const sentIds = new Set();
+
+  async function load() {
+    const r = await fetch('/api/clients/at-risk');
+    const d = await r.json();
+    all = d.clients || [];
+    render();
+  }
+
+  function setFilter(f, btn) {
+    filter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  }
+
+  function sortBy(key) {
+    if (sortKey === key) sortDir *= -1;
+    else { sortKey = key; sortDir = 1; }
+    document.querySelectorAll('thead th').forEach(th => { th.classList.remove('sort-asc','sort-desc'); });
+    const idx = ['client_name','days_since_visit','total_visits','lifetime_value'].indexOf(key);
+    const ths = document.querySelectorAll('thead th');
+    if (idx >= 0) ths[idx].classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
+    render();
+  }
+
+  function riskLevel(days) {
+    if (days >= 120) return 'critical';
+    if (days >= 90) return 'fading';
+    return 'drifting';
+  }
+
+  function render() {
+    let rows = [...all];
+    if (filter !== 'all') rows = rows.filter(c => riskLevel(c.days_since_visit) === filter);
+    rows.sort((a,b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      if (typeof av === 'string') return av.localeCompare(bv) * sortDir;
+      return (av - bv) * sortDir;
+    });
+
+    document.getElementById('tbody').innerHTML = rows.length ? rows.map(c => {
+      const rl = riskLevel(c.days_since_visit);
+      const label = rl.charAt(0).toUpperCase() + rl.slice(1);
+      const isSent = sentIds.has(c.id);
+      return `<tr>
+        <td><div class="name-cell">${esc(c.client_name)}</div><div class="phone-cell">${esc(c.phone)}</div></td>
+        <td class="days-cell">${c.days_since_visit}d ago</td>
+        <td>${c.total_visits}</td>
+        <td class="rev-cell">$${(c.lifetime_value||0).toLocaleString()}</td>
+        <td><span class="risk-chip r-${rl}">${label}</span></td>
+        <td><button class="wb-btn${isSent?' sent':''}" id="wb-${esc(c.id)}" onclick="sendWinback('${esc(c.id)}')" ${isSent?'disabled':''}>${isSent?'✓ Sent':'📲 Win-Back'}</button></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="6" class="empty">No at-risk clients in this category.</td></tr>';
+  }
+
+  async function sendWinback(id) {
+    const btn = document.getElementById('wb-' + id);
+    if (btn) { btn.textContent = 'Sending...'; btn.disabled = true; }
+    await fetch(`/api/clients/${id}/send-winback-sms`, { method: 'POST' });
+    sentIds.add(id);
+    render();
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

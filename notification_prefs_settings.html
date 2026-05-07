@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notification Preferences — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .notif-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .85rem; padding-bottom: .85rem; border-bottom: 1px solid var(--border); }
+    .notif-row:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+    .notif-label { flex: 1; font-size: .85rem; font-weight: 600; }
+    .notif-channels { display: flex; gap: .5rem; }
+    .ch-label { font-size: .65rem; color: var(--muted); margin-bottom: .15rem; text-align: center; }
+    .toggle { position: relative; width: 38px; height: 22px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 22px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(16px); background: #fff; }
+    .ch-group { display: flex; flex-direction: column; align-items: center; gap: .1rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    select, input[type=text], input[type=email], input[type=tel], input[type=time], input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus, input:focus { border-color: var(--accent); }
+    input[type=number] { width: 70px; }
+    input[type=time] { width: 100px; }
+    input[type=text], input[type=email], input[type=tel] { width: 200px; }
+    .ch-header { display: flex; gap: .5rem; justify-content: flex-end; margin-bottom: .5rem; }
+    .ch-head-label { font-size: .65rem; color: var(--muted); width: 38px; text-align: center; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Notification Preferences</div>
+  <p class="page-sub">Control which events trigger SMS or email alerts to you and your staff. Stay informed without inbox overload.</p>
+
+  <div class="card">
+    <div class="card-title">Contact Details</div>
+    <div class="row">
+      <div><div class="row-label">Notification Email</div></div>
+      <input type="email" id="notif-email" placeholder="you@example.com">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notification Phone</div></div>
+      <input type="tel" id="notif-phone" placeholder="+1 (555) 000-0000">
+    </div>
+    <div class="row">
+      <div><div class="row-label">SMS Sender Name</div></div>
+      <input type="text" id="sms-sender" placeholder="RingDesk">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Booking Events</div>
+    <div class="ch-header"><div class="ch-head-label">SMS</div><div class="ch-head-label">Email</div></div>
+    <div class="notif-row">
+      <div class="notif-label">New Booking</div>
+      <div class="notif-channels">
+        <label class="toggle"><input type="checkbox" id="new-booking-sms"><span class="slider"></span></label>
+        <label class="toggle"><input type="checkbox" id="new-booking-email"><span class="slider"></span></label>
+      </div>
+    </div>
+    <div class="notif-row">
+      <div class="notif-label">Cancellation</div>
+      <div class="notif-channels">
+        <label class="toggle"><input type="checkbox" id="cancel-sms"><span class="slider"></span></label>
+        <label class="toggle"><input type="checkbox" id="cancel-email"><span class="slider"></span></label>
+      </div>
+    </div>
+    <div class="notif-row">
+      <div class="notif-label">No-Show</div>
+      <div class="notif-channels">
+        <label class="toggle"><input type="checkbox" id="noshow-sms"><span class="slider"></span></label>
+        <label class="toggle"><input type="checkbox" id="noshow-email"><span class="slider"></span></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Call Events</div>
+    <div class="ch-header"><div class="ch-head-label">SMS</div><div class="ch-head-label">Email</div></div>
+    <div class="notif-row">
+      <div class="notif-label">Missed Call</div>
+      <div class="notif-channels">
+        <label class="toggle"><input type="checkbox" id="missed-sms"><span class="slider"></span></label>
+        <label class="toggle"><input type="checkbox" id="missed-email"><span class="slider"></span></label>
+      </div>
+    </div>
+    <div class="notif-row">
+      <div class="notif-label">Voicemail Left</div>
+      <div class="notif-channels">
+        <label class="toggle"><input type="checkbox" id="vm-sms"><span class="slider"></span></label>
+        <label class="toggle"><input type="checkbox" id="vm-email"><span class="slider"></span></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Reports &amp; Summaries</div>
+    <div class="row">
+      <div><div class="row-label">Daily Summary Email</div><div class="row-sub">End-of-day bookings and call recap</div></div>
+      <label class="toggle" style="width:42px;height:24px"><input type="checkbox" id="daily-summary"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Daily Summary Time</div></div>
+      <input type="time" id="daily-time">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Weekly Report Email</div><div class="row-sub">Weekly analytics digest</div></div>
+      <label class="toggle" style="width:42px;height:24px"><input type="checkbox" id="weekly-report"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Weekly Report Day</div></div>
+      <select id="weekly-day">
+        <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+        <option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Low Availability Alert</div><div class="row-sub">Alert when schedule is nearly full</div></div>
+      <label class="toggle" style="width:42px;height:24px"><input type="checkbox" id="low-avail"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Low Availability Threshold (%)</div></div>
+      <input type="number" id="low-avail-pct" min="5" max="50">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Staff Notifications</div>
+    <div class="ch-header"><div class="ch-head-label">SMS</div><div class="ch-head-label">Email</div></div>
+    <div class="notif-row">
+      <div class="notif-label">Staff Notification</div>
+      <div class="notif-channels">
+        <label class="toggle"><input type="checkbox" id="staff-sms"><span class="slider"></span></label>
+        <label class="toggle"><input type="checkbox" id="staff-email"><span class="slider"></span></label>
+      </div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Notification Preferences</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+
+  async function load() {
+    data = await fetch('/api/settings/notification-prefs-cfg').then(r => r.json());
+    document.getElementById('notif-email').value = data.notification_email || '';
+    document.getElementById('notif-phone').value = data.notification_phone || '';
+    document.getElementById('sms-sender').value = data.sms_sender_name || 'RingDesk';
+    document.getElementById('new-booking-sms').checked = data.new_booking_sms;
+    document.getElementById('new-booking-email').checked = data.new_booking_email;
+    document.getElementById('cancel-sms').checked = data.cancellation_sms;
+    document.getElementById('cancel-email').checked = data.cancellation_email;
+    document.getElementById('noshow-sms').checked = data.no_show_sms;
+    document.getElementById('noshow-email').checked = data.no_show_email;
+    document.getElementById('missed-sms').checked = data.missed_call_sms;
+    document.getElementById('missed-email').checked = data.missed_call_email;
+    document.getElementById('vm-sms').checked = data.voicemail_sms;
+    document.getElementById('vm-email').checked = data.voicemail_email;
+    document.getElementById('daily-summary').checked = data.daily_summary_email;
+    document.getElementById('daily-time').value = data.daily_summary_time;
+    document.getElementById('weekly-report').checked = data.weekly_report_email;
+    document.getElementById('weekly-day').value = data.weekly_report_day;
+    document.getElementById('low-avail').checked = data.low_availability_alert;
+    document.getElementById('low-avail-pct').value = data.low_availability_threshold_pct;
+    document.getElementById('staff-sms').checked = data.staff_notification_sms;
+    document.getElementById('staff-email').checked = data.staff_notification_email;
+  }
+
+  async function save() {
+    const payload = {
+      ...data,
+      notification_email: document.getElementById('notif-email').value,
+      notification_phone: document.getElementById('notif-phone').value,
+      sms_sender_name: document.getElementById('sms-sender').value,
+      new_booking_sms: document.getElementById('new-booking-sms').checked,
+      new_booking_email: document.getElementById('new-booking-email').checked,
+      cancellation_sms: document.getElementById('cancel-sms').checked,
+      cancellation_email: document.getElementById('cancel-email').checked,
+      no_show_sms: document.getElementById('noshow-sms').checked,
+      no_show_email: document.getElementById('noshow-email').checked,
+      missed_call_sms: document.getElementById('missed-sms').checked,
+      missed_call_email: document.getElementById('missed-email').checked,
+      voicemail_sms: document.getElementById('vm-sms').checked,
+      voicemail_email: document.getElementById('vm-email').checked,
+      daily_summary_email: document.getElementById('daily-summary').checked,
+      daily_summary_time: document.getElementById('daily-time').value,
+      weekly_report_email: document.getElementById('weekly-report').checked,
+      weekly_report_day: document.getElementById('weekly-day').value,
+      low_availability_alert: document.getElementById('low-avail').checked,
+      low_availability_threshold_pct: parseInt(document.getElementById('low-avail-pct').value) || 20,
+      staff_notification_sms: document.getElementById('staff-sms').checked,
+      staff_notification_email: document.getElementById('staff-email').checked,
+    };
+    await fetch('/api/settings/notification-prefs-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

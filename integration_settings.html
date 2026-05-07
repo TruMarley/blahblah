@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Integration Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .integrations-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    .int-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .int-header { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; }
+    .int-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 900; flex-shrink: 0; }
+    .int-name { font-size: .95rem; font-weight: 800; }
+    .int-desc { font-size: .72rem; color: var(--muted); }
+    .status-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .status-pill { font-size: .65rem; font-weight: 800; padding: .18rem .5rem; border-radius: 20px; }
+    .status-connected { background: rgba(52,211,153,.12); color: var(--green); }
+    .status-disconnected { background: rgba(248,113,113,.12); color: var(--red); }
+    .status-pending { background: rgba(251,191,36,.12); color: var(--yellow); }
+    .field-group { margin-bottom: .75rem; }
+    .field-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .3rem; display: block; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .8rem; padding: .42rem .65rem; font-family: inherit; width: 100%; outline: none; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; }
+    .toggle-label { font-size: .8rem; color: var(--muted); }
+    .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #222; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .slider:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: rgba(167,139,250,.3); }
+    input:checked + .slider:before { transform: translateX(16px); background: var(--accent); }
+    .save-btn { font-size: .78rem; font-weight: 800; padding: .45rem 1rem; border-radius: 8px; border: 1px solid rgba(167,139,250,.35); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; width: 100%; }
+    .save-btn:hover { background: rgba(167,139,250,.2); }
+    .saved-msg { font-size: .72rem; color: var(--green); font-weight: 700; text-align: center; min-height: 1.1em; margin-top: .4rem; }
+    @media (max-width: 600px) { .integrations-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Integration Settings</div>
+  <p class="page-sub">Connect RingDesk with your existing tools — payments, calendar, email, and automation platforms.</p>
+  <div class="integrations-grid" id="int-grid">
+    <div style="color:var(--muted);font-size:.85rem;grid-column:1/-1;text-align:center;padding:2rem;">Loading...</div>
+  </div>
+</div>
+<script>
+  const INTEGRATIONS = [
+    { key: 'square',         connKey: 'square_connected',          icon: '◼', bg: '#fff',                                          name: 'Square',          desc: 'Payments & POS sync' },
+    { key: 'google_calendar',connKey: 'google_calendar_connected',  icon: '📅', bg: 'linear-gradient(135deg,#4285f4,#34a853)',      name: 'Google Calendar', desc: 'Two-way booking sync' },
+    { key: 'mailchimp',      connKey: 'mailchimp_connected',        icon: '✉️', bg: 'linear-gradient(135deg,#ffe01b,#ffa500)',      name: 'Mailchimp',       desc: 'Email marketing lists' },
+    { key: 'zapier',         connKey: 'zapier_webhook_url',         icon: '⚡', bg: 'linear-gradient(135deg,#ff4a00,#ff8c00)',      name: 'Zapier',          desc: 'Workflow automation', isUrl: true },
+    { key: 'stripe',         connKey: 'stripe_connected',           icon: '💳', bg: 'linear-gradient(135deg,#635bff,#a78bfa)',      name: 'Stripe',          desc: 'Subscription billing' },
+  ];
+
+  let settings = {};
+
+  async function load() {
+    const r = await fetch('/api/integration-settings');
+    settings = await r.json();
+    renderGrid();
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById('int-grid');
+    grid.innerHTML = '';
+    INTEGRATIONS.forEach(int => {
+      const rawVal = settings[int.connKey];
+      const isConnected = int.isUrl ? !!rawVal : !!rawVal;
+      const statusCls = isConnected ? 'status-connected' : 'status-disconnected';
+      const statusTxt = isConnected ? 'Connected' : 'Disconnected';
+      const inputVal = int.isUrl ? (rawVal || '') : '';
+      const card = document.createElement('div');
+      card.className = 'int-card';
+      card.innerHTML = `
+        <div class="int-header">
+          <div class="int-icon" style="background:${int.bg}">${int.icon}</div>
+          <div><div class="int-name">${int.name}</div><div class="int-desc">${int.desc}</div></div>
+        </div>
+        <div class="status-row">
+          <span style="font-size:.75rem;color:var(--muted)">Status</span>
+          <span class="status-pill ${statusCls}">${statusTxt}</span>
+        </div>
+        ${int.isUrl ? `<div class="field-group"><label class="field-label">Webhook URL</label><input class="f-input" type="text" id="val-${int.key}" value="${esc(inputVal)}" placeholder="https://hooks.zapier.com/..."></div>` : `<div class="field-group"><label class="field-label">API Key / Token</label><input class="f-input" type="password" id="val-${int.key}" value="" placeholder="Enter key to connect"></div>`}
+        <div class="toggle-row">
+          <span class="toggle-label">Mark as connected</span>
+          <label class="toggle"><input type="checkbox" id="chk-${int.key}" ${isConnected ? 'checked' : ''}><span class="slider"></span></label>
+        </div>
+        <button class="save-btn" onclick="saveInt('${int.key}','${int.connKey}','${int.isUrl||false}')">Save ${int.name}</button>
+        <div class="saved-msg" id="msg-${int.key}"></div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  async function saveInt(key, connKey, isUrl) {
+    const chk = document.getElementById('chk-' + key).checked;
+    if (isUrl === 'true') {
+      settings[connKey] = document.getElementById('val-' + key).value;
+    } else {
+      settings[connKey] = chk;
+    }
+    await fetch('/api/integration-settings', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(settings) });
+    const msg = document.getElementById('msg-' + key);
+    msg.textContent = '✓ Saved';
+    setTimeout(() => { msg.textContent = ''; load(); }, 1500);
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

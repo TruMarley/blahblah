@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Segments — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; --gold: #f59e0b; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .segments-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+    .seg-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; position: relative; overflow: hidden; transition: border-color .15s; }
+    .seg-card:hover { border-color: #333; }
+    .seg-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0; }
+    .seg-card.vip::before     { background: var(--gold); }
+    .seg-card.regular::before { background: var(--green); }
+    .seg-card.new::before     { background: var(--accent); }
+    .seg-card.atrisk::before  { background: var(--yellow); }
+    .seg-card.lapsed::before  { background: var(--red); }
+    .seg-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.1rem; }
+    .seg-name { font-size: 1rem; font-weight: 900; letter-spacing: -.02em; }
+    .seg-badge { font-size: .78rem; font-weight: 900; padding: .25rem .65rem; border-radius: 99px; }
+    .vip .seg-badge     { background: rgba(245,158,11,.12); color: var(--gold); border: 1px solid rgba(245,158,11,.25); }
+    .regular .seg-badge { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .new .seg-badge     { background: rgba(167,139,250,.12); color: var(--accent); border: 1px solid rgba(167,139,250,.25); }
+    .atrisk .seg-badge  { background: rgba(251,191,36,.12); color: var(--yellow); border: 1px solid rgba(251,191,36,.25); }
+    .lapsed .seg-badge  { background: rgba(248,113,113,.12); color: var(--red); border: 1px solid rgba(248,113,113,.25); }
+    .seg-stats { display: flex; gap: 1.5rem; margin-bottom: 1.25rem; }
+    .seg-stat-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .2rem; }
+    .seg-stat-value { font-size: 1.15rem; font-weight: 900; letter-spacing: -.03em; }
+    .seg-link { display: inline-block; font-size: .75rem; font-weight: 700; color: var(--muted); text-decoration: none; border: 1px solid var(--border); padding: .3rem .75rem; border-radius: 7px; transition: all .15s; }
+    .seg-link:hover { color: var(--text); border-color: #3e3e3e; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Segments</div>
+  <p class="page-sub">Your client base broken into behavioral groups for targeted outreach.</p>
+  <div class="segments-grid" id="grid"></div>
+</div>
+<script>
+  const META = {
+    VIP:      { cls: 'vip',     desc: '10+ lifetime visits', icon: '👑' },
+    Regular:  { cls: 'regular', desc: '3–9 visits, still active', icon: '✂️' },
+    New:      { cls: 'new',     desc: '1–2 visits, needs nurturing', icon: '🌱' },
+    'At-Risk':{ cls: 'atrisk',  desc: 'No visit in 60–179 days', icon: '⚠️' },
+    Lapsed:   { cls: 'lapsed',  desc: 'No visit in 180+ days', icon: '💤' },
+  };
+
+  async function load() {
+    const r = await fetch('/api/clients/segments');
+    const d = await r.json();
+    document.getElementById('grid').innerHTML = (d.segments || []).map(s => {
+      const m = META[s.segment] || { cls: 'new', desc: '', icon: '👤' };
+      return `<div class="seg-card ${m.cls}">
+        <div class="seg-header">
+          <div class="seg-name">${m.icon} ${s.segment}</div>
+          <div class="seg-badge">${s.count} clients</div>
+        </div>
+        <div class="seg-stats">
+          <div>
+            <div class="seg-stat-label">Avg Revenue</div>
+            <div class="seg-stat-value">$${(s.avg_revenue||0).toFixed(0)}</div>
+          </div>
+          <div>
+            <div class="seg-stat-label">Avg Visits</div>
+            <div class="seg-stat-value">${(s.avg_visits||0).toFixed(1)}</div>
+          </div>
+        </div>
+        <a class="seg-link" href="/clients?segment=${encodeURIComponent(s.segment)}">View Clients →</a>
+      </div>`;
+    }).join('');
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMS Engagement — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .funnel-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+    .f-label { font-size: .78rem; width: 90px; flex-shrink: 0; }
+    .f-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 12px; overflow: hidden; }
+    .f-fill { height: 100%; border-radius: 4px; }
+    .f-val { font-size: .73rem; font-weight: 700; width: 45px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">SMS Engagement</div>
+  <p class="page-sub">Track the full SMS funnel from delivery to booking. Low open rates flag delivery or content issues; low click rates flag weak calls-to-action.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-sent" style="color:var(--accent)">—</div><div class="stat-lbl">Sent (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-open" style="color:var(--green)">—</div><div class="stat-lbl">Open Rate</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-book" style="color:var(--yellow)">—</div><div class="stat-lbl">Bookings</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-optout" style="color:var(--red)">—</div><div class="stat-lbl">Opt-Out Rate</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Engagement Funnel</div>
+    <div id="funnel-list"></div>
+    <div style="font-size:.72rem;color:var(--muted);margin-top:.9rem">Revenue from SMS: <span id="h-rev" style="color:var(--green);font-weight:800"></span></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/sms-engagement-stats').then(r => r.json());
+    document.getElementById('h-sent').textContent = d.sms_sent_30d;
+    document.getElementById('h-open').textContent = d.open_rate_pct.toFixed(1) + '%';
+    document.getElementById('h-book').textContent = d.bookings_from_sms_30d;
+    document.getElementById('h-optout').textContent = d.opt_out_rate_pct.toFixed(1) + '%';
+    document.getElementById('h-rev').textContent = '$' + d.revenue_from_sms_30d.toLocaleString();
+    const fl = document.getElementById('funnel-list');
+    const steps = [
+      { label: 'Delivered', pct: d.delivery_rate_pct, color: 'var(--accent)' },
+      { label: 'Opened', pct: d.open_rate_pct, color: 'var(--green)' },
+      { label: 'Clicked', pct: d.click_rate_pct, color: 'var(--yellow)' },
+    ];
+    steps.forEach(s => {
+      fl.innerHTML += '<div class="funnel-row"><div class="f-label">' + s.label + '</div><div class="f-track"><div class="f-fill" style="width:' + s.pct + '%;background:' + s.color + '"></div></div><div class="f-val" style="color:' + s.color + '">' + s.pct.toFixed(1) + '%</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

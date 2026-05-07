@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Spend Distribution — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2.2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .hbar-row { display: flex; align-items: center; gap: .85rem; margin-bottom: .85rem; }
+    .hbar-row:last-child { margin-bottom: 0; }
+    .hbar-label { font-size: .82rem; font-weight: 700; width: 90px; flex-shrink: 0; }
+    .hbar-track { flex: 1; background: var(--surface2); border-radius: 5px; height: 24px; overflow: hidden; }
+    .hbar-fill { height: 100%; border-radius: 5px; background: var(--accent); opacity: .75; transition: width .5s ease; }
+    .hbar-stats { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; width: 72px; }
+    .hbar-count { font-size: .78rem; font-weight: 800; color: var(--accent); }
+    .hbar-pct { font-size: .7rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Spend Distribution</div>
+  <p class="page-sub">How total client spend is distributed — from one-time visitors to high-value regulars.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Median Client Spend</div>
+      <div class="hero-val" style="color:var(--accent)" id="h-median">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total Clients</div>
+      <div class="hero-val" id="h-total">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Spend Buckets</div>
+    <div id="bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/client-spend-distribution');
+    const d = await r.json();
+    document.getElementById('h-median').textContent = '$' + (d.median_spend||0);
+    document.getElementById('h-total').textContent = (d.total_clients||0).toLocaleString();
+
+    const buckets = d.buckets || [];
+    const maxCount = Math.max(...buckets.map(b=>b.count), 1);
+    document.getElementById('bars').innerHTML = buckets.map(b => `
+      <div class="hbar-row">
+        <div class="hbar-label">${esc(b.label)}</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:${(b.count/maxCount*100).toFixed(1)}%"></div></div>
+        <div class="hbar-stats">
+          <div class="hbar-count">${b.count}</div>
+          <div class="hbar-pct">${b.pct}%</div>
+        </div>
+      </div>`).join('');
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Announcement Banner — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .layout { display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; align-items: start; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.35rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: .72rem; color: var(--muted); font-weight: 700; margin-bottom: .4rem; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: .85rem; font-family: inherit; padding: .65rem .85rem; border-radius: 8px; outline: none; resize: vertical; min-height: 72px; transition: border-color .15s; }
+    textarea:focus { border-color: rgba(167,139,250,.5); }
+    .type-btns { display: flex; gap: .5rem; margin-top: .4rem; }
+    .type-btn { font-size: .75rem; font-weight: 800; padding: .3rem .85rem; border-radius: 99px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-family: inherit; transition: all .15s; }
+    .type-btn.active-info    { background: rgba(96,165,250,.12); border-color: rgba(96,165,250,.35); color: #60a5fa; }
+    .type-btn.active-warning { background: rgba(251,191,36,.1);  border-color: rgba(251,191,36,.3);  color: #fbbf24; }
+    .type-btn.active-success { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.3);  color: #34d399; }
+    .toggle-row { display: flex; align-items: center; gap: .85rem; }
+    .toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top:0; left:0; right:0; bottom:0; background: var(--surface2); border-radius: 22px; transition: .2s; border: 1px solid var(--border); }
+    .slider:before { position: absolute; content:""; height:16px; width:16px; left:2px; bottom:2px; background: var(--muted); border-radius:50%; transition:.2s; }
+    input:checked + .slider { background: rgba(52,211,153,.15); border-color: rgba(52,211,153,.35); }
+    input:checked + .slider:before { transform: translateX(18px); background: var(--green); }
+    .toggle-label { font-size: .82rem; font-weight: 700; }
+    .save-btn { background: var(--accent); border: none; color: #000; font-size: .85rem; font-weight: 900; padding: .6rem 1.5rem; border-radius: 9px; cursor: pointer; font-family: inherit; margin-top: .5rem; transition: opacity .15s; }
+    .save-btn:hover { opacity: .85; }
+    .save-msg { font-size: .78rem; color: var(--green); font-weight: 700; display: none; margin-left: .75rem; }
+    .save-msg.show { display: inline; }
+    /* Preview */
+    .preview-shell { background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .preview-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; padding: .85rem 1rem .4rem; }
+    .preview-bar { padding: .6rem 1rem; font-size: .8rem; font-weight: 700; transition: all .2s; }
+    .bar-info    { background: rgba(96,165,250,.15); color: #60a5fa; border-bottom: 1px solid rgba(96,165,250,.2); }
+    .bar-warning { background: rgba(251,191,36,.12); color: #fbbf24; border-bottom: 1px solid rgba(251,191,36,.2); }
+    .bar-success { background: rgba(52,211,153,.12); color: #34d399; border-bottom: 1px solid rgba(52,211,153,.2); }
+    .preview-site { padding: 1.25rem 1rem; }
+    .mock-line { height: 10px; background: #1a1a1a; border-radius: 5px; margin-bottom: .6rem; }
+    .disabled-notice { text-align: center; font-size: .75rem; color: var(--muted); padding: .5rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Announcement Banner</div>
+  <p class="page-sub">Show a banner at the top of your booking page — ideal for promotions, closures, or updates.</p>
+  <div class="layout">
+    <div class="card">
+      <div class="card-title">Banner Settings</div>
+      <div class="form-group">
+        <div class="toggle-row">
+          <label class="toggle"><input type="checkbox" id="f-active" onchange="updatePreview()"><span class="slider"></span></label>
+          <div class="toggle-label" id="active-label">Banner Enabled</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea id="f-message" oninput="updatePreview()"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <div class="type-btns">
+          <button class="type-btn" data-type="info" onclick="selectType('info',this)">Info</button>
+          <button class="type-btn" data-type="warning" onclick="selectType('warning',this)">Warning</button>
+          <button class="type-btn" data-type="success" onclick="selectType('success',this)">Success</button>
+        </div>
+      </div>
+      <button class="save-btn" onclick="save()">Save Banner</button>
+      <span class="save-msg" id="save-msg">✓ Saved!</span>
+    </div>
+    <div>
+      <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem">Live Preview</div>
+      <div class="preview-shell">
+        <div class="preview-label">Your Booking Page</div>
+        <div id="preview-bar"></div>
+        <div class="preview-site">
+          <div class="mock-line" style="width:60%"></div>
+          <div class="mock-line" style="width:85%"></div>
+          <div class="mock-line" style="width:45%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  let currentType = 'info';
+
+  function selectType(type, btn) {
+    currentType = type;
+    document.querySelectorAll('.type-btn').forEach(b => {
+      b.className = 'type-btn';
+      if (b.dataset.type === type) b.classList.add('active-' + type);
+    });
+    updatePreview();
+  }
+
+  function updatePreview() {
+    const active  = document.getElementById('f-active').checked;
+    const msg     = document.getElementById('f-message').value || 'Your message here…';
+    const preview = document.getElementById('preview-bar');
+    document.getElementById('active-label').textContent = active ? 'Banner Enabled' : 'Banner Disabled';
+    if (!active) { preview.innerHTML = '<div class="disabled-notice">Banner is hidden</div>'; return; }
+    preview.innerHTML = `<div class="preview-bar bar-${currentType}">${esc(msg)}</div>`;
+  }
+
+  async function load() {
+    const r = await fetch('/api/announcement-banner');
+    const d = await r.json();
+    document.getElementById('f-active').checked  = d.active;
+    document.getElementById('f-message').value   = d.message || '';
+    currentType = d.type || 'info';
+    document.querySelectorAll('.type-btn').forEach(b => {
+      b.className = 'type-btn';
+      if (b.dataset.type === currentType) b.classList.add('active-' + currentType);
+    });
+    updatePreview();
+  }
+
+  async function save() {
+    await fetch('/api/announcement-banner', {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        message: document.getElementById('f-message').value,
+        active:  document.getElementById('f-active').checked,
+        type:    currentType,
+      })
+    });
+    const msg = document.getElementById('save-msg');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2000);
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

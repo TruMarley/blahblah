@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Spend — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .bracket-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .85rem; }
+    .bracket-row:last-child { margin-bottom: 0; }
+    .bracket-label { font-size: .82rem; font-weight: 700; min-width: 88px; }
+    .bracket-bar-wrap { flex: 1; height: 10px; background: var(--surface2); border-radius: 10px; }
+    .bracket-bar { height: 10px; border-radius: 10px; }
+    .bracket-meta { font-size: .75rem; min-width: 90px; text-align: right; }
+    .monthly-wrap { overflow-x: auto; }
+    .monthly-table { width: 100%; border-collapse: collapse; }
+    .monthly-table th { font-size: .62rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: .3rem .5rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .monthly-table td { font-size: .8rem; padding: .52rem .5rem; border-bottom: 1px solid rgba(30,30,30,.6); }
+    .monthly-table tr:last-child td { border-bottom: none; }
+    .insight-box { background: rgba(167,139,250,.07); border: 1px solid rgba(167,139,250,.18); border-radius: 10px; padding: .85rem 1rem; margin-top: 1rem; font-size: .78rem; color: var(--text); line-height: 1.6; }
+    .insight-box strong { color: var(--accent); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Spend</div>
+  <p class="page-sub">Understand how much clients spend per visit and per month. Identify high-value client segments and revenue trends to guide upsell opportunities and promotional targeting.</p>
+
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg / Visit</div>
+      <div class="hero-val" id="h-visit" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg / Client / Mo</div>
+      <div class="hero-val" id="h-monthly" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Top Spender Avg</div>
+      <div class="hero-val" id="h-top" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Spend Distribution by Bracket</div>
+    <div id="bracket-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Avg Spend &amp; Revenue</div>
+    <div class="monthly-wrap">
+      <table class="monthly-table">
+        <thead><tr><th>Month</th><th>Avg Spend / Visit</th><th>Total Revenue</th></tr></thead>
+        <tbody id="monthly-table"></tbody>
+      </table>
+    </div>
+    <div class="insight-box" id="insight-box"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/client-spend-stats').then(r => r.json());
+    document.getElementById('h-visit').textContent = d.avg_spend_per_visit != null ? '$' + d.avg_spend_per_visit.toFixed(2) : '—';
+    document.getElementById('h-monthly').textContent = d.avg_spend_per_client_monthly != null ? '$' + d.avg_spend_per_client_monthly.toFixed(2) : '—';
+    document.getElementById('h-top').textContent = d.top_spender_avg != null ? '$' + d.top_spender_avg.toFixed(2) : '—';
+
+    const brackets = d.spend_brackets || [];
+    const maxPct = Math.max(...brackets.map(b => b.pct), 1);
+    const bEl = document.getElementById('bracket-list');
+    brackets.forEach(b => {
+      const w = (b.pct / maxPct * 100).toFixed(1);
+      bEl.innerHTML += `<div class="bracket-row">
+        <div class="bracket-label" style="color:${b.color}">${esc(b.bracket)}</div>
+        <div class="bracket-bar-wrap"><div class="bracket-bar" style="width:${w}%;background:${b.color}"></div></div>
+        <div class="bracket-meta" style="color:${b.color}">${b.clients} clients <span style="color:var(--muted)">(${b.pct}%)</span></div>
+      </div>`;
+    });
+
+    const monthly = d.monthly || [];
+    const tEl = document.getElementById('monthly-table');
+    monthly.forEach(m => {
+      tEl.innerHTML += `<tr>
+        <td>${esc(m.month)}</td>
+        <td style="font-weight:700;color:var(--accent)">$${m.avg_spend.toFixed(2)}</td>
+        <td style="font-weight:700;color:var(--green)">$${(m.total_revenue||0).toLocaleString()}</td>
+      </tr>`;
+    });
+
+    const maxRev = Math.max(...monthly.map(m => m.total_revenue), 1);
+    const peakMonth = monthly.reduce((b, m) => m.total_revenue > (b ? b.total_revenue : 0) ? m : b, null);
+    const topBracket = brackets.reduce((b, br) => br.pct > (b ? b.pct : 0) ? br : b, null);
+    document.getElementById('insight-box').innerHTML =
+      `Your average visit spend is <strong>$${d.avg_spend_per_visit.toFixed(2)}</strong>. ` +
+      (topBracket ? `The <strong>${esc(topBracket.bracket)}</strong> bracket contains <strong>${topBracket.pct}%</strong> of clients. ` : '') +
+      (peakMonth ? `Revenue peaked in <strong>${esc(peakMonth.month)}</strong> at <strong>$${peakMonth.total_revenue.toLocaleString()}</strong>. ` : '') +
+      `Top spenders average <strong>$${d.top_spender_avg.toFixed(2)}</strong> per visit — targeted promotions for mid-tier clients in the $50–$100 bracket can lift them into the next bracket and significantly increase LTV.`;
+  }
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

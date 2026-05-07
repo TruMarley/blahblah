@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monthly Revenue — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-grid { display: grid; grid-template-columns: repeat(12,1fr); gap: .3rem; align-items: flex-end; }
+    .chart-col { display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+    .chart-bar-wrap { width: 100%; display: flex; flex-direction: column; justify-content: flex-end; height: 130px; }
+    .chart-bar { width: 100%; border-radius: 3px 3px 0 0; min-height: 4px; }
+    .chart-label { font-size: .55rem; color: var(--muted); text-align: center; }
+    .chart-val { font-size: .58rem; color: var(--text); font-weight: 700; text-align: center; }
+    .breakdown-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .6rem; }
+    .breakdown-label { font-size: .8rem; width: 120px; flex-shrink: 0; }
+    .breakdown-bar-wrap { flex: 1; background: var(--surface2); border-radius: 5px; height: 20px; overflow: hidden; }
+    .breakdown-bar { height: 100%; border-radius: 5px; }
+    .breakdown-val { font-size: .75rem; font-weight: 700; width: 60px; text-align: right; flex-shrink: 0; }
+    .month-table { width: 100%; border-collapse: collapse; font-size: .75rem; }
+    .month-table th { color: var(--muted); font-weight: 600; text-align: left; padding: .4rem .5rem; border-bottom: 1px solid var(--border); font-size: .65rem; text-transform: uppercase; letter-spacing: .06em; }
+    .month-table td { padding: .45rem .5rem; border-bottom: 1px solid rgba(255,255,255,.04); }
+    .growth-pos { color: var(--green); }
+    .growth-neg { color: var(--red); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Monthly Revenue</div>
+  <p class="page-sub">Track total revenue month by month, broken down by services, retail, and tips. Identify your peak months and growth trajectory.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-ytd" style="color:var(--green)">—</div>
+      <div class="stat-lbl">YTD Revenue</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-avg" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Avg Monthly</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-best" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Best Month</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-yoy" style="color:var(--green)">—</div>
+      <div class="stat-lbl">YoY Growth</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Revenue Chart</div>
+    <div class="chart-grid" id="monthly-chart"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Revenue Breakdown (Latest Month)</div>
+    <div id="breakdown"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Detail</div>
+    <table class="month-table">
+      <thead><tr><th>Month</th><th>Revenue</th><th>Services</th><th>Txns</th><th>Growth</th></tr></thead>
+      <tbody id="month-table-body"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/monthly-revenue-stats').then(r => r.json());
+    document.getElementById('h-ytd').textContent = '$' + (data.total_ytd/1000).toFixed(1) + 'k';
+    document.getElementById('h-avg').textContent = '$' + (data.avg_monthly_revenue/1000).toFixed(1) + 'k';
+    document.getElementById('h-best').textContent = data.best_month;
+    document.getElementById('h-yoy').textContent = '+' + data.yoy_growth_pct.toFixed(1) + '%';
+
+    const monthly = data.monthly || [];
+    const maxRev = Math.max(...monthly.map(m => m.revenue), 1);
+    const chart = document.getElementById('monthly-chart');
+    monthly.forEach(m => {
+      const h = Math.round((m.revenue / maxRev) * 120) + 10;
+      const col = document.createElement('div');
+      col.className = 'chart-col';
+      col.innerHTML = `
+        <div class="chart-bar-wrap"><div class="chart-bar" style="height:${h}px;background:var(--accent);opacity:.8"></div></div>
+        <div class="chart-val">$${(m.revenue/1000).toFixed(1)}k</div>
+        <div class="chart-label">${m.month}</div>
+      `;
+      chart.appendChild(col);
+    });
+
+    const last = monthly[monthly.length - 1];
+    if (last) {
+      const bdEl = document.getElementById('breakdown');
+      const segments = [
+        {label:'Services', val:last.services_revenue, color:'var(--accent)'},
+        {label:'Retail', val:last.retail_revenue, color:'var(--green)'},
+        {label:'Tips', val:last.tips_revenue, color:'var(--yellow)'},
+      ];
+      segments.forEach(s => {
+        const row = document.createElement('div');
+        row.className = 'breakdown-row';
+        row.innerHTML = `
+          <div class="breakdown-label">${s.label}</div>
+          <div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:${(s.val/last.revenue*100).toFixed(1)}%;background:${s.color};opacity:.8"></div></div>
+          <div class="breakdown-val" style="color:${s.color}">$${(s.val/1000).toFixed(1)}k</div>
+        `;
+        bdEl.appendChild(row);
+      });
+    }
+
+    const tbody = document.getElementById('month-table-body');
+    monthly.forEach(m => {
+      const tr = document.createElement('tr');
+      const growthClass = m.growth_pct >= 0 ? 'growth-pos' : 'growth-neg';
+      const growthStr = (m.growth_pct >= 0 ? '+' : '') + m.growth_pct.toFixed(1) + '%';
+      tr.innerHTML = `
+        <td>${m.month}</td>
+        <td>$${(m.revenue/1000).toFixed(1)}k</td>
+        <td>$${(m.services_revenue/1000).toFixed(1)}k</td>
+        <td>${m.transactions}</td>
+        <td class="${growthClass}">${growthStr}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+  load();
+</script>
+</body>
+</html>

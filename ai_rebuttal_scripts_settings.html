@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Rebuttal Scripts — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input:focus { border-color: var(--accent); }
+    .script-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: .9rem 1rem; margin-bottom: .65rem; }
+    .script-card.inactive { opacity: .42; }
+    .script-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: .45rem; gap: .7rem; }
+    .script-trigger { font-size: .78rem; font-weight: 700; flex: 1; color: var(--text); }
+    .type-badge { font-size: .63rem; font-weight: 700; padding: .1rem .4rem; border-radius: 5px; font-family: monospace; white-space: nowrap; }
+    .type-price { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.25); }
+    .type-availability { background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.25); }
+    .type-competitor { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.25); }
+    .type-logistics { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .script-body { font-size: .76rem; color: var(--muted); line-height: 1.55; margin-bottom: .55rem; font-style: italic; }
+    .script-body span { color: var(--accent); font-style: normal; font-weight: 600; }
+    .var-hint { font-size: .63rem; color: var(--muted); margin-top: .25rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Rebuttal Scripts</div>
+  <p class="page-sub">Train your AI to handle common objections — price hesitation, availability conflicts, and competitor comparisons — with natural, pre-approved responses that convert more callers into bookings.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-triggered" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Triggered (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-conversions" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Conversions (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-rate" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Conversion Rate</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Rebuttal Scripts</div><div class="row-sub">AI handles objections with pre-approved responses</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use for Price Objections</div></div>
+      <label class="toggle"><input type="checkbox" id="use-price"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use for Availability Objections</div></div>
+      <label class="toggle"><input type="checkbox" id="use-avail"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use for Competitor Comparisons</div></div>
+      <label class="toggle"><input type="checkbox" id="use-comp"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Rebuttal Attempts</div><div class="row-sub">Before escalating to human</div></div>
+      <input type="number" id="max-attempts" min="1" max="5">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Escalate After Failed Rebuttal</div><div class="row-sub">Transfer to owner if objection unresolved</div></div>
+      <label class="toggle"><input type="checkbox" id="escalate"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Rebuttal Settings</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Rebuttal Scripts</div>
+    <div id="script-list"></div>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  const typeClasses = { price: 'type-price', availability: 'type-availability', competitor: 'type-competitor', logistics: 'type-logistics' };
+  let data = {};
+
+  async function load() {
+    data = await fetch('/api/settings/ai-rebuttal-scripts-cfg').then(r => r.json());
+    document.getElementById('h-triggered').textContent = data.rebuttals_triggered_30d;
+    document.getElementById('h-conversions').textContent = data.successful_conversions_30d;
+    document.getElementById('h-rate').textContent = data.conversion_rate_pct.toFixed(1) + '%';
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('use-price').checked = data.use_for_price_objections;
+    document.getElementById('use-avail').checked = data.use_for_availability_objections;
+    document.getElementById('use-comp').checked = data.use_for_competitor_comparisons;
+    document.getElementById('max-attempts').value = data.max_rebuttal_attempts;
+    document.getElementById('escalate').checked = data.escalate_after_failed_rebuttal;
+
+    const list = document.getElementById('script-list');
+    (data.scripts || []).forEach(s => {
+      const typeClass = typeClasses[s.type] || 'type-logistics';
+      const highlighted = s.response.replace(/\{([^}]+)\}/g, '<span>{$1}</span>');
+      const card = document.createElement('div');
+      card.className = 'script-card' + (s.active ? '' : ' inactive');
+      card.innerHTML = `
+        <div class="script-top">
+          <div class="script-trigger">"${s.trigger}"</div>
+          <span class="type-badge ${typeClass}">${s.type}</span>
+          <label class="toggle"><input type="checkbox" class="script-toggle" data-id="${s.id}" ${s.active?'checked':''}><span class="slider"></span></label>
+        </div>
+        <div class="script-body">${highlighted}</div>
+        <div class="var-hint">Variables in {curly braces} are filled automatically from booking context.</div>
+      `;
+      list.appendChild(card);
+    });
+    list.querySelectorAll('.script-toggle').forEach(cb => cb.addEventListener('change', e => {
+      const s = data.scripts.find(x => x.id === e.target.dataset.id);
+      if (s) s.active = e.target.checked;
+    }));
+  }
+
+  async function save() {
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      use_for_price_objections: document.getElementById('use-price').checked,
+      use_for_availability_objections: document.getElementById('use-avail').checked,
+      use_for_competitor_comparisons: document.getElementById('use-comp').checked,
+      max_rebuttal_attempts: parseInt(document.getElementById('max-attempts').value) || 2,
+      escalate_after_failed_rebuttal: document.getElementById('escalate').checked,
+    };
+    await fetch('/api/settings/ai-rebuttal-scripts-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

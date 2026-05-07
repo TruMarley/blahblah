@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Upsell Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .field-group { margin-bottom: .9rem; }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; display: block; }
+    .field-sub { font-size: .68rem; color: var(--muted); margin-top: .18rem; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .48rem .7rem; font-family: inherit; width: 100%; outline: none; }
+    .f-textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .48rem .7rem; font-family: inherit; width: 100%; outline: none; resize: vertical; min-height: 64px; }
+    .f-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .48rem .7rem; font-family: inherit; width: 100%; outline: none; cursor: pointer; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: .7rem 0; border-bottom: 1px solid var(--border); }
+    .toggle-row:last-of-type { border-bottom: none; }
+    .toggle-label { font-size: .88rem; font-weight: 700; }
+    .toggle-sub { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+    .toggle { position: relative; width: 38px; height: 21px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #222; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .slider:before { content: ''; position: absolute; width: 15px; height: 15px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: rgba(167,139,250,.3); }
+    input:checked + .slider:before { transform: translateX(17px); background: var(--accent); }
+    .upsell-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .75rem 1rem; margin-bottom: .6rem; display: flex; align-items: center; gap: .75rem; }
+    .upsell-name { font-size: .88rem; font-weight: 700; flex: 1; }
+    .upsell-price { font-size: .8rem; color: var(--accent); font-weight: 800; min-width: 3.5rem; text-align: right; }
+    .inline-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-bottom: .9rem; }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.4rem; border-radius: 9px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; width: 100%; margin-top: 1rem; }
+    .save-btn:hover { background: rgba(167,139,250,.2); }
+    .saved-msg { font-size: .75rem; color: var(--green); font-weight: 700; text-align: center; margin-top: .5rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Upsell Settings</div>
+  <p class="page-sub">Configure which add-on services your AI receptionist offers during booking calls — boost average ticket automatically.</p>
+  <div class="card">
+    <div class="card-title">Upsell Behavior</div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Enable Upsells</div><div class="toggle-sub">AI will suggest add-ons during booking calls</div></div>
+      <label class="toggle"><input type="checkbox" id="f-enabled"><span class="slider"></span></label>
+    </div>
+    <div class="field-group" style="margin-top:.9rem">
+      <label class="field-label">Trigger Mode</label>
+      <select class="f-select" id="f-trigger">
+        <option value="post_booking">After booking confirmed</option>
+        <option value="pre_booking">Before confirming booking</option>
+        <option value="on_hold">While caller is on hold</option>
+      </select>
+      <div class="field-sub">When the AI mentions the upsell during the call</div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Max Upsells per Call</label>
+      <input class="f-input" type="number" id="f-max" min="1" max="5" placeholder="2">
+      <div class="field-sub">Limit how many add-ons are offered per call</div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Upsell Script</label>
+      <textarea class="f-textarea" id="f-script" placeholder="Before I confirm your booking, would you like to add..."></textarea>
+      <div class="field-sub">Use {service} and {price} as placeholders</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Active Upsell Items</div>
+    <div id="upsell-list"></div>
+    <button class="save-btn" onclick="save()">Save Upsell Settings</button>
+    <div class="saved-msg" id="saved-msg"></div>
+  </div>
+</div>
+<script>
+  let data = {};
+  async function load() {
+    const r = await fetch('/api/upsell-settings');
+    data = await r.json();
+    document.getElementById('f-enabled').checked = !!data.enabled;
+    document.getElementById('f-trigger').value = data.trigger_mode || 'post_booking';
+    document.getElementById('f-max').value = data.max_upsells_per_call || 2;
+    document.getElementById('f-script').value = data.upsell_script || '';
+    renderItems();
+  }
+  function renderItems() {
+    const list = document.getElementById('upsell-list');
+    list.innerHTML = (data.upsells || []).map((u, i) => `
+      <div class="upsell-item">
+        <label class="toggle" title="Active">
+          <input type="checkbox" ${u.active?'checked':''} onchange="toggleItem(${i},this.checked)">
+          <span class="slider"></span>
+        </label>
+        <div class="upsell-name">${esc(u.name)}</div>
+        <div class="upsell-price">$${(u.price_cents/100).toFixed(2)}</div>
+      </div>
+    `).join('');
+  }
+  function toggleItem(i, checked) { data.upsells[i].active = checked; }
+  async function save() {
+    data.enabled = document.getElementById('f-enabled').checked;
+    data.trigger_mode = document.getElementById('f-trigger').value;
+    data.max_upsells_per_call = parseInt(document.getElementById('f-max').value) || 2;
+    data.upsell_script = document.getElementById('f-script').value.trim();
+    await fetch('/api/upsell-settings', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const msg = document.getElementById('saved-msg');
+    msg.textContent = '✓ Saved';
+    setTimeout(() => { msg.textContent = ''; }, 2000);
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Volume by Day — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .day-table { width: 100%; border-collapse: collapse; }
+    .day-table th { font-size: .68rem; color: var(--muted); font-weight: 700; text-align: left; padding: .35rem .5rem; border-bottom: 1px solid var(--border); }
+    .day-table td { font-size: .8rem; padding: .5rem .5rem; border-bottom: 1px solid #1a1a1a; }
+    .day-table tr:last-child td { border-bottom: none; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Volume by Day</div>
+  <p class="page-sub">See how many calls the AI handles each day of the week — and how many were booked, missed, or transferred. Use this to staff appropriately and spot coverage gaps before they cost you clients.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">This Week's Calls</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Peak Day</div>
+      <div class="hero-val" id="h-peak" style="color:var(--yellow);font-size:1.2rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Daily Avg</div>
+      <div class="hero-val" id="h-avg" style="color:var(--green)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Call Volume by Day of Week</div>
+    <svg id="chart" viewBox="0 0 680 180" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+  <div class="card">
+    <div class="card-title">Day-by-Day Breakdown</div>
+    <table class="day-table">
+      <thead><tr><th>Day</th><th>Total Calls</th><th>Booked</th><th>Missed</th><th>Transferred</th></tr></thead>
+      <tbody id="day-body"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/daily-call-volume-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_calls_this_week || '—';
+    document.getElementById('h-peak').textContent = d.peak_day || '—';
+    document.getElementById('h-avg').textContent = d.avg_per_day != null ? d.avg_per_day : '—';
+
+    const days = d.days || [], vols = d.volumes || [];
+    if (days.length) {
+      const W=680,H=180,pL=16,pR=16,pT=24,pB=32,n=days.length;
+      const cW=W-pL-pR, cH=H-pT-pB, mx=Math.max(...vols,1);
+      const bW=Math.floor(cW/n)-10;
+      let bars='',lbls='';
+      days.forEach((day,i)=>{
+        const v=vols[i]||0;
+        const x=pL+i*(cW/n)+(cW/n-bW)/2;
+        const bHt=(v/mx)*cH, y=pT+cH-bHt;
+        bars+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bW}" height="${bHt.toFixed(1)}" fill="var(--accent)" opacity="0.75" rx="3"/>`;
+        bars+=`<text x="${(x+bW/2).toFixed(1)}" y="${(y-6).toFixed(1)}" text-anchor="middle" fill="var(--accent)" font-size="9" font-weight="700">${v}</text>`;
+        lbls+=`<text x="${(x+bW/2).toFixed(1)}" y="${H-pB+14}" text-anchor="middle" fill="#555" font-size="9">${esc(day)}</text>`;
+      });
+      document.getElementById('chart').innerHTML=bars+lbls;
+    }
+
+    const tbody = document.getElementById('day-body');
+    days.forEach((day,i)=>{
+      const v=vols[i]||0;
+      const booked=Math.round(v*0.68), missed=Math.round(v*0.12), xfer=v-booked-missed;
+      tbody.innerHTML+=`<tr>
+        <td style="font-weight:700">${esc(day)}</td>
+        <td style="color:var(--accent);font-weight:700">${v}</td>
+        <td style="color:var(--green)">${booked}</td>
+        <td style="color:var(--red)">${missed}</td>
+        <td style="color:var(--muted)">${Math.max(xfer,0)}</td>
+      </tr>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

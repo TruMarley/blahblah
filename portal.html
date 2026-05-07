@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Appointments — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 1.5rem; height: 58px; gap: 1rem; }
+    .logo { font-size: 1.15rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+
+    .center { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 3rem 1.25rem 5rem; }
+    .wrap { width: 100%; max-width: 500px; }
+
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .35rem; }
+    .page-sub { font-size: .82rem; color: var(--muted); margin-bottom: 2rem; line-height: 1.6; }
+
+    /* Lookup card */
+    .lookup-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.75rem; margin-bottom: 1.5rem; }
+    .lookup-card label { display: block; font-size: .75rem; font-weight: 600; color: var(--muted); margin-bottom: .4rem; }
+    .input-row { display: flex; gap: .75rem; }
+    .input-row input { flex: 1; background: #0d0d0d; border: 1px solid var(--border); color: var(--text); font-size: .9rem; padding: .65rem .9rem; border-radius: 9px; outline: none; font-family: inherit; }
+    .input-row input::placeholder { color: #444; }
+    .input-row input:focus { border-color: var(--accent); }
+    .btn { padding: .65rem 1.25rem; border-radius: 9px; font-size: .85rem; font-weight: 700; border: none; cursor: pointer; transition: opacity .15s; white-space: nowrap; }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-accent:hover { opacity: .85; }
+    .btn-accent:disabled { opacity: .45; cursor: default; }
+
+    /* Results */
+    .results { display: none; }
+    .results.show { display: block; }
+    .result-header { font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .09em; margin-bottom: .75rem; }
+
+    .appt-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; margin-bottom: .75rem; }
+    .appt-top { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; margin-bottom: .6rem; }
+    .appt-service { font-size: .95rem; font-weight: 800; }
+    .appt-pill { display: inline-block; padding: .18rem .55rem; border-radius: 99px; font-size: .68rem; font-weight: 700; }
+    .appt-pill.confirmed { background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.2); color: var(--green); }
+    .appt-meta { font-size: .8rem; color: var(--muted); display: flex; flex-direction: column; gap: .25rem; }
+    .appt-meta span { display: flex; align-items: center; gap: .4rem; }
+    .appt-actions { margin-top: .85rem; padding-top: .75rem; border-top: 1px solid var(--border); }
+    .cancel-link { font-size: .75rem; color: var(--muted); background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
+    .cancel-link:hover { color: var(--red); }
+    .cancel-confirm { display: none; margin-top: .6rem; background: rgba(248,113,113,.06); border: 1px solid rgba(248,113,113,.2); border-radius: 8px; padding: .65rem .85rem; }
+    .cancel-confirm.show { display: block; }
+    .cancel-confirm p { font-size: .78rem; color: var(--muted); margin-bottom: .55rem; }
+    .cancel-confirm p strong { color: var(--text); }
+    .confirm-btns { display: flex; gap: .5rem; }
+    .btn-cancel-yes { padding: .35rem .85rem; border-radius: 7px; font-size: .75rem; font-weight: 700; background: rgba(248,113,113,.15); border: 1px solid rgba(248,113,113,.3); color: var(--red); cursor: pointer; transition: background .15s; }
+    .btn-cancel-yes:hover { background: rgba(248,113,113,.25); }
+    .btn-cancel-no { padding: .35rem .85rem; border-radius: 7px; font-size: .75rem; font-weight: 700; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; transition: color .15s; }
+    .btn-cancel-no:hover { color: var(--text); }
+
+    .empty-result { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2.5rem; text-align: center; color: var(--muted); font-size: .85rem; }
+    .empty-result strong { display: block; color: var(--text); font-size: 1rem; margin-bottom: .4rem; }
+
+    .error-inline { font-size: .78rem; color: var(--red); margin-top: .6rem; display: none; }
+
+    /* Loading spinner */
+    .spinner { display: none; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; margin: 1rem auto; }
+    .spinner.show { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer-note { font-size: .75rem; color: var(--muted); text-align: center; margin-top: 2rem; line-height: 1.7; }
+    .footer-note a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+</nav>
+
+<div class="center">
+  <div class="wrap">
+    <div class="page-title">My Appointments</div>
+    <p class="page-sub">Enter the phone number you used when booking to see your upcoming appointments.</p>
+
+    <div class="lookup-card">
+      <label for="phone-input">Your phone number</label>
+      <div class="input-row">
+        <input type="tel" id="phone-input" placeholder="(555) 867-5309" autocomplete="tel"
+               oninput="clearResults()" onkeydown="if(event.key==='Enter') lookup()">
+        <button class="btn btn-accent" id="lookup-btn" onclick="lookup()">Find →</button>
+      </div>
+      <div class="error-inline" id="err-msg"></div>
+    </div>
+
+    <div class="spinner" id="spinner"></div>
+
+    <div class="results" id="results">
+      <div class="result-header" id="result-header"></div>
+      <div id="appt-list"></div>
+    </div>
+
+    <div class="footer-note">
+      To cancel or reschedule, please call the shop directly.<br>
+      Need help? <a href="mailto:hello@ringdesk.ai">Contact support</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  function fmtDate(iso) {
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
+  }
+  function fmtTime(t) {
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+  }
+
+  function clearResults() {
+    document.getElementById('results').classList.remove('show');
+    document.getElementById('err-msg').style.display = 'none';
+  }
+
+  async function lookup() {
+    const rawPhone = document.getElementById('phone-input').value;
+    const phone = rawPhone.replace(/\D/g, '');
+    const errEl = document.getElementById('err-msg');
+    errEl.style.display = 'none';
+
+    if (phone.length < 7) {
+      errEl.textContent = 'Please enter a valid phone number.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const btn = document.getElementById('lookup-btn');
+    btn.disabled = true;
+    btn.textContent = 'Looking…';
+    document.getElementById('spinner').classList.add('show');
+    document.getElementById('results').classList.remove('show');
+
+    try {
+      const r = await fetch(`/api/portal/appointments?phone=${encodeURIComponent(phone)}`);
+      const d = await r.json();
+      renderResults(d.appointments || [], phone);
+    } catch (e) {
+      errEl.textContent = 'Unable to load appointments. Please try again.';
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Find →';
+      document.getElementById('spinner').classList.remove('show');
+    }
+  }
+
+  function renderResults(appts, phone) {
+    const hdr = document.getElementById('result-header');
+    const list = document.getElementById('appt-list');
+    const results = document.getElementById('results');
+
+    if (!appts.length) {
+      hdr.textContent = '';
+      list.innerHTML = `<div class="empty-result"><strong>No upcoming appointments found</strong>No confirmed appointments were found for ${formatPhone(phone)}.<br><br>If you booked recently, it may take a moment to appear.</div>`;
+    } else {
+      hdr.textContent = `${appts.length} upcoming appointment${appts.length !== 1 ? 's' : ''}`;
+      const today = new Date().toISOString().slice(0,10);
+      list.innerHTML = appts.map(a => {
+        const isToday = a.date === today;
+        const dateLabel = isToday ? `<strong>Today</strong>` : fmtDate(a.date);
+        const staff = a.staff ? `<span>✂️ ${esc(a.staff)}</span>` : '';
+        const shopPhone = ''; // would come from config in production
+        return `
+          <div class="appt-card">
+            <div class="appt-top">
+              <div class="appt-service">${esc(a.service)}</div>
+              <span class="appt-pill confirmed">${esc(a.status)}</span>
+            </div>
+            <div class="appt-meta">
+              <span>📅 ${dateLabel}</span>
+              <span>🕐 ${fmtTime(a.time)}</span>
+              ${staff}
+            </div>
+            <div class="appt-actions">
+              <button class="cancel-link" onclick="showCancelConfirm(this)">Request cancellation →</button>
+              <div class="cancel-confirm">
+                <p><strong>Are you sure?</strong> This will notify the shop that you'd like to cancel your ${esc(a.service)} on ${esc(a.date)} at ${esc(fmtTime(a.time))}.</p>
+                <div class="confirm-btns">
+                  <a class="btn-cancel-yes" href="mailto:hello@ringdesk.ai?subject=Appointment%20Cancellation%20Request&body=Hi%2C%20I%20would%20like%20to%20cancel%20my%20${encodeURIComponent(a.service)}%20appointment%20on%20${encodeURIComponent(a.date)}%20at%20${encodeURIComponent(a.time)}.%20My%20phone%3A%20${phone}">Yes, cancel</a>
+                  <button class="btn-cancel-no" onclick="hideCancelConfirm(this)">Keep appointment</button>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+    results.classList.add('show');
+  }
+
+  function formatPhone(digits) {
+    if (digits.length === 10) return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+    return digits;
+  }
+  function showCancelConfirm(btn) {
+    const confirm = btn.nextElementSibling;
+    confirm.classList.add('show');
+    btn.style.display = 'none';
+  }
+  function hideCancelConfirm(btn) {
+    const confirmEl = btn.closest('.cancel-confirm');
+    confirmEl.classList.remove('show');
+    confirmEl.previousElementSibling.style.display = '';
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // Auto-focus
+  document.getElementById('phone-input').focus();
+</script>
+</body>
+</html>

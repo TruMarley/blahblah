@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Retention — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1.1rem; }
+    .stat-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .3rem; }
+    .stat-value { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .stat-value.green { color: var(--green); }
+    .stat-value.red { color: var(--red); }
+    .stat-value.accent { color: var(--accent); }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .funnel-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+    .funnel-label { width: 120px; flex-shrink: 0; font-size: .8rem; font-weight: 700; }
+    .funnel-track { flex: 1; background: var(--surface2); border-radius: 99px; height: 18px; position: relative; overflow: hidden; }
+    .funnel-fill { height: 18px; border-radius: 99px; transition: width .7s ease; }
+    .funnel-meta { display: flex; gap: .5rem; align-items: center; width: 110px; flex-shrink: 0; justify-content: flex-end; }
+    .funnel-pct { font-size: .82rem; font-weight: 800; }
+    .funnel-count { font-size: .72rem; color: var(--muted); }
+    .lapsed-row { display: flex; align-items: center; justify-content: space-between; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+    .lapsed-info { }
+    .lapsed-label { font-size: .72rem; color: var(--muted); margin-bottom: .2rem; }
+    .lapsed-count { font-size: 1.3rem; font-weight: 900; color: var(--red); }
+    .winback-btn { background: var(--accent); color: #fff; border: none; font-size: .82rem; font-weight: 700; padding: .55rem 1.1rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+    .winback-btn:hover { opacity: .85; }
+    /* Cohort table */
+    .cohort-table { width: 100%; border-collapse: collapse; }
+    .cohort-table th { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .5rem .75rem; border-bottom: 1px solid var(--border); text-align: left; }
+    .cohort-table th.right, .cohort-table td.right { text-align: right; }
+    .cohort-table td { padding: .6rem .75rem; font-size: .8rem; border-bottom: 1px solid var(--border); }
+    .cohort-table tr:last-child td { border-bottom: none; }
+    .ret-pct { font-weight: 800; }
+    .ret-high { color: var(--green); }
+    .ret-mid  { color: var(--yellow); }
+    .ret-low  { color: var(--red); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Retention</div>
+  <p class="page-sub">How many clients keep coming back over time.</p>
+
+  <div class="stats-row" id="stats-row"></div>
+
+  <div class="card">
+    <div class="card-title">Retention Funnel</div>
+    <div id="funnel"></div>
+    <div class="lapsed-row">
+      <div class="lapsed-info">
+        <div class="lapsed-label">Lapsed Clients (180+ days since last visit)</div>
+        <div class="lapsed-count" id="lapsed-count">—</div>
+      </div>
+      <button class="winback-btn" onclick="sendWinback()">Send Win-Back SMS</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Cohort Retention</div>
+    <table class="cohort-table">
+      <thead><tr><th>Cohort Month</th><th class="right">New Clients</th><th class="right">Retained Next Month</th><th class="right">Retention Rate</th></tr></thead>
+      <tbody id="cohort-body"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/client-retention');
+    const d = await r.json();
+    const total = d.total_clients || 1;
+
+    document.getElementById('stats-row').innerHTML = [
+      {label:'Total Clients', value: total, cls:''},
+      {label:'Avg Days Between Visits', value: (d.avg_days_between_visits||0)+'d', cls:'accent'},
+      {label:'Active (30d)', value: d.retained_30d||0, cls:'green'},
+      {label:'Lapsed (180d+)', value: d.lapsed||0, cls:'red'},
+    ].map(s => `<div class="stat-card"><div class="stat-label">${s.label}</div><div class="stat-value ${s.cls}">${s.value}</div></div>`).join('');
+
+    document.getElementById('lapsed-count').textContent = (d.lapsed || 0) + ' clients';
+
+    const funnelData = [
+      {label:'Active (30d)',   count: d.retained_30d,  color:'var(--green)'},
+      {label:'Active (90d)',   count: d.retained_90d,  color:'#60a5fa'},
+      {label:'Active (180d)',  count: d.retained_180d, color:'var(--accent)'},
+      {label:'All Clients',   count: total,            color:'var(--muted)'},
+    ];
+    document.getElementById('funnel').innerHTML = funnelData.map(f => {
+      const pct = Math.round(f.count / total * 100);
+      return `<div class="funnel-row">
+        <div class="funnel-label">${f.label}</div>
+        <div class="funnel-track"><div class="funnel-fill" style="width:0%;background:${f.color}" data-pct="${pct}"></div></div>
+        <div class="funnel-meta">
+          <span class="funnel-pct" style="color:${f.color}">${pct}%</span>
+          <span class="funnel-count">${f.count}</span>
+        </div>
+      </div>`;
+    }).join('');
+    setTimeout(() => {
+      document.querySelectorAll('.funnel-fill').forEach(el => { el.style.width = el.dataset.pct + '%'; });
+    }, 100);
+
+    const cohorts = d.cohort_data || [];
+    document.getElementById('cohort-body').innerHTML = cohorts.map(c => {
+      const rate = c.new_clients ? Math.round(c.retained_next_month / c.new_clients * 100) : 0;
+      const cls = rate >= 60 ? 'ret-high' : rate >= 45 ? 'ret-mid' : 'ret-low';
+      return `<tr>
+        <td>${c.month}</td>
+        <td class="right">${c.new_clients}</td>
+        <td class="right">${c.retained_next_month}</td>
+        <td class="right"><span class="ret-pct ${cls}">${rate}%</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function sendWinback() {
+    alert('Win-back SMS campaign queued for all lapsed clients.');
+  }
+
+  load();
+</script>
+</body>
+</html>

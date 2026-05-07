@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue by Service — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-top: .2rem; }
+    .sort-group { display: flex; gap: .4rem; }
+    .sort-btn { background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: .75rem; font-weight: 700; padding: .35rem .75rem; border-radius: 99px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .sort-btn.active { background: rgba(167,139,250,.15); color: var(--accent); border-color: rgba(167,139,250,.3); }
+    .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .chart-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .bar-row { display: flex; align-items: center; gap: 1rem; margin-bottom: .9rem; }
+    .bar-name { font-size: .8rem; font-weight: 700; width: 160px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-track { flex: 1; background: var(--surface2); border-radius: 99px; height: 10px; }
+    .bar-fill { height: 10px; border-radius: 99px; transition: width .5s ease; }
+    .bar-meta { display: flex; gap: .75rem; width: 180px; justify-content: flex-end; flex-shrink: 0; }
+    .bar-rev { font-size: .8rem; font-weight: 800; color: var(--green); }
+    .bar-pct { font-size: .72rem; color: var(--muted); }
+    .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .65rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th.right { text-align: right; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .75rem 1.25rem; font-size: .82rem; }
+    tbody td.right { text-align: right; }
+    .svc-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: .4rem; }
+    .rev-val { color: var(--green); font-weight: 800; }
+    .avg-val { color: var(--accent); font-weight: 700; }
+    .total-row { font-size: .83rem; color: var(--muted); margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; }
+    .total-rev { font-weight: 800; color: var(--green); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="header-row">
+    <div>
+      <div class="page-title">Revenue by Service</div>
+      <div class="page-sub">Breakdown of earnings across all service types.</div>
+    </div>
+    <div class="sort-group">
+      <button class="sort-btn active" onclick="setSort('revenue',this)">Revenue</button>
+      <button class="sort-btn" onclick="setSort('count',this)">Bookings</button>
+      <button class="sort-btn" onclick="setSort('avg_price',this)">Avg Price</button>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Revenue by Service</div>
+    <div id="bars">Loading...</div>
+    <div class="total-row" id="total-row"></div>
+  </div>
+
+  <div class="table-card">
+    <table>
+      <thead><tr>
+        <th>Service</th>
+        <th class="right">Bookings</th>
+        <th class="right">Revenue</th>
+        <th class="right">Avg Ticket</th>
+        <th class="right">% of Total</th>
+      </tr></thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  const PALETTE = ['#a78bfa','#34d399','#fbbf24','#f87171','#60a5fa','#fb923c','#a3e635','#e879f9'];
+  let allServices = [];
+  let sortKey = 'revenue';
+
+  function setSort(key, btn) {
+    sortKey = key;
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  }
+
+  async function load() {
+    const r = await fetch('/api/analytics/revenue-by-service');
+    const d = await r.json();
+    allServices = d.services || [];
+    document.getElementById('total-row').innerHTML = `<span>Total Revenue</span><span class="total-rev">$${(d.total_revenue||0).toLocaleString()}</span>`;
+    render();
+  }
+
+  function render() {
+    const sorted = [...allServices].sort((a, b) => b[sortKey] - a[sortKey]);
+    const maxVal = sorted[0]?.[sortKey] || 1;
+
+    document.getElementById('bars').innerHTML = sorted.map((s, i) => {
+      const pct = Math.round(s[sortKey] / maxVal * 100);
+      const displayVal = sortKey === 'revenue' ? '$' + s.revenue.toLocaleString() :
+                         sortKey === 'avg_price' ? '$' + s.avg_price.toFixed(0) : s.count;
+      return `<div class="bar-row">
+        <div class="bar-name" title="${esc(s.service_name)}">
+          <span class="svc-dot" style="background:${PALETTE[i % PALETTE.length]}"></span>${esc(s.service_name)}
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${PALETTE[i % PALETTE.length]}"></div></div>
+        <div class="bar-meta">
+          <span class="bar-rev">${displayVal}</span>
+          <span class="bar-pct">${s.pct_of_total}%</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('table-body').innerHTML = sorted.map((s, i) => `
+      <tr>
+        <td><span class="svc-dot" style="background:${PALETTE[i % PALETTE.length]}"></span>${esc(s.service_name)}</td>
+        <td class="right">${s.count}</td>
+        <td class="right rev-val">$${s.revenue.toLocaleString()}</td>
+        <td class="right avg-val">$${s.avg_price.toFixed(0)}</td>
+        <td class="right">${s.pct_of_total}%</td>
+      </tr>`).join('');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

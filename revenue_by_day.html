@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue by Day — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 920px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.3rem; }
+    .stat-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; }
+    .stat-value { font-size: 1.7rem; font-weight: 900; letter-spacing: -.05em; line-height: 1; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { overflow-x: auto; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue by Day</div>
+  <p class="page-sub">Daily revenue for the past 30 days.</p>
+
+  <div class="stat-row" id="stat-row"></div>
+
+  <div class="card">
+    <div class="card-title">30-Day Revenue</div>
+    <div class="chart-wrap">
+      <svg id="chart" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/revenue-by-day');
+    const d = await r.json();
+    const days = d.days || [];
+
+    const total = days.reduce((a, d) => a + d.revenue, 0);
+    const avg = total / Math.max(days.length, 1);
+    const peak = days.reduce((a, b) => b.revenue > a.revenue ? b : a, days[0]);
+
+    document.getElementById('stat-row').innerHTML = [
+      {label:'30-Day Total', value:'$' + Math.round(total).toLocaleString(), color:'var(--green)'},
+      {label:'Daily Average', value:'$' + Math.round(avg).toLocaleString(), color:'var(--accent)'},
+      {label:'Best Day', value:'$' + Math.round(peak?.revenue||0).toLocaleString(), color:''},
+    ].map(s => `<div class="stat-card">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-value" style="${s.color?'color:'+s.color:''}">${s.value}</div>
+    </div>`).join('');
+
+    const W = 860, H = 240, PAD_L = 54, PAD_R = 16, PAD_T = 16, PAD_B = 36;
+    const cW = W - PAD_L - PAD_R, cH = H - PAD_T - PAD_B;
+    const maxV = Math.max(...days.map(d => d.revenue), 1);
+    const n = days.length;
+
+    function xOf(i) { return PAD_L + (i / (n - 1)) * cW; }
+    function yOf(v) { return PAD_T + cH - (v / maxV) * cH; }
+
+    // Y grid + labels
+    let yLines = '';
+    [0, 0.25, 0.5, 0.75, 1].forEach(f => {
+      const v = maxV * f;
+      const y = PAD_T + cH - f * cH;
+      yLines += `<line x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      yLines += `<text x="${PAD_L - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="#555">$${Math.round(v/1000)}k</text>`;
+    });
+
+    // Area path
+    const pts = days.map((d, i) => [xOf(i), yOf(d.revenue)]);
+    const linePts = pts.map(p => p.join(',')).join(' ');
+    const areaPath = `M ${pts[0][0]},${PAD_T + cH} ` +
+      pts.map(p => `L ${p[0]},${p[1]}`).join(' ') +
+      ` L ${pts[pts.length-1][0]},${PAD_T + cH} Z`;
+
+    // Dots
+    const dots = pts.map((p, i) => {
+      const day = days[i];
+      return `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--accent)" stroke="var(--bg)" stroke-width="1.5">
+        <title>${day.date}: $${Math.round(day.revenue)} (${day.appointment_count} appts)</title>
+      </circle>`;
+    }).join('');
+
+    // X labels — every 7 days
+    let xLabels = '';
+    days.forEach((day, i) => {
+      if (i % 7 === 0 || i === n - 1) {
+        const dt = new Date(day.date + 'T00:00:00');
+        const label = dt.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+        xLabels += `<text x="${xOf(i)}" y="${H - 6}" text-anchor="middle" font-size="10" fill="#555">${label}</text>`;
+      }
+    });
+
+    const gradId = 'areaGrad';
+    const svg = document.getElementById('chart');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', H);
+    svg.innerHTML = `
+      <defs>
+        <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.3"/>
+          <stop offset="100%" stop-color="#a78bfa" stop-opacity="0.02"/>
+        </linearGradient>
+      </defs>
+      ${yLines}
+      <path d="${areaPath}" fill="url(#${gradId})"/>
+      <polyline points="${linePts}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dots}
+      ${xLabels}`;
+  }
+  load();
+</script>
+</body>
+</html>

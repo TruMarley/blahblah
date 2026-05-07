@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Temporarily Unavailable — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #161616;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --yellow: #fbbf24;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 2rem;
+    }
+    .container { max-width: 440px; width: 100%; text-align: center; }
+
+    .icon-wrap {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: rgba(251,191,36,0.1); border: 2px solid rgba(251,191,36,0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem; margin: 0 auto 1.5rem;
+      animation: gentle-pulse 3s ease-in-out infinite;
+    }
+    @keyframes gentle-pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+
+    h1 { font-size: 1.7rem; font-weight: 900; color: #fff; letter-spacing: -0.04em; margin-bottom: 0.5rem; }
+    .subtitle { font-size: 0.88rem; color: var(--muted); line-height: 1.7; margin-bottom: 2rem; }
+
+    /* Phone number */
+    .phone-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem;
+    }
+    .phone-card-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+    .phone-number {
+      font-size: 1.8rem; font-weight: 900; color: #fff; letter-spacing: -0.03em;
+      text-decoration: none; display: block; margin-bottom: 0.25rem;
+    }
+    .phone-number:hover { color: var(--accent-light); }
+    .phone-note { font-size: 0.72rem; color: var(--muted); }
+
+    /* Callback form */
+    .callback-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; text-align: left;
+    }
+    .callback-title { font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 0.25rem; }
+    .callback-sub { font-size: 0.75rem; color: var(--muted); margin-bottom: 1rem; }
+    .cb-input {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 8px; padding: 10px 13px; color: var(--text); font-size: 0.9rem;
+      font-family: inherit; outline: none; margin-bottom: 0.65rem;
+      transition: border-color 0.2s;
+    }
+    .cb-input:focus { border-color: var(--accent); }
+    .cb-input::placeholder { color: var(--muted2); }
+    .cb-btn {
+      width: 100%; background: var(--accent); color: #fff; border: none;
+      border-radius: 8px; padding: 11px; font-size: 0.88rem; font-weight: 700;
+      font-family: inherit; cursor: pointer; transition: background 0.2s;
+    }
+    .cb-btn:hover { background: #6d28d9; }
+    .cb-success {
+      display: none; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25);
+      border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.82rem; color: var(--green);
+      margin-top: 0.65rem; line-height: 1.6;
+    }
+
+    /* Reassurance */
+    .reassurance {
+      background: rgba(124,58,237,0.06); border: 1px solid rgba(124,58,237,0.15);
+      border-radius: 12px; padding: 1rem 1.25rem;
+      font-size: 0.78rem; color: var(--muted); line-height: 1.7;
+    }
+    .reassurance strong { color: var(--accent-light); }
+
+    .shop-name-display { color: var(--accent-light); font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="icon-wrap">🔧</div>
+
+  <h1>We'll be right back</h1>
+  <p class="subtitle">
+    <span id="shop-display" class="shop-name-display">This shop's</span> AI receptionist is temporarily unavailable.
+    You can still reach us directly or leave your number and we'll call you back shortly.
+  </p>
+
+  <!-- Direct phone -->
+  <div class="phone-card">
+    <div class="phone-card-label">Call us directly</div>
+    <a id="phone-link" href="tel:7865550100" class="phone-number" id="phone-display">(786) 555-0100</a>
+    <div class="phone-note">If we don't answer, leave a voicemail and we'll call back within the hour.</div>
+  </div>
+
+  <!-- Callback form -->
+  <div class="callback-card">
+    <div class="callback-title">Leave your number instead</div>
+    <div class="callback-sub">We'll call you back as soon as we're available — usually within 30 minutes.</div>
+    <form id="cb-form" onsubmit="submitCallback(event)">
+      <input type="text" class="cb-input" id="cb-name" placeholder="Your name" required>
+      <input type="tel" class="cb-input" id="cb-phone" placeholder="Your phone number" required>
+      <input type="text" class="cb-input" id="cb-note" placeholder="What do you need? (optional)">
+      <button type="submit" class="cb-btn">📞 Request a Callback</button>
+    </form>
+    <div class="cb-success" id="cb-success">
+      ✓ Got it! We'll call you back at the number you provided. Thank you for your patience.
+    </div>
+  </div>
+
+  <!-- Reassurance -->
+  <div class="reassurance">
+    <strong>We're not going anywhere.</strong> This is a temporary maintenance window.
+    Our AI receptionist <strong>answers 99.9% of calls automatically</strong> —
+    this downtime is rare and we're working to restore service as fast as possible.
+    Check back in a few minutes or use the callback option above.
+  </div>
+
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const shop  = params.get('shop')  || '';
+  const phone = params.get('phone') || '(786) 555-0100';
+
+  if (shop) document.getElementById('shop-display').textContent = shop + "'s";
+  const phoneLink = document.getElementById('phone-link');
+  phoneLink.textContent = phone;
+  phoneLink.href = 'tel:' + phone.replace(/\D/g, '');
+
+  function submitCallback(e) {
+    e.preventDefault();
+    document.getElementById('cb-form').style.display = 'none';
+    document.getElementById('cb-success').style.display = 'block';
+  }
+</script>
+</body>
+</html>

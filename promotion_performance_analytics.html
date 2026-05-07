@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Promotion Performance — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .heroes { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem; }
+    .hero-label { font-size: .67rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-value { font-size: 1.7rem; font-weight: 900; letter-spacing: -.03em; }
+    .hero-sub { font-size: .72rem; color: var(--muted); margin-top: .2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .promo-row { display: flex; align-items: center; gap: 1rem; padding: .8rem 0; border-bottom: 1px solid var(--border); }
+    .promo-row:last-child { border-bottom: none; }
+    .promo-badge { font-size: .6rem; font-weight: 800; padding: .18rem .5rem; border-radius: 5px; text-transform: uppercase; letter-spacing: .05em; flex-shrink: 0; }
+    .badge-active { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .badge-inactive { background: rgba(102,102,102,.12); color: var(--muted); border: 1px solid rgba(102,102,102,.25); }
+    .promo-info { flex: 1; min-width: 0; }
+    .promo-name { font-size: .85rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .promo-type { font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+    .promo-bar-wrap { flex: 2; }
+    .promo-bar-bg { background: var(--surface2); border-radius: 6px; height: 8px; overflow: hidden; }
+    .promo-bar-fill { height: 100%; border-radius: 6px; }
+    .promo-bar-label { font-size: .68rem; color: var(--muted); margin-top: .2rem; }
+    .promo-stats { display: flex; gap: 1rem; flex-shrink: 0; text-align: right; }
+    .stat-item .stat-val { font-size: .82rem; font-weight: 700; }
+    .stat-item .stat-lbl { font-size: .65rem; color: var(--muted); }
+    .best-banner { background: rgba(167,139,250,.08); border: 1px solid rgba(167,139,250,.2); border-radius: 10px; padding: .85rem 1.1rem; margin-top: 1rem; display: flex; align-items: center; gap: .75rem; }
+    .best-icon { font-size: 1.2rem; }
+    .best-text { font-size: .8rem; color: var(--accent); }
+    .best-text strong { display: block; font-size: .9rem; }
+    @media (max-width: 600px) { .heroes { grid-template-columns: 1fr 1fr; } .promo-stats { display: none; } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Promotion Performance</div>
+  <p class="page-sub">Track which promotions drive the most redemptions and revenue over the last 30 days.</p>
+
+  <div class="heroes">
+    <div class="hero">
+      <div class="hero-label">Total Redemptions</div>
+      <div class="hero-value" id="h-redemptions">—</div>
+      <div class="hero-sub">last 30 days</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Promo Revenue</div>
+      <div class="hero-value" id="h-revenue" style="color:var(--green)">—</div>
+      <div class="hero-sub">from promotions</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Avg Promo Ticket</div>
+      <div class="hero-value" id="h-ticket">—</div>
+      <div class="hero-sub">per redemption</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Promotion Breakdown</div>
+    <div id="promo-list"></div>
+    <div class="best-banner" id="best-banner" style="display:none">
+      <div class="best-icon">★</div>
+      <div class="best-text"><strong id="best-name">—</strong>Best performing promotion this period</div>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/promotion-performance-stats').then(r => r.json());
+    document.getElementById('h-redemptions').textContent = d.total_redemptions_30d.toLocaleString();
+    document.getElementById('h-revenue').textContent = '$' + d.promo_revenue_30d.toLocaleString();
+    document.getElementById('h-ticket').textContent = '$' + d.avg_promo_ticket.toFixed(2);
+
+    const maxRev = Math.max(...d.promos.map(p => p.revenue));
+    const list = document.getElementById('promo-list');
+    d.promos.forEach(p => {
+      const barPct = maxRev > 0 ? (p.revenue / maxRev * 100) : 0;
+      const row = document.createElement('div');
+      row.className = 'promo-row';
+      row.innerHTML = `
+        <span class="promo-badge ${p.active ? 'badge-active' : 'badge-inactive'}">${p.active ? 'Active' : 'Ended'}</span>
+        <div class="promo-info">
+          <div class="promo-name">${p.name}</div>
+          <div class="promo-type">${p.type}</div>
+        </div>
+        <div class="promo-bar-wrap">
+          <div class="promo-bar-bg"><div class="promo-bar-fill" style="width:${barPct}%;background:${p.color}"></div></div>
+          <div class="promo-bar-label">${p.redemptions} redemptions · avg $${p.avg_ticket.toFixed(0)}</div>
+        </div>
+        <div class="promo-stats">
+          <div class="stat-item"><div class="stat-val">$${p.revenue.toLocaleString()}</div><div class="stat-lbl">revenue</div></div>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    const bb = document.getElementById('best-banner');
+    bb.style.display = 'flex';
+    document.getElementById('best-name').textContent = d.best_promo;
+  }
+  load();
+</script>
+</body>
+</html>

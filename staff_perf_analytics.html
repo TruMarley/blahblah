@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Performance — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .staff-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; margin-bottom: .5rem; display: flex; align-items: center; gap: .85rem; }
+    .avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #6366f1); display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 900; color: #fff; flex-shrink: 0; }
+    .staff-info { flex: 1; min-width: 0; }
+    .staff-name { font-size: .85rem; font-weight: 700; }
+    .staff-role { font-size: .62rem; color: var(--muted); }
+    .util-wrap { width: 80px; flex-shrink: 0; }
+    .util-bar-bg { background: #1e1e1e; border-radius: 4px; height: 6px; overflow: hidden; margin-bottom: .2rem; }
+    .util-bar { height: 100%; border-radius: 4px; background: var(--accent); }
+    .util-lbl { font-size: .58rem; color: var(--muted); text-align: right; }
+    .staff-rev { font-size: .88rem; font-weight: 900; color: var(--green); width: 68px; text-align: right; flex-shrink: 0; }
+    .staff-bk { font-size: .72rem; color: var(--muted); width: 44px; text-align: right; flex-shrink: 0; }
+    .staff-rat { font-size: .78rem; font-weight: 700; color: var(--yellow); width: 38px; text-align: right; flex-shrink: 0; }
+    .monthly-row { display: flex; align-items: flex-end; gap: 3px; height: 80px; }
+    .monthly-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+    .m-bar { width: 100%; background: var(--accent); opacity: .7; border-radius: 3px 3px 0 0; }
+    .m-lbl { font-size: .5rem; color: var(--muted); margin-top: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Performance</div>
+  <p class="page-sub">Compare revenue, booking volume, utilization, and client ratings across your team. Identify top performers and staff who may need support.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-earner" style="color:var(--green)">—</div><div class="stat-lbl">Top Earner</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-rev" style="color:var(--green)">—</div><div class="stat-lbl">Top Revenue (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-util" style="color:var(--accent)">—</div><div class="stat-lbl">Avg Utilization</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-rating" style="color:var(--yellow)">—</div><div class="stat-lbl">Avg Rating</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Staff Leaderboard — Revenue (30d)</div>
+    <div id="staff-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Monthly Total Bookings</div>
+    <div class="monthly-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/staff-perf-stats').then(r => r.json());
+    document.getElementById('h-earner').textContent = data.top_earner;
+    document.getElementById('h-rev').textContent = '$' + data.top_revenue_30d.toFixed(0);
+    document.getElementById('h-util').textContent = data.avg_utilization_pct.toFixed(1) + '%';
+    document.getElementById('h-rating').textContent = '★ ' + data.avg_rating.toFixed(2);
+    const staff = data.staff || [];
+    const list = document.getElementById('staff-list');
+    staff.forEach((s, i) => {
+      const initials = s.name.split(' ').map(w => w[0]).join('').slice(0,2);
+      list.innerHTML += '<div class="staff-card"><div class="avatar">' + initials + '</div><div class="staff-info"><div class="staff-name">' + s.name + (i === 0 ? ' <span style="font-size:.6rem;color:var(--yellow);font-weight:700">★ TOP</span>' : '') + '</div><div class="staff-role">' + s.role + '</div></div><div class="util-wrap"><div class="util-bar-bg"><div class="util-bar" style="width:' + s.utilization_pct + '%"></div></div><div class="util-lbl">' + s.utilization_pct + '%</div></div><div class="staff-rev">$' + s.revenue_30d.toFixed(0) + '</div><div class="staff-bk">' + s.bookings_30d + ' bk</div><div class="staff-rat">★' + s.avg_rating.toFixed(1) + '</div></div>';
+    });
+    const monthly = data.monthly || [];
+    const maxM = Math.max(...monthly.map(m => m.total_bookings), 1);
+    const bars = document.getElementById('monthly-bars');
+    monthly.forEach(m => {
+      const mh = Math.max((m.total_bookings / maxM * 72).toFixed(0), 2);
+      bars.innerHTML += '<div class="monthly-col"><div class="m-bar" style="height:' + mh + 'px" title="' + m.month + ': ' + m.total_bookings + ' bookings, top: ' + m.top_earner + '"></div><div class="m-lbl">' + m.month.slice(0,3) + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

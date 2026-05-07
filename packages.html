@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Packages — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .pkg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1rem; }
+    .pkg-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .pkg-card.paused { opacity: .55; }
+    .pkg-top { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; margin-bottom: .85rem; }
+    .pkg-name { font-size: .95rem; font-weight: 900; }
+    .pkg-price { font-size: 1.3rem; font-weight: 900; color: var(--accent); flex-shrink: 0; }
+    .pkg-sessions { font-size: .7rem; color: var(--muted); text-align: right; }
+    .services-list { margin-bottom: .85rem; display: flex; flex-direction: column; gap: .3rem; }
+    .svc-line { font-size: .78rem; color: var(--muted); display: flex; align-items: center; gap: .4rem; }
+    .svc-line::before { content: "•"; color: var(--accent); }
+    .pkg-footer { display: flex; align-items: center; justify-content: space-between; }
+    .sold-badge { font-size: .72rem; font-weight: 800; background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); padding: .2rem .6rem; border-radius: 99px; }
+    .status-badge { font-size: .65rem; font-weight: 800; padding: .2rem .55rem; border-radius: 99px; }
+    .badge-active { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .badge-paused { background: rgba(102,102,102,.1); color: var(--muted); border: 1px solid rgba(102,102,102,.2); }
+    .toggle-btn { font-size: .72rem; font-weight: 800; padding: .25rem .75rem; border-radius: 7px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-family: inherit; transition: all .15s; }
+    .toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Packages</div>
+  <p class="page-sub">Service bundles and multi-session passes — manage active and paused packages.</p>
+  <div class="pkg-grid" id="pkg-grid"></div>
+</div>
+<script>
+  let packages = [];
+
+  async function load() {
+    const r = await fetch('/api/packages');
+    const d = await r.json();
+    packages = d.packages || [];
+    render();
+  }
+
+  function render() {
+    document.getElementById('pkg-grid').innerHTML = packages.map(p => `
+      <div class="pkg-card${p.status === 'paused' ? ' paused' : ''}">
+        <div class="pkg-top">
+          <div>
+            <div class="pkg-name">${esc(p.name)}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="pkg-price">$${p.price}</div>
+            <div class="pkg-sessions">${p.sessions} session${p.sessions > 1 ? 's' : ''}</div>
+          </div>
+        </div>
+        <div class="services-list">
+          ${(p.services_included||[]).map(s=>`<div class="svc-line">${esc(s)}</div>`).join('')}
+        </div>
+        <div class="pkg-footer">
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <span class="sold-badge">${p.sold_count} sold</span>
+            <span class="status-badge badge-${p.status}">${p.status}</span>
+          </div>
+          <button class="toggle-btn" onclick="togglePkg('${p.id}')">${p.status === 'active' ? 'Pause' : 'Activate'}</button>
+        </div>
+      </div>`).join('');
+  }
+
+  async function togglePkg(id) {
+    const r = await fetch(`/api/packages/${id}/toggle`, {method:'POST'});
+    const updated = await r.json();
+    const idx = packages.findIndex(p => p.id === id);
+    if (idx >= 0) packages[idx] = updated;
+    render();
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

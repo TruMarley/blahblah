@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conversion Rate — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 920px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .top-row { display: grid; grid-template-columns: 220px 1fr; gap: 1.25rem; margin-bottom: 1.25rem; align-items: start; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .donut-wrap { display: flex; flex-direction: column; align-items: center; gap: .65rem; }
+    .donut-pct { font-size: 2.4rem; font-weight: 900; color: var(--accent); text-align: center; }
+    .donut-sub { font-size: .72rem; color: var(--muted); text-align: center; }
+    .donut-legend { display: flex; gap: 1rem; font-size: .7rem; color: var(--muted); }
+    .dl-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: .3rem; }
+    /* Source table */
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .55rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th:not(:first-child) { text-align: right; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td { padding: .75rem 1rem; font-size: .82rem; }
+    tbody td:not(:first-child) { text-align: right; }
+    .mini-wrap { display: flex; align-items: center; justify-content: flex-end; gap: .5rem; }
+    .mini-track { width: 70px; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+    .mini-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+    /* Day bars */
+    .day-bars { display: flex; align-items: flex-end; gap: .5rem; height: 80px; margin-top: .5rem; }
+    .day-col { display: flex; flex-direction: column; align-items: center; flex: 1; gap: .3rem; }
+    .day-bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--green); opacity: .75; }
+    .day-lbl { font-size: .65rem; color: var(--muted); }
+    .day-val { font-size: .65rem; font-weight: 800; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Conversion Rate</div>
+  <p class="page-sub">Calls that result in a booked appointment — by source, day, and over time.</p>
+  <div class="top-row">
+    <div class="card">
+      <div class="card-title">Overall Rate</div>
+      <div class="donut-wrap">
+        <svg id="donut" width="160" height="160" viewBox="0 0 160 160"></svg>
+        <div class="donut-pct" id="d-pct">—</div>
+        <div class="donut-sub">calls → bookings</div>
+        <div class="donut-legend">
+          <span><span class="dl-dot" style="background:var(--accent)"></span>Converted</span>
+          <span><span class="dl-dot" style="background:#222"></span>Dropped</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">By Source</div>
+      <table>
+        <thead><tr><th>Source</th><th>Calls</th><th>Converted</th><th>Rate</th></tr></thead>
+        <tbody id="source-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
+    <div class="card">
+      <div class="card-title">By Day of Week</div>
+      <div class="day-bars" id="day-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">8-Week Trend</div>
+      <svg id="trend" width="100%" style="display:block;overflow:visible"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/conversion-rate');
+    const d = await r.json();
+
+    const overall = d.overall_pct;
+    document.getElementById('d-pct').textContent = overall + '%';
+    const circ = 2*Math.PI*60, filled = circ*(overall/100);
+    document.getElementById('donut').innerHTML =
+      `<circle cx="80" cy="80" r="60" fill="none" stroke="#222" stroke-width="22"/>
+       <circle cx="80" cy="80" r="60" fill="none" stroke="#a78bfa" stroke-width="22"
+         stroke-dasharray="${filled} ${circ-filled}" stroke-dashoffset="${circ*0.25}" stroke-linecap="round"/>`;
+
+    const sources = (d.by_source||[]).sort((a,b)=>b.rate_pct-a.rate_pct);
+    const maxRate = Math.max(...sources.map(s=>s.rate_pct),1);
+    document.getElementById('source-tbody').innerHTML = sources.map(s=>`<tr>
+      <td>${esc(s.source)}</td>
+      <td>${s.calls}</td>
+      <td>${s.converted}</td>
+      <td><div class="mini-wrap">${s.rate_pct}%<div class="mini-track"><div class="mini-fill" style="width:${(s.rate_pct/maxRate*100).toFixed(0)}%"></div></div></div></td>
+    </tr>`).join('');
+
+    const days = d.by_day||[];
+    const maxD = Math.max(...days.map(x=>x.rate_pct),1);
+    document.getElementById('day-bars').innerHTML = days.map(x=>{
+      const h = Math.max(4,Math.round(x.rate_pct/maxD*72));
+      return `<div class="day-col"><div class="day-val">${x.rate_pct}%</div><div class="day-bar" style="height:${h}px"></div><div class="day-lbl">${x.day}</div></div>`;
+    }).join('');
+
+    const trend = d.trend||[];
+    const W=380,H=90,PL=6,PR=6,PT=14,PB=22, cW=W-PL-PR, cH=H-PT-PB;
+    const minR=Math.min(...trend.map(t=>t.rate_pct))-5;
+    const maxR=Math.max(...trend.map(t=>t.rate_pct))+5;
+    const pts=trend.map((t,i)=>({
+      x:PL+i*cW/(trend.length-1),
+      y:PT+cH-((t.rate_pct-minR)/(maxR-minR))*cH,
+      label:t.week, val:t.rate_pct
+    }));
+    const line=`M${pts[0].x},${pts[0].y}`+pts.slice(1).map(p=>`L${p.x},${p.y}`).join('');
+    const area=line+` L${pts[pts.length-1].x},${H-PB} L${pts[0].x},${H-PB} Z`;
+    const labs=pts.filter((_,i)=>i%2===0).map(p=>`<text x="${p.x}" y="${H-4}" text-anchor="middle" font-size="8" fill="#444">${p.label}</text>`).join('');
+    const svg=document.getElementById('trend');
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+    svg.setAttribute('height',H);
+    svg.innerHTML=`<defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a78bfa" stop-opacity=".2"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/></linearGradient></defs>
+      <path d="${area}" fill="url(#cg)"/>
+      <path d="${line}" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linejoin="round"/>
+      ${labs}`;
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Activity — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; --blue: #60a5fa; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .live-badge { display: flex; align-items: center; gap: .4rem; font-size: .72rem; font-weight: 700; color: var(--green); }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .countdown { font-size: .7rem; color: var(--muted); text-align: right; }
+    .feed { display: flex; flex-direction: column; gap: .5rem; }
+    .event-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1.1rem; display: flex; gap: .85rem; align-items: flex-start; border-left: 3px solid; transition: background .1s; }
+    .event-item:hover { background: var(--surface2); }
+    .event-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: .05rem; }
+    .event-body { flex: 1; }
+    .event-msg { font-size: .83rem; line-height: 1.5; }
+    .event-time { font-size: .7rem; color: var(--muted); margin-top: .25rem; }
+    .t-booking { border-left-color: var(--accent); }
+    .t-call    { border-left-color: var(--blue); }
+    .t-sms     { border-left-color: var(--green); }
+    .t-noshows { border-left-color: var(--red); }
+    .t-review  { border-left-color: var(--yellow); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="header-row">
+    <div class="page-title">Activity Feed</div>
+    <div>
+      <div class="live-badge"><span class="live-dot"></span> Live</div>
+      <div class="countdown" id="countdown">Refreshing in 30s</div>
+    </div>
+  </div>
+  <div class="feed" id="feed"><div style="text-align:center;color:var(--muted);padding:3rem">Loading...</div></div>
+</div>
+<script>
+  let remaining = 30;
+
+  async function load() {
+    const r = await fetch('/api/activity-feed');
+    const d = await r.json();
+    document.getElementById('feed').innerHTML = (d.events || []).map(function(e) {
+      return '<div class="event-item t-' + e.type + '">' +
+        '<span class="event-icon">' + e.icon + '</span>' +
+        '<div class="event-body">' +
+        '<div class="event-msg">' + esc(e.message) + '</div>' +
+        '<div class="event-time">' + relTime(e.timestamp) + '</div>' +
+        '</div></div>';
+    }).join('');
+    remaining = 30;
+  }
+
+  setInterval(function() {
+    remaining--;
+    document.getElementById('countdown').textContent = remaining > 0 ? ('Refreshing in ' + remaining + 's') : 'Refreshing...';
+    if (remaining <= 0) load();
+  }, 1000);
+
+  function relTime(iso) {
+    var diff = Math.floor((new Date() - new Date(iso)) / 60000);
+    if (diff < 1) return 'just now';
+    if (diff < 60) return diff + 'm ago';
+    if (diff < 1440) return Math.floor(diff/60) + 'h ago';
+    return Math.floor(diff/1440) + 'd ago';
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  load();
+</script>
+</body>
+</html>

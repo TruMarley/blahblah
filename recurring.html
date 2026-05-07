@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recurring Appointments — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .summary-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .sum-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1.1rem; }
+    .sum-label { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .3rem; }
+    .sum-value { font-size: 1.5rem; font-weight: 900; }
+    .sum-value.red { color: var(--red); }
+    .sum-value.green { color: var(--green); }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .7rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .85rem 1.25rem; font-size: .82rem; vertical-align: middle; }
+    .client-cell { display: flex; align-items: center; gap: .65rem; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #7c3aed); display: flex; align-items: center; justify-content: center; font-size: .82rem; font-weight: 900; color: #fff; flex-shrink: 0; }
+    .client-name { font-weight: 800; font-size: .88rem; }
+    .client-sub { font-size: .7rem; color: var(--muted); }
+    .freq-badge { font-size: .72rem; font-weight: 700; padding: .2rem .6rem; border-radius: 99px; background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); white-space: nowrap; }
+    .date-cell { font-size: .78rem; }
+    .date-cell .rel { font-size: .68rem; color: var(--muted); margin-top: .1rem; }
+    .status-badge { font-size: .68rem; font-weight: 800; padding: .18rem .55rem; border-radius: 99px; white-space: nowrap; }
+    .s-on_track { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .s-overdue  { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+    .s-upcoming { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+    .book-btn { background: var(--accent); color: #fff; border: none; font-size: .72rem; font-weight: 700; padding: .3rem .75rem; border-radius: 7px; cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .book-btn:hover { opacity: .85; }
+    .dash-cell { color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Recurring Appointments</div>
+  <p class="page-sub">Clients with regular appointment patterns tracked by your AI.</p>
+
+  <div class="summary-row" id="summary-row">
+    <div class="sum-card"><div class="sum-label">Total Recurring</div><div class="sum-value">—</div></div>
+    <div class="sum-card"><div class="sum-label">Overdue</div><div class="sum-value red">—</div></div>
+    <div class="sum-card"><div class="sum-label">On Track</div><div class="sum-value green">—</div></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Client</th>
+        <th>Frequency</th>
+        <th>Last Visit</th>
+        <th>Next Expected</th>
+        <th>Status</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/appointments/recurring');
+    const d = await r.json();
+    const items = d.recurring || [];
+
+    const overdue = items.filter(i => i.status === 'overdue').length;
+    const onTrack = items.filter(i => i.status === 'on_track').length;
+    document.getElementById('summary-row').innerHTML = `
+      <div class="sum-card"><div class="sum-label">Total Recurring</div><div class="sum-value">${items.length}</div></div>
+      <div class="sum-card"><div class="sum-label">Overdue</div><div class="sum-value red">${overdue}</div></div>
+      <div class="sum-card"><div class="sum-label">On Track</div><div class="sum-value green">${onTrack}</div></div>
+    `;
+
+    document.getElementById('tbody').innerHTML = items.length ? items.map(item => {
+      const initial = (item.client_name || '?').charAt(0).toUpperCase();
+      const freqLabel = freqText(item.frequency_days);
+      const lastDate = item.last_date ? new Date(item.last_date).toLocaleDateString('en-US', {month:'short', day:'numeric'}) : '—';
+      const nextDate = item.next_expected ? new Date(item.next_expected).toLocaleDateString('en-US', {month:'short', day:'numeric'}) : '—';
+      const nextRel = item.next_expected ? relDay(item.next_expected) : '';
+      const sCls = `s-${item.status || 'on_track'}`;
+      const sLabel = (item.status || 'on_track').replace('_', ' ');
+      return `<tr>
+        <td>
+          <div class="client-cell">
+            <div class="avatar">${initial}</div>
+            <div>
+              <div class="client-name">${esc(item.client_name)}</div>
+              <div class="client-sub">${esc(item.service)} · ${esc(item.staff)}</div>
+            </div>
+          </div>
+        </td>
+        <td><span class="freq-badge">${freqLabel}</span></td>
+        <td><div class="date-cell">${lastDate}</div></td>
+        <td><div class="date-cell">${nextDate}<div class="rel">${nextRel}</div></div></td>
+        <td><span class="status-badge ${sCls}">${sLabel}</span></td>
+        <td>${item.status === 'overdue' ? `<button class="book-btn" onclick="bookNow('${esc(item.client_id)}','${esc(item.client_name)}')">Book Now</button>` : '<span class="dash-cell">—</span>'}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:3rem">No recurring patterns yet.</td></tr>';
+  }
+
+  function freqText(days) {
+    if (!days) return '—';
+    if (days === 7) return 'Every week';
+    if (days === 14) return 'Every 2 weeks';
+    if (days === 21) return 'Every 3 weeks';
+    if (days === 28) return 'Every 4 weeks';
+    if (days === 42) return 'Every 6 weeks';
+    return `Every ${days} days`;
+  }
+
+  function relDay(dateStr) {
+    const diff = Math.round((new Date(dateStr) - new Date()) / 86400000);
+    if (diff < -1) return `${Math.abs(diff)} days overdue`;
+    if (diff === -1) return 'Yesterday';
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Tomorrow';
+    return `In ${diff} days`;
+  }
+
+  function bookNow(clientId, name) {
+    alert(`Opening booking flow for ${name}...`);
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Surcharge Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .surcharge-list { display: flex; flex-direction: column; gap: .75rem; }
+    .surcharge-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; display: grid; grid-template-columns: 1fr auto auto auto; gap: .75rem; align-items: center; }
+    .s-label { font-size: .85rem; font-weight: 700; }
+    .s-type-badge { font-size: .62rem; font-weight: 800; padding: .1rem .35rem; border-radius: 4px; background: rgba(167,139,250,.12); color: var(--accent); }
+    .s-val { font-size: .88rem; font-weight: 900; color: var(--yellow); }
+    .toggle { position: relative; width: 34px; height: 19px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #222; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .slider:before { content: ''; position: absolute; width: 13px; height: 13px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: rgba(52,211,153,.25); }
+    input:checked + .slider:before { transform: translateX(15px); background: var(--green); }
+    .add-card .field-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .75rem; margin-bottom: .75rem; }
+    .field-group { display: flex; flex-direction: column; gap: .3rem; }
+    .field-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .44rem .65rem; font-family: inherit; width: 100%; outline: none; }
+    .f-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .44rem .65rem; font-family: inherit; width: 100%; outline: none; cursor: pointer; }
+    .add-btn { font-size: .78rem; font-weight: 800; padding: .48rem 1.1rem; border-radius: 8px; border: 1px solid rgba(52,211,153,.35); background: rgba(52,211,153,.1); color: var(--green); cursor: pointer; font-family: inherit; }
+    .save-btn { font-size: .78rem; font-weight: 800; padding: .48rem 1.4rem; border-radius: 8px; border: 1px solid rgba(167,139,250,.35); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; margin-top: 1rem; width: 100%; }
+    .save-btn:hover { background: rgba(167,139,250,.2); }
+    .saved-msg { font-size: .73rem; color: var(--green); font-weight: 700; text-align: center; min-height: 1.1em; margin-top: .4rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Surcharge Settings</div>
+  <p class="page-sub">Configure additional fees — credit card processing, peak-hour surcharges, and service premiums.</p>
+  <div class="card">
+    <div class="card-title">Active Surcharges</div>
+    <div class="surcharge-list" id="surcharge-list"><div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem;">Loading...</div></div>
+    <button class="save-btn" onclick="save()">Save Surcharges</button>
+    <div class="saved-msg" id="saved-msg"></div>
+  </div>
+  <div class="card add-card">
+    <div class="card-title">Add Surcharge</div>
+    <div class="field-row">
+      <div class="field-group">
+        <label class="field-label">Label</label>
+        <input class="f-input" type="text" id="new-label" placeholder="Credit Card Fee">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Type</label>
+        <select class="f-select" id="new-type">
+          <option value="percent">Percentage (%)</option>
+          <option value="flat">Flat ($)</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Value</label>
+        <input class="f-input" type="number" id="new-val" placeholder="2.5" step="0.01" min="0">
+      </div>
+    </div>
+    <button class="add-btn" onclick="addSurcharge()">+ Add</button>
+  </div>
+</div>
+<script>
+  let data = {};
+
+  async function load() {
+    const r = await fetch('/api/surcharge-settings');
+    data = await r.json();
+    render();
+  }
+
+  function render() {
+    const list = document.getElementById('surcharge-list');
+    const surcharges = data.surcharges || [];
+    if (!surcharges.length) { list.innerHTML = '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem;">No surcharges configured.</div>'; return; }
+    list.innerHTML = surcharges.map((s, i) => `
+      <div class="surcharge-row">
+        <span class="s-label">${esc(s.label)}</span>
+        <span class="s-type-badge">${s.type === 'percent' ? '%' : '$'}</span>
+        <span class="s-val">${s.type === 'percent' ? s.value + '%' : '$' + s.value}</span>
+        <label class="toggle"><input type="checkbox" id="sc-${i}" ${s.enabled ? 'checked' : ''}><span class="slider"></span></label>
+      </div>
+    `).join('');
+  }
+
+  function addSurcharge() {
+    const label = document.getElementById('new-label').value.trim();
+    const type = document.getElementById('new-type').value;
+    const val = parseFloat(document.getElementById('new-val').value);
+    if (!label || isNaN(val)) return;
+    if (!data.surcharges) data.surcharges = [];
+    data.surcharges.push({ label, type, value: val, enabled: true });
+    render();
+    document.getElementById('new-label').value = '';
+    document.getElementById('new-val').value = '';
+  }
+
+  async function save() {
+    const surcharges = data.surcharges || [];
+    surcharges.forEach((s, i) => {
+      const el = document.getElementById('sc-' + i);
+      if (el) s.enabled = el.checked;
+    });
+    data.surcharges = surcharges;
+    await fetch('/api/surcharge-settings', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const msg = document.getElementById('saved-msg');
+    msg.textContent = '✓ Saved';
+    setTimeout(() => { msg.textContent = ''; }, 2000);
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pre-Appointment Prep — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 100%; }
+    input[type=text]:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-size: .8rem; padding: .55rem .75rem; outline: none; resize: vertical; min-height: 48px; font-family: inherit; line-height: 1.5; margin-top: .4rem; }
+    textarea:focus { border-color: var(--accent); }
+    .svc-rule-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .85rem; }
+    .svc-rule-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .65rem .9rem; }
+    .svc-rule-top { display: flex; align-items: center; margin-bottom: .35rem; }
+    .svc-rule-name { font-size: .83rem; font-weight: 700; color: var(--accent); flex: 1; }
+    .remove-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }
+    .remove-btn:hover { color: var(--red); }
+    .svc-rule-text { font-size: .74rem; color: var(--muted); line-height: 1.45; }
+    .add-row { display: flex; flex-direction: column; gap: .4rem; }
+    .add-label { font-size: .78rem; color: var(--muted); }
+    .add-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--accent); font-size: .78rem; font-weight: 700; padding: .38rem .7rem; cursor: pointer; align-self: flex-start; margin-top: .2rem; }
+    .add-btn:hover { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Pre-Appointment Prep</div>
+  <p class="page-sub">Send clients service-specific prep instructions before their visit — arrive with clean hair, skip the lotion, let nails grow out. Fewer first-appointment surprises means better results and happier clients.</p>
+  <div class="card">
+    <div class="card-title">General Settings</div>
+    <div class="row">
+      <div><div class="row-label">Send Prep Instructions</div><div class="row-sub">Automatically text/email before appointments</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Hours Before Appointment</div><div class="row-sub">When to send the prep message</div></div>
+      <input type="number" id="hours-before" min="1" max="72" placeholder="24">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Include Parking Info</div><div class="row-sub">Attach your parking instructions</div></div>
+      <label class="toggle"><input type="checkbox" id="include-parking"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Include What to Bring</div><div class="row-sub">Remind clients of anything they need to bring</div></div>
+      <label class="toggle"><input type="checkbox" id="include-bring"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Include Arrival Instructions</div><div class="row-sub">Which door, check-in process, etc.</div></div>
+      <label class="toggle"><input type="checkbox" id="include-arrival"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Reads Prep on Booking Call</div><div class="row-sub">AI verbally confirms prep tips at end of call</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-reads"><span class="slider"></span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Location Details</div>
+    <div style="margin-bottom:1rem">
+      <div class="row-label" style="font-size:.78rem;color:var(--muted);margin-bottom:.35rem">Parking Info</div>
+      <textarea id="parking-info" rows="2" placeholder="Free parking behind the building on Oak St."></textarea>
+    </div>
+    <div>
+      <div class="row-label" style="font-size:.78rem;color:var(--muted);margin-bottom:.35rem">Arrival Note</div>
+      <textarea id="arrival-note" rows="2" placeholder="Enter through the side door and check in at the front desk."></textarea>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Service-Specific Instructions</div>
+    <div class="svc-rule-list" id="rule-list"></div>
+    <div class="add-row">
+      <div class="add-label">Service Name</div>
+      <input type="text" id="new-service" placeholder="e.g. Haircolor">
+      <div class="add-label" style="margin-top:.3rem">Prep Instructions</div>
+      <textarea id="new-instructions" rows="2" placeholder="Arrive with clean, dry hair. No styling products."></textarea>
+      <button class="add-btn" onclick="addRule()">+ Add Service Rule</button>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let rules = {};
+  function renderRules() {
+    const el = document.getElementById('rule-list');
+    el.innerHTML = '';
+    Object.entries(rules).forEach(([svc, txt], i) => {
+      el.innerHTML += `<div class="svc-rule-item">
+        <div class="svc-rule-top">
+          <div class="svc-rule-name">${esc(svc)}</div>
+          <button class="remove-btn" onclick="removeRule('${esc(svc)}')">✕</button>
+        </div>
+        <div class="svc-rule-text">${esc(txt)}</div>
+      </div>`;
+    });
+  }
+  function addRule() {
+    const svc = document.getElementById('new-service').value.trim();
+    const txt = document.getElementById('new-instructions').value.trim();
+    if (!svc || !txt) return;
+    rules[svc] = txt;
+    document.getElementById('new-service').value = '';
+    document.getElementById('new-instructions').value = '';
+    renderRules();
+  }
+  function removeRule(svc) { delete rules[svc]; renderRules(); }
+  async function load() {
+    const d = await fetch('/api/settings/pre-appointment-prep-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('hours-before').value = d.send_hours_before ?? 24;
+    document.getElementById('include-parking').checked = d.include_parking_info;
+    document.getElementById('include-bring').checked = d.include_what_to_bring;
+    document.getElementById('include-arrival').checked = d.include_arrival_instructions;
+    document.getElementById('ai-reads').checked = d.ai_reads_prep_on_call;
+    document.getElementById('parking-info').value = d.parking_info || '';
+    document.getElementById('arrival-note').value = d.arrival_note || '';
+    rules = d.custom_instructions || {};
+    renderRules();
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      send_hours_before: parseInt(document.getElementById('hours-before').value) || 24,
+      include_parking_info: document.getElementById('include-parking').checked,
+      include_what_to_bring: document.getElementById('include-bring').checked,
+      include_arrival_instructions: document.getElementById('include-arrival').checked,
+      ai_reads_prep_on_call: document.getElementById('ai-reads').checked,
+      parking_info: document.getElementById('parking-info').value,
+      arrival_note: document.getElementById('arrival-note').value,
+      custom_instructions: rules
+    };
+    await fetch('/api/settings/pre-appointment-prep-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

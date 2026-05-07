@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Quality — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: .75rem; margin-bottom: 2rem; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; }
+    .kpi-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .35rem; }
+    .kpi-val { font-size: 1.6rem; font-weight: 900; letter-spacing: -.04em; }
+    .kpi-sub { font-size: .7rem; color: var(--muted); margin-top: .2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1.25rem; }
+    .sparkline-wrap { overflow-x: auto; }
+    .transcript-grid { display: flex; flex-direction: column; gap: .75rem; }
+    .tx-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; }
+    .tx-top { display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; }
+    .tx-id { font-size: .7rem; color: var(--muted); font-family: monospace; }
+    .tx-dur { font-size: .72rem; color: var(--muted); margin-left: auto; }
+    .sent-badge { font-size: .7rem; font-weight: 800; padding: .15rem .55rem; border-radius: 99px; }
+    .s-positive { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .s-neutral   { background: rgba(251,191,36,.1);  color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+    .s-negative  { background: rgba(248,113,113,.1); color: var(--red);    border: 1px solid rgba(248,113,113,.2); }
+    .tx-snippet { font-size: .82rem; color: var(--text); line-height: 1.6; font-style: italic; }
+    .tx-snippet::before { content: '"'; }
+    .tx-snippet::after  { content: '…"'; }
+    svg text { font-family: -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Quality</div>
+  <p class="page-sub">AI-analyzed metrics across every call handled by RingDesk.</p>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Avg Duration</div><div class="kpi-val" id="k-dur" style="color:var(--accent)">—</div><div class="kpi-sub">per call</div></div>
+    <div class="kpi"><div class="kpi-label">Sentiment</div><div class="kpi-val" id="k-sent" style="font-size:1.3rem">—</div><div class="kpi-sub" id="k-sent-sub">avg score</div></div>
+    <div class="kpi"><div class="kpi-label">Resolution Rate</div><div class="kpi-val" id="k-res" style="color:var(--green)">—</div><div class="kpi-sub">resolved without human</div></div>
+    <div class="kpi"><div class="kpi-label">Escalation Rate</div><div class="kpi-val" id="k-esc" style="color:var(--yellow)">—</div><div class="kpi-sub">transferred to staff</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Sentiment Trend by Hour</div>
+    <div class="sparkline-wrap"><svg id="spark" width="760" height="100"></svg></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Sample Call Transcripts</div>
+    <div class="transcript-grid" id="tx-grid"></div>
+  </div>
+</div>
+<script>
+  function fmtDur(s) { return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
+  function sentEmoji(s) { return s >= 0.7 ? '😊' : s >= 0.5 ? '😐' : '😟'; }
+
+  async function load() {
+    const r = await fetch('/api/call-quality');
+    const d = await r.json();
+
+    document.getElementById('k-dur').textContent = fmtDur(d.avg_duration_seconds);
+    document.getElementById('k-sent').textContent = sentEmoji(d.avg_sentiment_score) + ' ' + Math.round(d.avg_sentiment_score * 100) + '%';
+    document.getElementById('k-res').textContent = Math.round(d.resolution_rate * 100) + '%';
+    document.getElementById('k-esc').textContent = Math.round(d.escalation_rate * 100) + '%';
+
+    // Sparkline
+    const hours = d.by_hour;
+    const W = 760, H = 100, pad = 20;
+    const xs = hours.map((_, i) => pad + i * (W - pad*2) / (hours.length - 1));
+    const ys = hours.map(h => H - pad - Math.round(h.avg_sentiment * (H - pad*2)));
+    const polyPts = xs.map((x, i) => `${x},${ys[i]}`).join(' ');
+    const areaPath = `M${xs[0]},${H} ` + xs.map((x, i) => `L${x},${ys[i]}`).join(' ') + ` L${xs[xs.length-1]},${H} Z`;
+    const svg = document.getElementById('spark');
+    svg.innerHTML = `
+      <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a78bfa" stop-opacity=".25"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/></linearGradient></defs>
+      <path d="${areaPath}" fill="url(#sg)"/>
+      <polyline points="${polyPts}" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linejoin="round"/>
+      ${hours.map((h,i) => i % 2 === 0 ? `<text x="${xs[i]}" y="${H}" text-anchor="middle" font-size="9" fill="#555">${h.hour < 12 ? h.hour+'a' : h.hour === 12 ? '12p' : (h.hour-12)+'p'}</text>` : '').join('')}
+      ${hours.map((h,i) => `<circle cx="${xs[i]}" cy="${ys[i]}" r="3" fill="#a78bfa" opacity=".8"><title>${h.hour < 12 ? h.hour+'am' : (h.hour-12||12)+'pm'} · sentiment ${Math.round(h.avg_sentiment*100)}% · ${h.call_count} calls</title></circle>`).join('')}
+    `;
+
+    // Transcripts
+    const SICONS = {positive:'😊',neutral:'😐',negative:'😟'};
+    document.getElementById('tx-grid').innerHTML = (d.sample_transcripts || []).map(t => `
+      <div class="tx-card">
+        <div class="tx-top">
+          <span class="tx-id">#${t.call_id}</span>
+          <span class="sent-badge s-${t.sentiment}">${SICONS[t.sentiment]||''} ${t.sentiment}</span>
+          <span class="tx-dur">${fmtDur(t.duration_seconds)}</span>
+        </div>
+        <div class="tx-snippet">${esc(t.snippet)}</div>
+      </div>`).join('');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

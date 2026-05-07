@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monthly Report — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    @media print {
+      body { background: #fff; color: #111; }
+      nav { display: none; }
+      .print-btn { display: none; }
+      .main { padding: 1rem; }
+      :root { --bg: #fff; --surface: #f9f9f9; --surface2: #f2f2f2; --border: #ddd; --text: #111; --muted: #555; --accent: #7c3aed; --green: #059669; --red: #dc2626; }
+      .metric-card { break-inside: avoid; }
+    }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .header-row { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2.5rem; gap: 1rem; flex-wrap: wrap; }
+    .title-block { }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .month-sub { font-size: .9rem; color: var(--accent); font-weight: 700; margin-top: .2rem; }
+    .actions { display: flex; gap: .75rem; align-items: center; }
+    .month-pick { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: .85rem; padding: .5rem .75rem; border-radius: 8px; font-family: inherit; outline: none; cursor: pointer; }
+    .month-pick:focus { border-color: var(--accent); }
+    .print-btn { background: var(--accent); color: #fff; border: none; font-size: .85rem; font-weight: 700; padding: .55rem 1.1rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+    .print-btn:hover { opacity: .85; }
+    .section-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .09em; margin-bottom: 1rem; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 2.5rem; }
+    .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; }
+    .metric-label { font-size: .72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-bottom: .5rem; }
+    .metric-value { font-size: 2rem; font-weight: 900; letter-spacing: -.04em; line-height: 1; }
+    .metric-value.green { color: var(--green); }
+    .metric-value.accent { color: var(--accent); }
+    .metric-sub { font-size: .72rem; color: var(--muted); margin-top: .35rem; }
+    .metric-delta { display: inline-flex; align-items: center; gap: .2rem; font-size: .72rem; font-weight: 700; margin-top: .3rem; }
+    .delta-up { color: var(--green); }
+    .delta-down { color: var(--red); }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2.5rem; }
+    @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+    .card-title { font-size: .8rem; font-weight: 800; margin-bottom: 1rem; }
+    .bar-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .6rem; }
+    .bar-name { font-size: .75rem; color: var(--muted); width: 70px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-track { flex: 1; background: var(--surface2); border-radius: 99px; height: 6px; }
+    .bar-fill { height: 6px; border-radius: 99px; background: var(--accent); }
+    .bar-val { font-size: .72rem; font-weight: 700; width: 40px; text-align: right; color: var(--muted); }
+    .summary-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 2.5rem; }
+    .summary-text { font-size: .9rem; line-height: 1.7; color: var(--muted); }
+    .summary-text strong { color: var(--text); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="header-row">
+    <div class="title-block">
+      <div class="page-title">Monthly Report</div>
+      <div class="month-sub" id="month-display">Loading...</div>
+    </div>
+    <div class="actions">
+      <input type="month" class="month-pick" id="month-pick">
+      <button class="print-btn" onclick="window.print()">⬇ Download PDF</button>
+    </div>
+  </div>
+
+  <div class="section-label">Key Metrics</div>
+  <div class="metrics-grid" id="metrics-grid">
+    <div class="metric-card"><div class="metric-label">Revenue</div><div class="metric-value green">—</div></div>
+  </div>
+
+  <div class="two-col" id="charts-row">
+    <div class="card"><div class="card-title">Revenue by Staff</div><div id="staff-bars">—</div></div>
+    <div class="card"><div class="card-title">Top Services</div><div id="service-bars">—</div></div>
+  </div>
+
+  <div class="section-label">Summary</div>
+  <div class="summary-box"><div class="summary-text" id="summary-text">Loading...</div></div>
+</div>
+<script>
+  function nowMonth() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  }
+
+  const pick = document.getElementById('month-pick');
+  pick.value = nowMonth();
+
+  async function load() {
+    const month = pick.value || nowMonth();
+    const r = await fetch(`/api/reports/monthly?month=${month}`);
+    const d = await r.json();
+    render(d, month);
+  }
+
+  function render(d, month) {
+    const [y, m] = month.split('-');
+    const monthName = new Date(y, m-1, 1).toLocaleString('default', {month:'long', year:'numeric'});
+    document.getElementById('month-display').textContent = monthName;
+
+    const metrics = [
+      { label: 'Total Revenue', value: '$' + (d.total_revenue||0).toLocaleString(), cls: 'green', sub: d.revenue_delta ? (d.revenue_delta > 0 ? `+${d.revenue_delta}% vs last month` : `${d.revenue_delta}% vs last month`) : '' },
+      { label: 'Appointments', value: d.appointments_completed || 0, cls: 'accent', sub: `${d.appointments_booked||0} booked total` },
+      { label: 'No-Show Rate', value: (d.no_show_rate || 0) + '%', cls: '', sub: `${d.no_shows||0} missed appts` },
+      { label: 'Avg Rating', value: (d.avg_rating || 0).toFixed(1) + '★', cls: 'accent', sub: `from ${d.review_count||0} reviews` },
+      { label: 'New Clients', value: d.new_clients || 0, cls: 'green', sub: `${d.returning_clients||0} returning` },
+      { label: 'Calls Handled', value: d.calls_handled || 0, cls: '', sub: `${d.calls_booked||0} converted to appts` },
+    ];
+
+    document.getElementById('metrics-grid').innerHTML = metrics.map(m => `
+      <div class="metric-card">
+        <div class="metric-label">${m.label}</div>
+        <div class="metric-value ${m.cls}">${m.value}</div>
+        ${m.sub ? `<div class="metric-sub">${esc(m.sub)}</div>` : ''}
+      </div>
+    `).join('');
+
+    const staffRevs = d.staff_revenue || [];
+    const maxStaff = Math.max(...staffRevs.map(s => s.revenue), 1);
+    document.getElementById('staff-bars').innerHTML = staffRevs.length ? staffRevs.map(s => `
+      <div class="bar-row">
+        <div class="bar-name" title="${esc(s.name)}">${esc(s.name.split(' ')[0])}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(s.revenue/maxStaff*100)}%"></div></div>
+        <div class="bar-val">$${s.revenue.toLocaleString()}</div>
+      </div>`).join('') : '<div style="color:var(--muted);font-size:.8rem">No data</div>';
+
+    const svcs = d.top_services || [];
+    const maxSvc = Math.max(...svcs.map(s => s.count), 1);
+    document.getElementById('service-bars').innerHTML = svcs.length ? svcs.map(s => `
+      <div class="bar-row">
+        <div class="bar-name" title="${esc(s.name)}">${esc(s.name)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(s.count/maxSvc*100)}%"></div></div>
+        <div class="bar-val">${s.count}</div>
+      </div>`).join('') : '<div style="color:var(--muted);font-size:.8rem">No data</div>';
+
+    document.getElementById('summary-text').innerHTML = `
+      In <strong>${monthName}</strong>, your shop completed <strong>${d.appointments_completed||0} appointments</strong> generating <strong>$${(d.total_revenue||0).toLocaleString()} in revenue</strong>.
+      Your AI receptionist handled <strong>${d.calls_handled||0} calls</strong> and converted ${d.calls_booked||0} into bookings.
+      You welcomed <strong>${d.new_clients||0} new clients</strong>${d.returning_clients ? ` alongside ${d.returning_clients} returning regulars` : ''}.
+      Customer satisfaction averaged <strong>${(d.avg_rating||0).toFixed(1)} stars</strong> across ${d.review_count||0} reviews.
+      ${d.no_show_rate ? `No-show rate was ${d.no_show_rate}% — ${d.no_show_rate < 10 ? 'excellent performance.' : d.no_show_rate < 15 ? 'room for improvement.' : 'consider follow-up reminders.'}` : ''}
+    `;
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  pick.addEventListener('change', load);
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>System Status — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #555; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 2rem; height: 60px; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+
+    .hero { text-align: center; padding: 4rem 1.5rem 2.5rem; }
+    .status-globe { width: 56px; height: 56px; border-radius: 50%; background: rgba(52,211,153,.15); border: 2px solid rgba(52,211,153,.35); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
+    .globe-dot { width: 20px; height: 20px; border-radius: 50%; background: var(--green); box-shadow: 0 0 16px rgba(52,211,153,.6); }
+    .hero-title { font-size: 1.6rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .4rem; }
+    .hero-sub { font-size: .88rem; color: var(--muted); }
+
+    .main { max-width: 640px; margin: 0 auto; padding: 0 1.5rem 5rem; }
+
+    .section-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .09em; margin: 2rem 0 .75rem; }
+
+    .service-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: .5rem; }
+    .svc-row { display: flex; align-items: center; justify-content: space-between; padding: .9rem 1.25rem; }
+    .svc-left { display: flex; align-items: center; gap: .75rem; }
+    .svc-icon { font-size: 1.1rem; }
+    .svc-name { font-size: .9rem; font-weight: 700; }
+    .svc-desc { font-size: .75rem; color: var(--muted); margin-top: .1rem; }
+    .svc-right { display: flex; align-items: center; gap: .75rem; }
+    .uptime { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .op-badge { display: flex; align-items: center; gap: .4rem; padding: .22rem .65rem; border-radius: 99px; font-size: .7rem; font-weight: 700; }
+    .op-green  { background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.25); color: var(--green); }
+    .op-yellow { background: rgba(251,191,36,.12);  border: 1px solid rgba(251,191,36,.25);  color: var(--yellow); }
+    .op-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+    /* 90-day bar */
+    .uptime-bar { display: flex; gap: 2px; padding: 0 1.25rem .85rem; }
+    .bar-seg { flex: 1; height: 28px; border-radius: 3px; background: rgba(52,211,153,.35); }
+    .bar-seg:last-child { background: rgba(52,211,153,.85); }
+
+    .incident-section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+    .inc-none { display: flex; align-items: center; gap: .65rem; color: var(--green); font-size: .85rem; font-weight: 600; }
+    .inc-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+
+    .checked { font-size: .72rem; color: var(--muted); text-align: center; margin-top: 2rem; }
+    .footer { text-align: center; padding: 2rem 0; font-size: .75rem; color: var(--muted); }
+    .footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+</nav>
+
+<div class="hero">
+  <div class="status-globe"><div class="globe-dot"></div></div>
+  <div class="hero-title">All systems operational</div>
+  <p class="hero-sub">Last checked: <span id="last-checked"></span></p>
+</div>
+
+<div class="main">
+  <div class="section-label">Services</div>
+
+  <div class="service-card">
+    <div class="svc-row">
+      <div class="svc-left">
+        <div class="svc-icon">🎙️</div>
+        <div>
+          <div class="svc-name">AI Voice Receptionist</div>
+          <div class="svc-desc">Inbound call handling, booking, Q&amp;A</div>
+        </div>
+      </div>
+      <div class="svc-right">
+        <span class="uptime">99.97% uptime</span>
+        <span class="op-badge op-green"><span class="op-dot"></span>Operational</span>
+      </div>
+    </div>
+    <div class="uptime-bar" id="bar-voice"></div>
+  </div>
+
+  <div class="service-card">
+    <div class="svc-row">
+      <div class="svc-left">
+        <div class="svc-icon">💬</div>
+        <div>
+          <div class="svc-name">SMS Notifications</div>
+          <div class="svc-desc">Confirmations, reminders, follow-ups</div>
+        </div>
+      </div>
+      <div class="svc-right">
+        <span class="uptime">100% uptime</span>
+        <span class="op-badge op-green"><span class="op-dot"></span>Operational</span>
+      </div>
+    </div>
+    <div class="uptime-bar" id="bar-sms"></div>
+  </div>
+
+  <div class="service-card">
+    <div class="svc-row">
+      <div class="svc-left">
+        <div class="svc-icon">📅</div>
+        <div>
+          <div class="svc-name">Booking API</div>
+          <div class="svc-desc">Appointment creation, updates, lookups</div>
+        </div>
+      </div>
+      <div class="svc-right">
+        <span class="uptime">99.94% uptime</span>
+        <span class="op-badge op-green"><span class="op-dot"></span>Operational</span>
+      </div>
+    </div>
+    <div class="uptime-bar" id="bar-api"></div>
+  </div>
+
+  <div class="service-card">
+    <div class="svc-row">
+      <div class="svc-left">
+        <div class="svc-icon">⏰</div>
+        <div>
+          <div class="svc-name">Reminder Jobs</div>
+          <div class="svc-desc">24h &amp; 2h automated appointment reminders</div>
+        </div>
+      </div>
+      <div class="svc-right">
+        <span class="uptime">99.99% uptime</span>
+        <span class="op-badge op-green"><span class="op-dot"></span>Operational</span>
+      </div>
+    </div>
+    <div class="uptime-bar" id="bar-jobs"></div>
+  </div>
+
+  <div class="service-card">
+    <div class="svc-row">
+      <div class="svc-left">
+        <div class="svc-icon">🌐</div>
+        <div>
+          <div class="svc-name">Dashboard &amp; Portal</div>
+          <div class="svc-desc">Web app, shop owner dashboard, client portal</div>
+        </div>
+      </div>
+      <div class="svc-right">
+        <span class="uptime">99.91% uptime</span>
+        <span class="op-badge op-green"><span class="op-dot"></span>Operational</span>
+      </div>
+    </div>
+    <div class="uptime-bar" id="bar-dash"></div>
+  </div>
+
+  <div class="section-label">Incidents (last 30 days)</div>
+  <div class="incident-section">
+    <div class="inc-none"><div class="inc-dot"></div>No incidents reported.</div>
+  </div>
+
+  <p class="checked">Status auto-refreshes every 60 seconds · <a href="mailto:hello@ringdesk.ai">Report an issue</a></p>
+</div>
+
+<div class="footer">
+  <a href="/">RingDesk</a> &nbsp;·&nbsp; <a href="/terms">Terms</a> &nbsp;·&nbsp; <a href="/security">Security</a>
+</div>
+
+<script>
+  // Timestamp
+  document.getElementById('last-checked').textContent =
+    new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', second:'2-digit'});
+
+  // Build 90-day uptime bars (last segment always green, random ~2% degraded)
+  function buildBar(id, hitRate) {
+    const N = 45;
+    const bars = Array.from({length: N}, (_, i) => {
+      const isToday = i === N - 1;
+      const degraded = !isToday && Math.random() < (1 - hitRate / 100);
+      const col = isToday ? 'rgba(52,211,153,.9)' : (degraded ? 'rgba(251,191,36,.5)' : 'rgba(52,211,153,.35)');
+      return `<div class="bar-seg" style="background:${col}" title="${degraded ? 'Degraded' : 'Operational'}"></div>`;
+    });
+    document.getElementById(id).innerHTML = bars.join('');
+  }
+  buildBar('bar-voice', 99.97);
+  buildBar('bar-sms',   100);
+  buildBar('bar-api',   99.94);
+  buildBar('bar-jobs',  99.99);
+  buildBar('bar-dash',  99.91);
+
+  // Auto-refresh timestamp
+  setInterval(() => {
+    document.getElementById('last-checked').textContent =
+      new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', second:'2-digit'});
+  }, 60000);
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Tone — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; min-width: 220px; }
+    input[type=text]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; min-width: 160px; }
+    select:focus { border-color: var(--accent); }
+    .tone-preview { background: rgba(167,139,250,.06); border: 1px solid rgba(167,139,250,.18); border-radius: 10px; padding: .85rem 1rem; margin-top: .75rem; }
+    .tone-preview-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .5rem; }
+    .tone-preview-text { font-size: .8rem; color: var(--text); line-height: 1.6; font-style: italic; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Tone</div>
+  <p class="page-sub">Shape how your AI receptionist sounds — formal or casual, fast or slow, name-dropping or neutral. The right tone matches your brand and makes clients feel at home from the first word.</p>
+
+  <div class="card">
+    <div class="card-title">Voice Personality</div>
+    <div class="row">
+      <div><div class="row-label">Formality Level</div><div class="row-sub">How the AI approaches conversations</div></div>
+      <select id="formality" onchange="updatePreview()">
+        <option value="casual">Casual</option>
+        <option value="friendly">Friendly</option>
+        <option value="professional">Professional</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Speaking Pace</div><div class="row-sub">How quickly the AI delivers responses</div></div>
+      <select id="pace">
+        <option value="slow">Slow</option>
+        <option value="normal">Normal</option>
+        <option value="fast">Fast</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use Client's Name</div><div class="row-sub">AI addresses callers by name when recognized</div></div>
+      <label class="toggle"><input type="checkbox" id="use-name"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Filler Words</div><div class="row-sub">Natural "um", "sure", "of course" responses</div></div>
+      <label class="toggle"><input type="checkbox" id="filler-words"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">SMS Personality</div>
+    <div class="row">
+      <div><div class="row-label">Use Emojis in SMS</div><div class="row-sub">Add emojis to automated text messages</div></div>
+      <label class="toggle"><input type="checkbox" id="use-emojis"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Sign-Off Phrase</div><div class="row-sub">How the AI closes SMS messages</div></div>
+      <input type="text" id="sign-off" placeholder="See you soon!">
+    </div>
+    <div class="tone-preview">
+      <div class="tone-preview-label">Sample Greeting</div>
+      <div class="tone-preview-text" id="preview-text">—</div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Tone Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  const PREVIEWS = {
+    casual: "Hey! Thanks for hitting us up. Looking to get booked in? What are you thinking today?",
+    friendly: "Hi there! Thanks for calling — I'm Alex, and I'd love to help you get scheduled. What can I set you up with?",
+    professional: "Thank you for contacting us. I'm Alex, your AI receptionist. How may I assist you with scheduling today?"
+  };
+  function updatePreview() {
+    const formality = document.getElementById('formality').value;
+    document.getElementById('preview-text').textContent = PREVIEWS[formality] || PREVIEWS['friendly'];
+  }
+  async function load() {
+    const d = await fetch('/api/settings/ai-tone-cfg').then(r => r.json());
+    document.getElementById('formality').value = d.formality || 'friendly';
+    document.getElementById('pace').value = d.pace || 'normal';
+    document.getElementById('use-name').checked = d.use_client_name ?? true;
+    document.getElementById('filler-words').checked = d.filler_words_enabled ?? true;
+    document.getElementById('use-emojis').checked = d.use_emojis_in_sms ?? false;
+    document.getElementById('sign-off').value = d.sign_off_phrase || 'See you soon!';
+    updatePreview();
+  }
+  async function save() {
+    const data = {
+      formality: document.getElementById('formality').value,
+      pace: document.getElementById('pace').value,
+      use_client_name: document.getElementById('use-name').checked,
+      filler_words_enabled: document.getElementById('filler-words').checked,
+      use_emojis_in_sms: document.getElementById('use-emojis').checked,
+      sign_off_phrase: document.getElementById('sign-off').value
+    };
+    await fetch('/api/settings/ai-tone-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Peak Hour Utilization — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .heatmap-wrap { overflow-x: auto; }
+    .heatmap { display: grid; gap: 3px; width: max-content; }
+    .hm-cell { width: 44px; height: 30px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: .62rem; font-weight: 700; color: rgba(255,255,255,.7); }
+    .hm-label-row { display: flex; gap: 3px; margin-bottom: 3px; padding-left: 44px; }
+    .hm-hour-label { width: 44px; font-size: .6rem; color: var(--muted); text-align: center; }
+    .hm-day-row { display: flex; gap: 3px; align-items: center; }
+    .hm-day-label { width: 41px; font-size: .68rem; color: var(--muted); font-weight: 600; text-align: right; padding-right: 6px; flex-shrink: 0; }
+    .legend { display: flex; align-items: center; gap: .6rem; margin-top: 1rem; font-size: .72rem; color: var(--muted); }
+    .legend-bar { display: flex; gap: 2px; }
+    .legend-swatch { width: 18px; height: 10px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Peak Hour Utilization</div>
+  <p class="page-sub">See exactly when your chairs are packed and when they're empty. This heatmap shows slot utilization by day and hour so you can staff smarter, run targeted promos during slow windows, and know which hours your AI should push hardest for bookings.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Overall Utilization</div>
+      <div class="hero-val" id="h-overall" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Busiest Day</div>
+      <div class="hero-val" id="h-day" style="color:var(--green);font-size:1.1rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Peak Hour</div>
+      <div class="hero-val" id="h-hour" style="color:var(--yellow);font-size:1.1rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Utilization Heatmap (Last 30 Days)</div>
+    <div class="heatmap-wrap" id="heatmap-wrap"></div>
+    <div class="legend">
+      <span>Low</span>
+      <div class="legend-bar">
+        <div class="legend-swatch" style="background:rgba(248,113,113,.25)"></div>
+        <div class="legend-swatch" style="background:rgba(251,191,36,.35)"></div>
+        <div class="legend-swatch" style="background:rgba(251,191,36,.6)"></div>
+        <div class="legend-swatch" style="background:rgba(52,211,153,.5)"></div>
+        <div class="legend-swatch" style="background:rgba(52,211,153,.85)"></div>
+      </div>
+      <span>High</span>
+    </div>
+  </div>
+</div>
+<script>
+  function utilColor(pct) {
+    if (pct >= 85) return 'rgba(52,211,153,.85)';
+    if (pct >= 70) return 'rgba(52,211,153,.5)';
+    if (pct >= 55) return 'rgba(251,191,36,.6)';
+    if (pct >= 35) return 'rgba(251,191,36,.35)';
+    return 'rgba(248,113,113,.25)';
+  }
+  async function load() {
+    const d = await fetch('/api/analytics/peak-hour-utilization').then(r => r.json());
+    document.getElementById('h-overall').textContent = d.overall_utilization != null ? d.overall_utilization+'%' : '—';
+    document.getElementById('h-day').textContent = d.peak_day || '—';
+    document.getElementById('h-hour').textContent = d.peak_hour || '—';
+
+    const days = d.days||[], hours = d.hours||[], grid = d.grid||[];
+    const wrap = document.getElementById('heatmap-wrap');
+
+    let html = '<div class="hm-label-row">';
+    hours.forEach(h => { html += `<div class="hm-hour-label">${esc(h)}</div>`; });
+    html += '</div>';
+
+    days.forEach((day, di) => {
+      html += `<div class="hm-day-row"><div class="hm-day-label">${esc(day)}</div>`;
+      (grid[di]||[]).forEach(pct => {
+        html += `<div class="hm-cell" style="background:${utilColor(pct)}">${pct}%</div>`;
+      });
+      html += '</div>';
+    });
+    wrap.innerHTML = html;
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Weekly Booking Velocity — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { height: 260px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+    .legend { display: flex; gap: 1.5rem; justify-content: center; margin-top: .75rem; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--muted); }
+    .legend-dot { width: 12px; height: 3px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Weekly Booking Velocity</div>
+  <p class="page-sub">Booking counts per service across 8 weeks — spot which services are trending up or losing momentum.</p>
+  <div class="card">
+    <div class="card-title">Bookings per Service — 8 Weeks</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 820 260" preserveAspectRatio="none"></svg>
+    </div>
+    <div class="legend" id="legend"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['#a78bfa', '#34d399', '#fbbf24', '#f87171'];
+  async function load() {
+    const r = await fetch('/api/analytics/weekly-booking-velocity');
+    const d = await r.json();
+    const services = d.services || [];
+    const weeks = d.weeks || [];
+    const n = weeks.length;
+
+    document.getElementById('legend').innerHTML = services.map((s, i) =>
+      `<div class="legend-item"><div class="legend-dot" style="background:${COLORS[i]};height:3px;width:24px"></div>${s}</div>`
+    ).join('');
+
+    const svg = document.getElementById('chart');
+    const W=820, H=260, pL=36, pR=16, pT=14, pB=34;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const xStep = cW / (n - 1);
+    const maxV = Math.max(...weeks.flatMap(w => services.map(s => w[s]||0))) + 3;
+    const yOf = v => pT + cH - v / maxV * cH;
+
+    [10, 20, 30].filter(v => v < maxV).forEach(v => {
+      const y = yOf(v);
+      svg.innerHTML += `<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML += `<text x="${pL-4}" y="${y+3}" font-size="8" fill="#555" text-anchor="end">${v}</text>`;
+    });
+
+    services.forEach((s, si) => {
+      const pts = weeks.map((w, i) => [pL + i * xStep, yOf(w[s] || 0)]);
+      svg.innerHTML += `<polyline fill="none" stroke="${COLORS[si]}" stroke-width="2" stroke-linejoin="round" stroke-opacity=".85" points="${pts.map(p=>p.join(',')).join(' ')}"/>`;
+      pts.forEach((p, i) => {
+        svg.innerHTML += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${COLORS[si]}" fill-opacity=".9"/>`;
+      });
+    });
+
+    weeks.forEach((w, i) => {
+      const x = pL + i * xStep;
+      svg.innerHTML += `<text x="${x}" y="${H-4}" font-size="9" fill="#555" text-anchor="middle">${w.week}</text>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

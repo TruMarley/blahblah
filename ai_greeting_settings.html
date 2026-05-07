@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Greeting — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select, input[type=number], input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus, input:focus { border-color: var(--accent); }
+    input[type=number] { width: 80px; }
+    input[type=text] { width: 160px; }
+    .script-label { font-size: .78rem; font-weight: 700; color: var(--muted); margin-bottom: .35rem; margin-top: .9rem; }
+    .script-label:first-of-type { margin-top: 0; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .79rem; padding: .5rem .72rem; outline: none; resize: vertical; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .var-hint { font-size: .65rem; color: var(--muted); margin-top: .25rem; margin-bottom: .5rem; }
+    .variation-item { display: flex; align-items: flex-start; gap: .5rem; margin-bottom: .4rem; }
+    .variation-num { font-size: .7rem; color: var(--muted); padding-top: .52rem; width: 18px; flex-shrink: 0; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Greeting</div>
+  <p class="page-sub">Customize how your AI receptionist introduces itself, handles hold situations, and closes calls. Natural-sounding greetings improve client trust and booking conversion.</p>
+
+  <div class="card">
+    <div class="card-title">General Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable AI Greeting</div><div class="row-sub">AI answers and greets callers</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use Business Name</div><div class="row-sub">Include business name in greeting</div></div>
+      <label class="toggle"><input type="checkbox" id="use-biz-name"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use AI Name</div><div class="row-sub">AI introduces itself by name</div></div>
+      <label class="toggle"><input type="checkbox" id="use-ai-name"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Name</div></div>
+      <input type="text" id="ai-name" placeholder="Alex">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Speak Slowly</div><div class="row-sub">Reduce speaking pace for clarity</div></div>
+      <label class="toggle"><input type="checkbox" id="speak-slowly"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Pause After Greeting (ms)</div><div class="row-sub">Silence before waiting for response</div></div>
+      <input type="number" id="pause-ms" min="0" max="2000">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Repeat if Silence</div><div class="row-sub">Re-speak greeting if no response detected</div></div>
+      <label class="toggle"><input type="checkbox" id="repeat-silence"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Silence Threshold (sec)</div><div class="row-sub">Seconds before repeating greeting</div></div>
+      <input type="number" id="silence-sec" min="1" max="15">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Scripts</div>
+    <div class="script-label">Greeting Script</div>
+    <textarea id="greeting-script" rows="3" placeholder="Hi! Thanks for calling {business_name}. This is {ai_name}..."></textarea>
+    <div class="var-hint">Variables: {business_name}, {ai_name}</div>
+
+    <div class="script-label">After-Hours Greeting</div>
+    <textarea id="after-hours" rows="3" placeholder="Thanks for calling {business_name}. We're currently closed..."></textarea>
+    <div class="var-hint">Variables: {business_name}, {hours}</div>
+
+    <div class="script-label">Hold Message</div>
+    <textarea id="hold-message" rows="2" placeholder="Please hold for just a moment..."></textarea>
+
+    <div class="script-label">Transfer Message</div>
+    <textarea id="transfer-message" rows="2" placeholder="Let me transfer you to a team member right away..."></textarea>
+
+    <div class="script-label">Closing Script</div>
+    <textarea id="closing-script" rows="2" placeholder="Thanks for calling {business_name}. Have a great day!"></textarea>
+    <div class="var-hint">Variables: {business_name}, {first_name}</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Greeting Variations</div>
+    <div class="row">
+      <div><div class="row-label">Use Greeting Variations</div><div class="row-sub">Rotate through alternate scripts to sound natural</div></div>
+      <label class="toggle"><input type="checkbox" id="use-variations"><span class="slider"></span></label>
+    </div>
+    <div id="variation-list"></div>
+    <button class="save-btn" onclick="save()">Save Greeting Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/ai-greeting-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('use-biz-name').checked = data.use_business_name_in_greeting;
+    document.getElementById('use-ai-name').checked = data.use_ai_name_in_greeting;
+    document.getElementById('ai-name').value = data.ai_name || '';
+    document.getElementById('speak-slowly').checked = data.speak_slowly;
+    document.getElementById('pause-ms').value = data.pause_after_greeting_ms;
+    document.getElementById('repeat-silence').checked = data.repeat_greeting_if_silence;
+    document.getElementById('silence-sec').value = data.silence_threshold_seconds;
+    document.getElementById('greeting-script').value = data.greeting_script || '';
+    document.getElementById('after-hours').value = data.after_hours_greeting || '';
+    document.getElementById('hold-message').value = data.hold_message || '';
+    document.getElementById('transfer-message').value = data.transfer_message || '';
+    document.getElementById('closing-script').value = data.closing_script || '';
+    document.getElementById('use-variations').checked = data.use_greeting_variations;
+
+    const varList = document.getElementById('variation-list');
+    (data.greeting_variations || []).forEach((v, i) => {
+      const item = document.createElement('div');
+      item.className = 'variation-item';
+      item.innerHTML = `
+        <div class="variation-num">${i + 1}.</div>
+        <textarea class="variation-ta" rows="2" data-idx="${i}">${v}</textarea>
+      `;
+      varList.appendChild(item);
+    });
+  }
+
+  async function save() {
+    const variations = Array.from(document.querySelectorAll('.variation-ta')).map(t => t.value);
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      use_business_name_in_greeting: document.getElementById('use-biz-name').checked,
+      use_ai_name_in_greeting: document.getElementById('use-ai-name').checked,
+      ai_name: document.getElementById('ai-name').value,
+      speak_slowly: document.getElementById('speak-slowly').checked,
+      pause_after_greeting_ms: parseInt(document.getElementById('pause-ms').value) || 400,
+      repeat_greeting_if_silence: document.getElementById('repeat-silence').checked,
+      silence_threshold_seconds: parseInt(document.getElementById('silence-sec').value) || 4,
+      greeting_script: document.getElementById('greeting-script').value,
+      after_hours_greeting: document.getElementById('after-hours').value,
+      hold_message: document.getElementById('hold-message').value,
+      transfer_message: document.getElementById('transfer-message').value,
+      closing_script: document.getElementById('closing-script').value,
+      use_greeting_variations: document.getElementById('use-variations').checked,
+      greeting_variations: variations,
+    };
+    await fetch('/api/settings/ai-greeting-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

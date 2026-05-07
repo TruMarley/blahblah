@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Top Services by Revenue — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { height: 300px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Top Services by Revenue</div>
+  <p class="page-sub">Which services are driving the most revenue — ranked to show where to double down.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">#1 Service</div>
+      <div class="hero-val" id="h-top" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Top Service Revenue</div>
+      <div class="hero-val" id="h-rev" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Top Avg Price</div>
+      <div class="hero-val" id="h-price" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Services Ranked by Revenue</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 700 300" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/top-services-by-revenue');
+    const d = await r.json();
+    const services = d.services || [];
+    const top = services[0] || {};
+    document.getElementById('h-top').textContent = top.name || '—';
+    document.getElementById('h-rev').textContent = top.revenue ? '$' + top.revenue.toLocaleString() : '—';
+    document.getElementById('h-price').textContent = top.avg_price ? '$' + top.avg_price : '—';
+
+    const svg = document.getElementById('chart');
+    const W=700, H=300, pL=100, pR=90, pT=10, pB=10;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n=services.length;
+    const barH=Math.min(24, cH/n*0.58);
+    const yStep=cH/n;
+    const maxRev=services[0]?.revenue||1;
+
+    services.forEach((s,i)=>{
+      const cy=pT+i*yStep+yStep/2;
+      const bw=cW*s.revenue/maxRev;
+      const alpha=1-i*0.1;
+      svg.innerHTML+=`<text x="${pL-8}" y="${cy+4}" font-size="11" fill="#ccc" text-anchor="end" font-weight="700">${esc(s.name)}</text>`;
+      svg.innerHTML+=`<rect x="${pL}" y="${cy-barH/2}" width="${bw}" height="${barH}" rx="5" fill="rgba(167,139,250,${Math.max(0.2,alpha).toFixed(2)})"/>`;
+      svg.innerHTML+=`<text x="${pL+bw+6}" y="${cy+3}" font-size="9.5" fill="#888">$${s.revenue.toLocaleString()}</text>`;
+      svg.innerHTML+=`<text x="${W-pR+4}" y="${cy+3}" font-size="9" fill="#555">${s.booking_count} bkgs</text>`;
+    });
+    // gridlines
+    [25,50,75,100].forEach(v=>{
+      const x=pL+cW*v/100;
+      svg.innerHTML=`<line x1="${x}" y1="${pT}" x2="${x}" y2="${pT+cH}" stroke="#1a1a1a" stroke-width="1"/>`+svg.innerHTML;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

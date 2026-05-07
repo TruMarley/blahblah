@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMS Campaign Performance — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: .9rem .7rem; text-align: center; }
+    .hero-label { font-size: .58rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; }
+    .hero-val { font-size: 1rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .66rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: .45rem .6rem; text-align: left; border-bottom: 1px solid var(--border); }
+    tbody td { padding: .65rem .6rem; font-size: .8rem; border-bottom: 1px solid rgba(255,255,255,.04); }
+    tbody tr:last-child td { border-bottom: none; }
+    .campaign-name { font-weight: 700; }
+    .rate-good { color: var(--green); font-weight: 700; }
+    .rate-warn { color: var(--yellow); font-weight: 700; }
+    .rate-bad { color: var(--red); font-weight: 700; }
+    .date-cell { color: var(--muted); font-size: .72rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">SMS Campaign Performance</div>
+  <p class="page-sub">Track how your broadcast SMS campaigns are performing. High reply rates signal engaged clients. Rising opt-out rates mean you're sending too frequently or targeting the wrong segment — address this before hitting carrier spam thresholds.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Sent</div>
+      <div class="hero-val" id="h-sent" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Delivery Rate</div>
+      <div class="hero-val" id="h-delivery" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Reply Rate</div>
+      <div class="hero-val" id="h-reply" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Open Rate</div>
+      <div class="hero-val" id="h-open" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Opt-Out Rate</div>
+      <div class="hero-val" id="h-optout" style="color:var(--red)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Campaign History</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Campaign</th>
+          <th>Sent</th>
+          <th>Replies</th>
+          <th>Opt-Outs</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="campaign-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  async function load() {
+    const d = await fetch('/api/analytics/sms-blast-results').then(r => r.json());
+    document.getElementById('h-sent').textContent = d.total_sent ?? '—';
+    document.getElementById('h-delivery').textContent = d.delivery_rate_pct != null ? d.delivery_rate_pct + '%' : '—';
+    document.getElementById('h-reply').textContent = d.reply_rate_pct != null ? d.reply_rate_pct + '%' : '—';
+    document.getElementById('h-open').textContent = d.open_rate_pct != null ? d.open_rate_pct + '%' : '—';
+    document.getElementById('h-optout').textContent = d.opt_out_rate_pct != null ? d.opt_out_rate_pct + '%' : '—';
+    const tbody = document.getElementById('campaign-tbody');
+    (d.campaigns || []).forEach(c => {
+      const replyRate = c.sent > 0 ? (c.replies/c.sent*100).toFixed(1) : 0;
+      const optRate = c.sent > 0 ? (c.opt_outs/c.sent*100).toFixed(2) : 0;
+      const replyClass = replyRate >= 10 ? 'rate-good' : replyRate >= 5 ? 'rate-warn' : 'rate-bad';
+      const optClass = optRate <= 0.5 ? 'rate-good' : optRate <= 2 ? 'rate-warn' : 'rate-bad';
+      tbody.innerHTML += `<tr>
+        <td class="campaign-name">${esc(c.name)}</td>
+        <td>${c.sent}</td>
+        <td class="${replyClass}">${c.replies} <span style="font-size:.7rem;font-weight:400;color:var(--muted)">(${replyRate}%)</span></td>
+        <td class="${optClass}">${c.opt_outs} <span style="font-size:.7rem;font-weight:400;color:var(--muted)">(${optRate}%)</span></td>
+        <td class="date-cell">${esc(c.date)}</td>
+      </tr>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

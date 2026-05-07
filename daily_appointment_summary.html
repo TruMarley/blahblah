@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Daily Appointment Summary — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1.1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .leg-item { display: flex; align-items: center; gap: .35rem; font-size: .7rem; color: var(--muted); }
+    .leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Daily Appointment Summary</div>
+  <p class="page-sub">Weekly view of booked, completed, cancelled, and no-show appointments. Spot patterns to optimize staffing and scheduling.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg Completion Rate</div>
+      <div class="hero-val" id="h-completion" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg No-Shows/Day</div>
+      <div class="hero-val" id="h-noshow" style="color:var(--red)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Best Day</div>
+      <div class="hero-val" id="h-bestday" style="color:var(--accent);font-size:1.2rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Weekly Breakdown</div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(167,139,250,.7)"></div> Booked</div>
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(52,211,153,.8)"></div> Completed</div>
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(251,191,36,.7)"></div> Cancelled</div>
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(248,113,113,.7)"></div> No-Show</div>
+    </div>
+    <svg id="chart" viewBox="0 0 660 240" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/daily-appointment-summary').then(r => r.json());
+    const days = d.days || [];
+    if (!days.length) return;
+
+    const totalNoShow = days.reduce((s, d) => s + (d.no_show || 0), 0);
+    const avgNoShow = (totalNoShow / days.length).toFixed(1);
+    const completionRates = days.map(d => d.booked > 0 ? d.completed / d.booked : 0);
+    const avgCompletion = Math.round(completionRates.reduce((a,b) => a+b, 0) / completionRates.length * 100);
+    const bestDay = days.reduce((a, b) => b.completed > a.completed ? b : a, days[0]);
+
+    document.getElementById('h-completion').textContent = avgCompletion + '%';
+    document.getElementById('h-noshow').textContent = avgNoShow;
+    document.getElementById('h-bestday').textContent = bestDay ? bestDay.day : '—';
+
+    const W = 660, H = 240, padL = 36, padR = 12, padT = 16, padB = 36;
+    const chartW = W - padL - padR, chartH = H - padT - padB;
+    const maxVal = Math.max(...days.map(d => d.booked), 1);
+    const groupW = chartW / days.length;
+    const barW = Math.floor(groupW * 0.18);
+    const COLORS = ['rgba(167,139,250,.7)','rgba(52,211,153,.8)','rgba(251,191,36,.7)','rgba(248,113,113,.7)'];
+    const KEYS = ['booked','completed','cancelled','no_show'];
+
+    let bars = '', labels = '';
+    days.forEach((day, i) => {
+      const gx = padL + i * groupW;
+      KEYS.forEach((k, ki) => {
+        const val = day[k] || 0;
+        const bh = (val / maxVal) * chartH;
+        const x = gx + ki * (barW + 2) + (groupW - KEYS.length * (barW + 2)) / 2;
+        const y = padT + chartH - bh;
+        bars += `<rect x="${x}" y="${y}" width="${barW}" height="${bh}" fill="${COLORS[ki]}" rx="2"/>`;
+      });
+      labels += `<text x="${gx + groupW/2}" y="${H - padB + 14}" text-anchor="middle" fill="#555" font-size="10">${esc(day.day)}</text>`;
+    });
+
+    let yAxis = '';
+    for (let t = 0; t <= 4; t++) {
+      const yv = Math.round(maxVal * t / 4);
+      const yp = padT + chartH - (t / 4) * chartH;
+      yAxis += `<line x1="${padL}" x2="${W-padR}" y1="${yp}" y2="${yp}" stroke="#1e1e1e" stroke-width="1"/>`;
+      yAxis += `<text x="${padL-5}" y="${yp+4}" text-anchor="end" fill="#444" font-size="8">${yv}</text>`;
+    }
+
+    document.getElementById('chart').innerHTML = yAxis + bars + labels;
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

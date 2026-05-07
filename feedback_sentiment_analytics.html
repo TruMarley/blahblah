@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feedback Sentiment — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .week-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+    .week-label { font-size: .75rem; color: var(--muted); width: 44px; flex-shrink: 0; }
+    .stacked-bar { flex: 1; height: 12px; border-radius: 4px; overflow: hidden; display: flex; }
+    .seg-pos { background: var(--green); }
+    .seg-neu { background: var(--yellow); }
+    .seg-neg { background: var(--red); }
+    .week-total { font-size: .7rem; color: var(--muted); width: 36px; text-align: right; }
+    .theme-list { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
+    .theme-chip { font-size: .72rem; background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); border-radius: 6px; padding: .2rem .6rem; }
+    .trend-badge { display: inline-flex; align-items: center; gap: .25rem; font-size: .68rem; font-weight: 700; background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); border-radius: 5px; padding: .15rem .55rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Feedback Sentiment</div>
+  <p class="page-sub">AI-analyzed sentiment from client reviews and post-appointment feedback. Growing positive sentiment week-over-week is the clearest signal that service quality is improving.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Reviews (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-pos" style="color:var(--green)">—</div><div class="stat-lbl">Positive</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-neu" style="color:var(--yellow)">—</div><div class="stat-lbl">Neutral</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-neg" style="color:var(--red)">—</div><div class="stat-lbl">Negative</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Weekly Sentiment <span id="trend-wrap"></span></div>
+    <div id="week-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Top Positive Themes</div>
+    <div class="theme-list" id="theme-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/feedback-sentiment-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_reviews_30d;
+    document.getElementById('h-pos').textContent = d.positive_pct.toFixed(1) + '%';
+    document.getElementById('h-neu').textContent = d.neutral_pct.toFixed(1) + '%';
+    document.getElementById('h-neg').textContent = d.negative_pct.toFixed(1) + '%';
+    document.getElementById('trend-wrap').innerHTML = '<span class="trend-badge">▲ ' + d.sentiment_trend + '</span>';
+    const wl = document.getElementById('week-list');
+    d.weeks.forEach(w => {
+      const total = w.positive + w.neutral + w.negative;
+      const pp = (w.positive / total * 100).toFixed(1);
+      const np = (w.neutral / total * 100).toFixed(1);
+      const ngp = (w.negative / total * 100).toFixed(1);
+      wl.innerHTML += '<div class="week-row"><div class="week-label">' + w.week + '</div><div class="stacked-bar"><div class="seg-pos" style="width:' + pp + '%"></div><div class="seg-neu" style="width:' + np + '%"></div><div class="seg-neg" style="width:' + ngp + '%"></div></div><div class="week-total">' + total + '</div></div>';
+    });
+    const tl = document.getElementById('theme-list');
+    d.top_positive_themes.forEach(t => {
+      tl.innerHTML += '<span class="theme-chip">' + t + '</span>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

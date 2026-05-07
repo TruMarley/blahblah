@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dispute Handling — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    .keyword-wrap { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .65rem; }
+    .kw-chip { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.28); border-radius: 5px; padding: .18rem .5rem; font-size: .72rem; color: var(--red); display: flex; align-items: center; gap: .3rem; font-family: monospace; }
+    .kw-chip button { background: none; border: none; color: var(--red); cursor: pointer; font-size: .75rem; padding: 0; opacity: .6; }
+    .kw-chip button:hover { opacity: 1; }
+    .kw-add-row { display: flex; gap: .4rem; }
+    .kw-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    .kw-input:focus { border-color: var(--red); }
+    .kw-btn { background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.3); color: var(--red); font-size: .78rem; font-weight: 700; border-radius: 8px; padding: .42rem .75rem; cursor: pointer; white-space: nowrap; }
+    .kw-btn:hover { background: rgba(248,113,113,.22); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Dispute Handling</div>
+  <p class="page-sub">Configure how the AI responds when a caller expresses frustration or files a complaint. Automatic escalation to the owner ensures no unhappy client slips through the cracks before they leave a bad review.</p>
+
+  <div class="card">
+    <div class="card-title">Escalation Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Dispute Handling</div><div class="row-sub">AI detects complaints and escalates automatically</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Escalate via SMS</div><div class="row-sub">Owner gets an SMS when complaint detected</div></div>
+      <label class="toggle"><input type="checkbox" id="esc-sms"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Escalate via Phone</div><div class="row-sub">Transfer call directly to owner's number</div></div>
+      <label class="toggle"><input type="checkbox" id="esc-phone"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Offer Discount</div><div class="row-sub">AI offers a discount code to calm the situation</div></div>
+      <label class="toggle"><input type="checkbox" id="auto-discount"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Discount Amount (%)</div></div>
+      <input type="number" id="discount-pct" min="5" max="50" placeholder="10">
+    </div>
+    <div class="row" style="margin-bottom:0">
+      <div><div class="row-label">Response Window (hours)</div><div class="row-sub">Owner must respond within this window</div></div>
+      <input type="number" id="response-window" min="1" max="48" placeholder="2">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Escalation Keywords</div>
+    <p style="font-size:.73rem;color:var(--muted);margin-bottom:.75rem">When a caller says any of these words or phrases, the AI immediately flags the call as a dispute.</p>
+    <div class="keyword-wrap" id="kw-wrap"></div>
+    <div class="kw-add-row">
+      <input class="kw-input" type="text" id="new-kw" placeholder="e.g. speak to manager" onkeydown="if(event.key==='Enter')addKw()">
+      <button class="kw-btn" onclick="addKw()">+ Add</button>
+    </div>
+    <button class="save-btn" onclick="save()">Save Dispute Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let keywords = [];
+  function renderKw() {
+    document.getElementById('kw-wrap').innerHTML = keywords.map((k, i) =>
+      `<div class="kw-chip">${esc(k)}<button onclick="removeKw(${i})">✕</button></div>`
+    ).join('');
+  }
+  function addKw() {
+    const v = document.getElementById('new-kw').value.trim();
+    if (v && !keywords.includes(v)) { keywords.push(v); renderKw(); }
+    document.getElementById('new-kw').value = '';
+  }
+  function removeKw(i) { keywords.splice(i, 1); renderKw(); }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  async function load() {
+    const d = await fetch('/api/settings/dispute-handling-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled ?? true;
+    document.getElementById('esc-sms').checked = d.escalate_to_sms ?? true;
+    document.getElementById('esc-phone').checked = d.escalate_to_phone ?? false;
+    document.getElementById('auto-discount').checked = d.auto_offer_discount ?? false;
+    document.getElementById('discount-pct').value = d.discount_pct ?? 10;
+    document.getElementById('response-window').value = d.response_window_hours ?? 2;
+    keywords = d.owner_notify_keywords || [];
+    renderKw();
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      escalate_to_sms: document.getElementById('esc-sms').checked,
+      escalate_to_phone: document.getElementById('esc-phone').checked,
+      auto_offer_discount: document.getElementById('auto-discount').checked,
+      discount_pct: parseInt(document.getElementById('discount-pct').value) || 10,
+      response_window_hours: parseInt(document.getElementById('response-window').value) || 2,
+      owner_notify_keywords: keywords
+    };
+    await fetch('/api/settings/dispute-handling-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

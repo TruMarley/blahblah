@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Avg Call Duration by Hour — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: 1.25rem; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+    .chart-wrap { height: 270px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Avg Call Duration by Hour</div>
+  <p class="page-sub">When calls run longest — longer calls often mean more complex bookings or AI struggling with edge cases.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Longest Avg Duration</div>
+      <div class="hero-val" id="h-long" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Peak Call Hour</div>
+      <div class="hero-val" id="h-peak" style="color:var(--green)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Call Volume &amp; Avg Duration by Hour</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(167,139,250,.45)"></div>Call Volume</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow);border-radius:50%"></div>Avg Duration</div>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 700 270" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/avg-call-duration-by-hour');
+    const d = await r.json();
+    const hours = d.hours || [];
+    const longest = hours.reduce((a,b)=>b.avg_duration_seconds>a.avg_duration_seconds?b:a, hours[0]||{});
+    const peakVol = hours.reduce((a,b)=>b.call_count>a.call_count?b:a, hours[0]||{});
+    const fmtSec = s => s >= 60 ? `${Math.floor(s/60)}m ${s%60}s` : `${s}s`;
+    document.getElementById('h-long').textContent = longest.hour_label ? `${longest.hour_label} (${fmtSec(longest.avg_duration_seconds)})` : '—';
+    document.getElementById('h-peak').textContent = peakVol.hour_label || '—';
+
+    const svg = document.getElementById('chart');
+    const W=700, H=270, pL=46, pR=54, pT=14, pB=28;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n=hours.length;
+    const barW=cW/n*0.52;
+    const xStep=cW/n;
+    const maxCount=Math.max(...hours.map(h=>h.call_count))*1.2;
+    const maxDur=Math.max(...hours.map(h=>h.avg_duration_seconds))*1.2;
+    const xOf=i=>pL+i*xStep+xStep/2;
+    const yOfC=v=>pT+cH-v/maxCount*cH;
+    const yOfD=v=>pT+cH-v/maxDur*cH;
+
+    // left axis (calls)
+    [10,20,30,40].filter(v=>v<maxCount).forEach(v=>{
+      const y=yOfC(v);
+      svg.innerHTML+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML+=`<text x="${pL-4}" y="${y+3.5}" font-size="8" fill="#555" text-anchor="end">${v}</text>`;
+    });
+    // right axis (duration seconds)
+    [60,120,180].filter(v=>v<maxDur).forEach(v=>{
+      const y=yOfD(v);
+      svg.innerHTML+=`<text x="${W-pR+4}" y="${y+3.5}" font-size="8" fill="#666">${v}s</text>`;
+    });
+
+    // bars
+    hours.forEach((h,i)=>{
+      const cx=xOf(i);
+      const bh=cH*h.call_count/maxCount;
+      svg.innerHTML+=`<rect x="${cx-barW/2}" y="${pT+cH-bh}" width="${barW}" height="${bh}" rx="4" fill="rgba(167,139,250,.42)"/>`;
+      svg.innerHTML+=`<text x="${cx}" y="${H-4}" font-size="8.5" fill="#555" text-anchor="middle">${esc(h.hour_label)}</text>`;
+    });
+
+    // duration line
+    const pts=hours.map((h,i)=>`${xOf(i)},${yOfD(h.avg_duration_seconds)}`).join(' ');
+    svg.innerHTML+=`<polyline points="${pts}" fill="none" stroke="rgba(251,191,36,.85)" stroke-width="2.5"/>`;
+    hours.forEach((h,i)=>{
+      svg.innerHTML+=`<circle cx="${xOf(i)}" cy="${yOfD(h.avg_duration_seconds)}" r="3.5" fill="var(--yellow)"/>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

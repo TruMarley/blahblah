@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Abandonment — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem .9rem; text-align: center; }
+    .hero-label { font-size: .6rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.1rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .hour-row { display: flex; align-items: center; gap: .65rem; margin-bottom: .7rem; }
+    .hour-row:last-child { margin-bottom: 0; }
+    .hour-label { font-size: .72rem; color: var(--muted); min-width: 38px; text-align: right; }
+    .bar-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 8px; }
+    .bar-fill { height: 8px; border-radius: 8px; }
+    .hour-pct { font-size: .7rem; font-weight: 700; min-width: 36px; text-align: right; }
+    .hour-count { font-size: .68rem; color: var(--muted); min-width: 60px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Abandonment</div>
+  <p class="page-sub">Track when callers hang up before the AI answers or completes their request. High abandonment during certain hours signals a capacity problem — either the AI is too slow to pick up or callers are hitting the wrong menu path.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Abandon Rate</div>
+      <div class="hero-val" id="h-rate" style="color:var(--red)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total Calls</div>
+      <div class="hero-val" id="h-total" style="color:var(--muted)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Abandoned</div>
+      <div class="hero-val" id="h-abandoned" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Wait</div>
+      <div class="hero-val" id="h-wait" style="color:var(--accent)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Abandonment by Hour of Day</div>
+    <div id="hour-list"></div>
+  </div>
+</div>
+<script>
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  async function load() {
+    const d = await fetch('/api/analytics/call-abandonment-stats').then(r => r.json());
+    document.getElementById('h-rate').textContent = d.abandonment_rate_pct != null ? d.abandonment_rate_pct + '%' : '—';
+    document.getElementById('h-total').textContent = d.total_calls ?? '—';
+    document.getElementById('h-abandoned').textContent = d.abandoned_calls ?? '—';
+    document.getElementById('h-wait').textContent = d.avg_wait_sec != null ? d.avg_wait_sec + 's' : '—';
+    const byHour = d.by_hour || [];
+    const maxPct = Math.max(...byHour.map(h => h.total > 0 ? h.abandoned/h.total*100 : 0), 1);
+    const el = document.getElementById('hour-list');
+    byHour.forEach(h => {
+      const pct = h.total > 0 ? Math.round(h.abandoned/h.total*100) : 0;
+      const barPct = Math.round(pct/maxPct*100);
+      const color = pct >= 20 ? 'var(--red)' : pct >= 10 ? 'var(--yellow)' : 'var(--green)';
+      el.innerHTML += `<div class="hour-row">
+        <div class="hour-label">${esc(h.hour)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${barPct}%;background:${color}"></div></div>
+        <div class="hour-pct" style="color:${color}">${pct}%</div>
+        <div class="hour-count">${h.abandoned}/${h.total} calls</div>
+      </div>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

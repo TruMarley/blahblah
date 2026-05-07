@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Repeat vs New Revenue — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .75rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.25rem; text-align: center; }
+    .hero-label { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .3rem; }
+    .hero-val { font-size: 1.6rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { height: 240px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+    .legend { display: flex; gap: 1.5rem; justify-content: center; margin-top: .75rem; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Repeat vs New Revenue</div>
+  <p class="page-sub">How much revenue comes from loyal returning clients versus first-timers — the health ratio of your client base.</p>
+  <div class="hero-row" id="hero-row">
+    <div class="hero-card"><div class="hero-label">Avg Repeat Revenue</div><div class="hero-val" id="h-repeat" style="color:var(--accent)">—</div></div>
+    <div class="hero-card"><div class="hero-label">Avg New Revenue</div><div class="hero-val" id="h-new" style="color:var(--green)">—</div></div>
+    <div class="hero-card"><div class="hero-label">Avg Total</div><div class="hero-val" id="h-total" style="color:var(--text)">—</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Revenue Split — 6 Months</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 760 240" preserveAspectRatio="none"></svg>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(167,139,250,.8)"></div>Repeat Clients</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(52,211,153,.7)"></div>New Clients</div>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/repeat-vs-new-revenue');
+    const d = await r.json();
+    const months = d.months || [];
+    const n = months.length;
+    const avgRepeat = Math.round(months.reduce((s,m) => s + m.repeat_revenue, 0) / n);
+    const avgNew = Math.round(months.reduce((s,m) => s + m.new_client_revenue, 0) / n);
+    document.getElementById('h-repeat').textContent = '$' + avgRepeat.toLocaleString();
+    document.getElementById('h-new').textContent = '$' + avgNew.toLocaleString();
+    document.getElementById('h-total').textContent = '$' + (avgRepeat + avgNew).toLocaleString();
+
+    const svg = document.getElementById('chart');
+    const W=760, H=240, pL=52, pR=16, pT=14, pB=34;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const barW = cW / n * 0.6;
+    const xStep = cW / n;
+    const maxV = Math.max(...months.map(m => m.total)) * 1.1;
+    const yOf = v => pT + cH - v / maxV * cH;
+
+    [5000, 10000, 15000, 20000].forEach(v => {
+      if (v > maxV) return;
+      const y = yOf(v);
+      svg.innerHTML += `<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML += `<text x="${pL-4}" y="${y+3}" font-size="8" fill="#555" text-anchor="end">$${(v/1000).toFixed(0)}k</text>`;
+    });
+
+    months.forEach((m, i) => {
+      const cx = pL + i * xStep + xStep / 2;
+      const x = cx - barW / 2;
+      const repeatH = cH * m.repeat_revenue / maxV;
+      const newH = cH * m.new_client_revenue / maxV;
+      const totalH = repeatH + newH;
+      const baseY = pT + cH;
+      svg.innerHTML += `<rect x="${x}" y="${baseY - totalH}" width="${barW}" height="${newH}" rx="0" fill="rgba(52,211,153,.7)"/>`;
+      svg.innerHTML += `<rect x="${x}" y="${baseY - totalH - repeatH + newH}" width="${barW}" height="${repeatH}" rx="4" fill="rgba(167,139,250,.8)" style="border-radius:4px 4px 0 0"/>`;
+      svg.innerHTML += `<text x="${cx}" y="${pT + cH - totalH - 6}" font-size="8.5" fill="#aaa" text-anchor="middle">$${(m.total/1000).toFixed(1)}k</text>`;
+      svg.innerHTML += `<text x="${cx}" y="${H-4}" font-size="9" fill="#555" text-anchor="middle">${m.month}</text>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

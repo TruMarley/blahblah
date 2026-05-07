@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bulk SMS — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: start; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .campaign-list { display: flex; flex-direction: column; gap: .75rem; }
+    .campaign-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; }
+    .campaign-name { font-size: .88rem; font-weight: 800; margin-bottom: .3rem; }
+    .campaign-msg { font-size: .76rem; color: var(--muted); margin-bottom: .45rem; line-height: 1.45; }
+    .campaign-meta { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+    .target-badge { font-size: .62rem; font-weight: 800; padding: .1rem .35rem; border-radius: 4px; background: rgba(167,139,250,.12); color: var(--accent); }
+    .status-badge { font-size: .62rem; font-weight: 800; padding: .1rem .35rem; border-radius: 4px; }
+    .status-sent { background: rgba(52,211,153,.12); color: var(--green); }
+    .status-draft { background: rgba(100,100,100,.2); color: var(--muted); }
+    .sent-count { font-size: .68rem; color: var(--muted); }
+    .field-group { margin-bottom: 1rem; }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; display: block; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .48rem .7rem; font-family: inherit; width: 100%; outline: none; }
+    .f-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .48rem .7rem; font-family: inherit; width: 100%; outline: none; cursor: pointer; }
+    .f-textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .5rem .7rem; font-family: inherit; width: 100%; outline: none; resize: vertical; min-height: 80px; line-height: 1.5; }
+    .vars-hint { font-size: .68rem; color: var(--muted); margin-top: .25rem; }
+    .vars-hint code { background: rgba(167,139,250,.1); color: var(--accent); padding: .08rem .28rem; border-radius: 3px; font-size: .66rem; }
+    .send-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.4rem; border-radius: 9px; border: 1px solid rgba(52,211,153,.4); background: rgba(52,211,153,.1); color: var(--green); cursor: pointer; font-family: inherit; width: 100%; margin-top: .25rem; }
+    .send-btn:hover { background: rgba(52,211,153,.2); }
+    .sent-msg { font-size: .75rem; color: var(--green); font-weight: 700; text-align: center; margin-top: .5rem; min-height: 1.2em; }
+    .empty { color: var(--muted); font-size: .82rem; text-align: center; padding: 1.5rem; }
+    @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Bulk SMS</div>
+  <p class="page-sub">Send targeted SMS campaigns to your client segments — promotions, win-backs, and announcements in one click.</p>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Past Campaigns</div>
+      <div class="campaign-list" id="campaign-list"><div class="empty">Loading...</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">New Campaign</div>
+      <div class="field-group">
+        <label class="field-label" for="cname">Campaign Name</label>
+        <input class="f-input" type="text" id="cname" placeholder="Spring Promo">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="target">Target Audience</label>
+        <select class="f-select" id="target">
+          <option value="all">All Clients</option>
+          <option value="at_risk">At-Risk Clients</option>
+          <option value="loyal">Loyal Clients (6+ visits)</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="cmsg">Message</label>
+        <textarea class="f-textarea" id="cmsg" placeholder="Hey {name}, ..."></textarea>
+        <div class="vars-hint">Variables: <code>{name}</code> <code>{link}</code></div>
+      </div>
+      <button class="send-btn" onclick="sendCampaign()">Send Campaign</button>
+      <div class="sent-msg" id="sent-msg"></div>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/bulk-sms');
+    const d = await r.json();
+    const list = document.getElementById('campaign-list');
+    if (!d.campaigns?.length) { list.innerHTML = '<div class="empty">No campaigns yet.</div>'; return; }
+    list.innerHTML = d.campaigns.map(c =>
+      `<div class="campaign-card">
+        <div class="campaign-name">${esc(c.name)}</div>
+        <div class="campaign-msg">${esc(c.message)}</div>
+        <div class="campaign-meta">
+          <span class="target-badge">${esc(c.target)}</span>
+          <span class="status-badge status-${esc(c.status)}">${c.status}</span>
+          ${c.sent_count ? `<span class="sent-count">${c.sent_count} sent</span>` : ''}
+        </div>
+      </div>`
+    ).join('');
+  }
+  async function sendCampaign() {
+    const name = document.getElementById('cname').value.trim();
+    const msg = document.getElementById('cmsg').value.trim();
+    const target = document.getElementById('target').value;
+    if (!name || !msg) return;
+    await fetch('/api/bulk-sms', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, message: msg, target})});
+    document.getElementById('sent-msg').textContent = '✓ Campaign created!';
+    document.getElementById('cname').value = '';
+    document.getElementById('cmsg').value = '';
+    setTimeout(() => { document.getElementById('sent-msg').textContent = ''; }, 2500);
+    load();
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

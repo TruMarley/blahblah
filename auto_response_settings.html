@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Auto Response Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    .suffix { font-size: .78rem; color: var(--muted); margin-left: .35rem; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-size: .8rem; padding: .6rem .8rem; outline: none; resize: vertical; min-height: 55px; font-family: inherit; line-height: 1.55; margin-top: .5rem; }
+    textarea:focus { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Auto Response Settings</div>
+  <p class="page-sub">Configure automatic text replies for missed calls, busy lines, and after-hours contacts. Never leave a potential client hanging.</p>
+  <div class="card">
+    <div class="card-title">Auto Response Triggers</div>
+    <div class="row">
+      <div><div class="row-label">Enable Auto Responses</div><div class="row-sub">Send automated texts in response to contacts</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Respond to Missed Calls</div><div class="row-sub">Text back when AI couldn't answer</div></div>
+      <label class="toggle"><input type="checkbox" id="missed-calls"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Respond to Inbound Texts</div><div class="row-sub">Auto-reply to SMS received</div></div>
+      <label class="toggle"><input type="checkbox" id="texts"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Include Booking Link</div><div class="row-sub">Attach direct booking URL in response</div></div>
+      <label class="toggle"><input type="checkbox" id="booking-link"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Response Delay</div><div class="row-sub">Seconds to wait before sending auto-reply</div></div>
+      <div style="display:flex;align-items:center">
+        <input type="number" id="delay" min="0" max="300" step="5">
+        <span class="suffix">sec</span>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Message Templates</div>
+    <div style="margin-bottom:.9rem">
+      <div class="row-label" style="font-size:.78rem;color:var(--muted);margin-bottom:.35rem">After-Hours Message</div>
+      <textarea id="after-hours" rows="2"></textarea>
+    </div>
+    <div>
+      <div class="row-label" style="font-size:.78rem;color:var(--muted);margin-bottom:.35rem">Busy Line Message</div>
+      <textarea id="busy-line" rows="2"></textarea>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/settings/auto-response').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('missed-calls').checked = d.respond_to_missed_calls;
+    document.getElementById('texts').checked = d.respond_to_texts;
+    document.getElementById('booking-link').checked = d.include_booking_link;
+    document.getElementById('delay').value = d.delay_seconds || 30;
+    document.getElementById('after-hours').value = d.after_hours_message || '';
+    document.getElementById('busy-line').value = d.busy_line_message || '';
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      respond_to_missed_calls: document.getElementById('missed-calls').checked,
+      respond_to_texts: document.getElementById('texts').checked,
+      include_booking_link: document.getElementById('booking-link').checked,
+      delay_seconds: parseInt(document.getElementById('delay').value)||30,
+      after_hours_message: document.getElementById('after-hours').value,
+      busy_line_message: document.getElementById('busy-line').value
+    };
+    await fetch('/api/settings/auto-response', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

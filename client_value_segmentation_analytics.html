@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Value Segmentation — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .seg-row { display: grid; grid-template-columns: 160px 1fr 70px 90px; gap: .75rem; align-items: center; margin-bottom: .9rem; }
+    .seg-label { font-size: .82rem; font-weight: 700; }
+    .bar-wrap { background: var(--surface2); border-radius: 5px; height: 12px; overflow: hidden; }
+    .bar { height: 100%; border-radius: 5px; transition: width .4s; }
+    .seg-count { font-size: .75rem; font-weight: 700; text-align: right; }
+    .seg-ltv { font-size: .72rem; color: var(--muted); text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Value Segmentation</div>
+  <p class="page-sub">Understand who your most valuable clients are. Protect your VIPs, convert occasionals into regulars, and win back one-timers with targeted campaigns.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Clients</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg LTV</div>
+      <div class="hero-val" id="h-ltv" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">VIP Share</div>
+      <div class="hero-val" id="h-vip" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Client Segments by Visit Frequency</div>
+    <div id="seg-chart"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/client-value-segmentation').then(r => r.json());
+    document.getElementById('h-total').textContent = (d.total_clients||0).toLocaleString();
+    document.getElementById('h-ltv').textContent = d.avg_ltv ? '$'+d.avg_ltv : '—';
+    document.getElementById('h-vip').textContent = d.top_segment_pct ? d.top_segment_pct+'%' : '—';
+    const segs = d.segments || [];
+    const maxC = Math.max(...segs.map(s=>s.count),1);
+    document.getElementById('seg-chart').innerHTML = segs.map(s => `
+      <div class="seg-row">
+        <span class="seg-label" style="color:${s.color}">${esc(s.label)}</span>
+        <div class="bar-wrap"><div class="bar" style="width:${(s.count/maxC*100).toFixed(1)}%;background:${s.color}"></div></div>
+        <span class="seg-count" style="color:${s.color}">${s.count}</span>
+        <span class="seg-ltv">avg $${s.avg_ltv}</span>
+      </div>
+    `).join('');
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

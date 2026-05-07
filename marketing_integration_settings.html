@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marketing Integration Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .platform-badge { font-size: .65rem; font-weight: 800; padding: .12rem .4rem; border-radius: 4px; }
+    .badge-mc { background: rgba(251,191,36,.15); color: var(--yellow); }
+    .badge-kl { background: rgba(52,211,153,.12); color: var(--green); }
+    .field-group { margin-bottom: .9rem; }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; display: block; }
+    .field-sub { font-size: .68rem; color: var(--muted); margin-top: .18rem; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .48rem .7rem; font-family: inherit; width: 100%; outline: none; }
+    .f-input[type=password] { letter-spacing: .08em; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: .6rem 0; border-bottom: 1px solid var(--border); margin-bottom: .75rem; }
+    .toggle-label { font-size: .88rem; font-weight: 700; }
+    .toggle-sub { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+    .toggle { position: relative; width: 38px; height: 21px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #222; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .slider:before { content: ''; position: absolute; width: 15px; height: 15px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: rgba(167,139,250,.3); }
+    input:checked + .slider:before { transform: translateX(17px); background: var(--accent); }
+    .sync-triggers { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .35rem; }
+    .sync-chip { font-size: .68rem; font-weight: 700; padding: .18rem .5rem; border-radius: 5px; background: rgba(167,139,250,.12); color: var(--accent); border: 1px solid rgba(167,139,250,.25); }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.4rem; border-radius: 9px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; width: 100%; margin-top: 1rem; }
+    .save-btn:hover { background: rgba(167,139,250,.2); }
+    .saved-msg { font-size: .75rem; color: var(--green); font-weight: 700; text-align: center; margin-top: .5rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Marketing Integration Settings</div>
+  <p class="page-sub">Sync new clients and booking events directly to your email marketing platform — grow your list automatically.</p>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Mailchimp</div>
+      <span class="platform-badge badge-mc">MAILCHIMP</span>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Enable Mailchimp Sync</div><div class="toggle-sub">Push client data to Mailchimp automatically</div></div>
+      <label class="toggle"><input type="checkbox" id="mc-enabled"><span class="slider"></span></label>
+    </div>
+    <div class="field-group">
+      <label class="field-label">API Key</label>
+      <input class="f-input" type="password" id="mc-key" placeholder="xxxxxxxxxxxxxxxxxxxx-us1">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Audience / List ID</label>
+      <input class="f-input" type="text" id="mc-list" placeholder="abc12345">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Sync On</label>
+      <div class="sync-triggers" id="mc-triggers"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Klaviyo</div>
+      <span class="platform-badge badge-kl">KLAVIYO</span>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Enable Klaviyo Sync</div><div class="toggle-sub">Push client events to Klaviyo flows</div></div>
+      <label class="toggle"><input type="checkbox" id="kl-enabled"><span class="slider"></span></label>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Private API Key</label>
+      <input class="f-input" type="password" id="kl-key" placeholder="pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+    </div>
+    <div class="field-group">
+      <label class="field-label">List ID</label>
+      <input class="f-input" type="text" id="kl-list" placeholder="XXXXXX">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Sync On</label>
+      <div class="sync-triggers" id="kl-triggers"></div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Marketing Integrations</button>
+    <div class="saved-msg" id="saved-msg"></div>
+  </div>
+</div>
+<script>
+  let data = {};
+  const TRIGGER_LABELS = {
+    new_client: 'New Client',
+    booking_confirmed: 'Booking Confirmed',
+    post_visit: 'Post Visit',
+    cancellation: 'Cancellation'
+  };
+  function renderTriggers(containerId, triggers) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = (triggers||[]).map(t=>`<span class="sync-chip">${esc(TRIGGER_LABELS[t]||t)}</span>`).join('');
+  }
+  async function load() {
+    const r = await fetch('/api/marketing-integration-settings');
+    data = await r.json();
+    document.getElementById('mc-enabled').checked = !!data.mailchimp_enabled;
+    document.getElementById('mc-key').value = data.mailchimp_api_key || '';
+    document.getElementById('mc-list').value = data.mailchimp_list_id || '';
+    renderTriggers('mc-triggers', data.mailchimp_sync_on);
+    document.getElementById('kl-enabled').checked = !!data.klaviyo_enabled;
+    document.getElementById('kl-key').value = data.klaviyo_api_key || '';
+    document.getElementById('kl-list').value = data.klaviyo_list_id || '';
+    renderTriggers('kl-triggers', data.klaviyo_sync_on);
+  }
+  async function save() {
+    data.mailchimp_enabled = document.getElementById('mc-enabled').checked;
+    data.mailchimp_api_key = document.getElementById('mc-key').value.trim();
+    data.mailchimp_list_id = document.getElementById('mc-list').value.trim();
+    data.klaviyo_enabled = document.getElementById('kl-enabled').checked;
+    data.klaviyo_api_key = document.getElementById('kl-key').value.trim();
+    data.klaviyo_list_id = document.getElementById('kl-list').value.trim();
+    await fetch('/api/marketing-integration-settings', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const msg = document.getElementById('saved-msg');
+    msg.textContent = '✓ Saved';
+    setTimeout(() => { msg.textContent = ''; }, 2000);
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

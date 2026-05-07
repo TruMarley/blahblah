@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Hours — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .staff-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .staff-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .staff-name { font-size: 1rem; font-weight: 900; }
+    .save-btn { font-size: .72rem; font-weight: 800; padding: .35rem .9rem; border-radius: 8px; border: 1px solid rgba(52,211,153,.35); background: rgba(52,211,153,.08); color: var(--green); cursor: pointer; font-family: inherit; }
+    .save-btn:hover { background: rgba(52,211,153,.18); }
+    .save-btn:disabled { opacity: .4; cursor: default; }
+    .days-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: .55rem; }
+    .day-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .65rem .6rem; }
+    .day-label { font-size: .67rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .5rem; text-align: center; }
+    .time-inputs { display: flex; flex-direction: column; gap: .3rem; }
+    .time-row { display: flex; align-items: center; gap: .25rem; }
+    .t-label { font-size: .6rem; color: var(--muted); width: 20px; }
+    .t-input { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: .7rem; padding: .2rem .3rem; font-family: inherit; width: 100%; outline: none; }
+    .t-input:focus { border-color: rgba(167,139,250,.5); }
+    .off-row { display: flex; align-items: center; justify-content: center; gap: .35rem; margin-top: .5rem; }
+    .off-lbl { font-size: .64rem; color: var(--muted); }
+    .toggle { width: 28px; height: 16px; background: var(--border); border-radius: 99px; position: relative; cursor: pointer; flex-shrink: 0; transition: background .2s; }
+    .toggle.on { background: rgba(248,113,113,.5); }
+    .toggle::after { content:''; position:absolute; top:2px; left:2px; width:12px; height:12px; background:#fff; border-radius:50%; transition: transform .2s; }
+    .toggle.on::after { transform: translateX(12px); }
+    .saved-msg { font-size: .72rem; color: var(--green); font-weight: 700; margin-left: .5rem; opacity: 0; transition: opacity .3s; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Hours</div>
+  <p class="page-sub">Set each staff member's weekly working hours — the AI uses this to schedule appointments correctly.</p>
+  <div id="staff-container"></div>
+</div>
+<script>
+  let scheduleData = null;
+
+  async function load() {
+    const r = await fetch('/api/staff-schedule');
+    scheduleData = await r.json();
+    render();
+  }
+
+  function render() {
+    const container = document.getElementById('staff-container');
+    container.innerHTML = (scheduleData.staff || []).map((s, si) => `
+      <div class="staff-card" id="card-${s.staff_id}">
+        <div class="staff-header">
+          <div class="staff-name">${esc(s.name)}</div>
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <span class="saved-msg" id="msg-${s.staff_id}">✓ Saved</span>
+            <button class="save-btn" onclick="save('${s.staff_id}')">Save</button>
+          </div>
+        </div>
+        <div class="days-grid" id="grid-${s.staff_id}">
+          ${s.shifts.map((sh, di) => `
+            <div class="day-block">
+              <div class="day-label">${sh.day}</div>
+              <div class="time-inputs">
+                <div class="time-row"><span class="t-label">In</span><input class="t-input" type="time" id="in-${s.staff_id}-${di}" value="${sh.start}" ${sh.off?'disabled':''}></div>
+                <div class="time-row"><span class="t-label">Out</span><input class="t-input" type="time" id="out-${s.staff_id}-${di}" value="${sh.end}" ${sh.off?'disabled':''}></div>
+              </div>
+              <div class="off-row">
+                <span class="off-lbl">Day off</span>
+                <div class="toggle ${sh.off?'on':''}" id="tog-${s.staff_id}-${di}" onclick="toggleOff('${s.staff_id}',${di})"></div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+  }
+
+  function toggleOff(sid, di) {
+    const s = scheduleData.staff.find(s => s.staff_id === sid);
+    s.shifts[di].off = !s.shifts[di].off;
+    const tog = document.getElementById(`tog-${sid}-${di}`);
+    tog.classList.toggle('on', s.shifts[di].off);
+    document.getElementById(`in-${sid}-${di}`).disabled = s.shifts[di].off;
+    document.getElementById(`out-${sid}-${di}`).disabled = s.shifts[di].off;
+  }
+
+  async function save(sid) {
+    const s = scheduleData.staff.find(s => s.staff_id === sid);
+    s.shifts.forEach((sh, di) => {
+      sh.start = document.getElementById(`in-${sid}-${di}`).value || sh.start;
+      sh.end = document.getElementById(`out-${sid}-${di}`).value || sh.end;
+    });
+    await fetch('/api/staff-schedule', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({staff_id: sid, shifts: s.shifts})});
+    const msg = document.getElementById('msg-' + sid);
+    msg.style.opacity = '1';
+    setTimeout(() => { msg.style.opacity = '0'; }, 2000);
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

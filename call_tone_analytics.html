@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Tone Analysis — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .donut-row { display: flex; align-items: center; gap: 2rem; }
+    .donut-wrap { position: relative; width: 120px; height: 120px; flex-shrink: 0; }
+    .donut-wrap svg { transform: rotate(-90deg); }
+    .donut-legend { display: flex; flex-direction: column; gap: .6rem; }
+    .legend-item { display: flex; align-items: center; gap: .5rem; font-size: .78rem; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .topic-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; }
+    .topic-name { font-size: .78rem; width: 110px; flex-shrink: 0; }
+    .topic-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+    .topic-fill { height: 100%; border-radius: 4px; }
+    .topic-score { font-size: .75rem; font-weight: 700; width: 38px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Tone Analysis</div>
+  <p class="page-sub">The AI evaluates caller emotion on every call. Positive tone means happy clients; negative spikes signal friction you can act on before it becomes a review.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-positive" style="color:var(--green)">—</div><div class="stat-lbl">Positive</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-neutral" style="color:var(--muted)">—</div><div class="stat-lbl">Neutral</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-negative" style="color:var(--red)">—</div><div class="stat-lbl">Negative</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-escalations" style="color:var(--yellow)">—</div><div class="stat-lbl">Escalations</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Tone Distribution</div>
+    <div class="donut-row">
+      <div class="donut-wrap">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle id="arc-neg" cx="60" cy="60" r="46" fill="none" stroke="var(--red)" stroke-width="16"/>
+          <circle id="arc-neu" cx="60" cy="60" r="46" fill="none" stroke="var(--yellow)" stroke-width="16"/>
+          <circle id="arc-pos" cx="60" cy="60" r="46" fill="none" stroke="var(--green)" stroke-width="16"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+          <div style="font-size:.65rem;color:var(--muted)">Score</div>
+          <div id="score-center" style="font-size:1rem;font-weight:900;color:var(--accent)">—</div>
+        </div>
+      </div>
+      <div class="donut-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><span id="leg-pos">— Positive</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div><span id="leg-neu">— Neutral</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div><span id="leg-neg">— Negative</span></div>
+        <div class="legend-item" style="margin-top:.3rem;font-size:.68rem;color:var(--muted)" id="leg-calls"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Sentiment Score by Topic</div>
+    <div id="topic-list"></div>
+  </div>
+</div>
+<script>
+  function scoreColor(s) { return s >= 0.7 ? 'var(--green)' : s >= 0.5 ? 'var(--yellow)' : 'var(--red)'; }
+  async function load() {
+    const d = await fetch('/api/analytics/call-tone-stats').then(r => r.json());
+    document.getElementById('h-positive').textContent = d.positive_pct + '%';
+    document.getElementById('h-neutral').textContent = d.neutral_pct + '%';
+    document.getElementById('h-negative').textContent = d.negative_pct + '%';
+    document.getElementById('h-escalations').textContent = d.escalations_flagged;
+    document.getElementById('score-center').textContent = d.avg_sentiment_score.toFixed(2);
+    document.getElementById('leg-pos').textContent = d.positive_pct + '% Positive';
+    document.getElementById('leg-neu').textContent = d.neutral_pct + '% Neutral';
+    document.getElementById('leg-neg').textContent = d.negative_pct + '% Negative';
+    document.getElementById('leg-calls').textContent = d.calls_analysed_30d + ' calls analysed';
+    // draw donut arcs
+    const circ = 2 * Math.PI * 46;
+    const posD = (d.positive_pct / 100) * circ;
+    const neuD = (d.neutral_pct / 100) * circ;
+    const negD = (d.negative_pct / 100) * circ;
+    const posOffset = 0;
+    const neuOffset = circ - posD;
+    const negOffset = circ - posD - neuD;
+    const ap = document.getElementById('arc-pos');
+    ap.style.strokeDasharray = posD + ' ' + (circ - posD);
+    ap.style.strokeDashoffset = circ;
+    const an = document.getElementById('arc-neu');
+    an.style.strokeDasharray = neuD + ' ' + (circ - neuD);
+    an.style.strokeDashoffset = circ - posD + circ;
+    const ag = document.getElementById('arc-neg');
+    ag.style.strokeDasharray = negD + ' ' + (circ - negD);
+    ag.style.strokeDashoffset = circ - posD - neuD + circ;
+    const tl = document.getElementById('topic-list');
+    d.by_topic.forEach(t => {
+      const color = scoreColor(t.sentiment_score);
+      tl.innerHTML += '<div class="topic-row"><div class="topic-name">' + t.topic + '</div><div class="topic-track"><div class="topic-fill" style="width:' + (t.sentiment_score * 100).toFixed(0) + '%;background:' + color + '"></div></div><div class="topic-score" style="color:' + color + '">' + t.sentiment_score.toFixed(2) + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue per Chair — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .45rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .chair-row { display: flex; align-items: center; gap: .85rem; margin-bottom: 1rem; }
+    .chair-row:last-child { margin-bottom: 0; }
+    .chair-icon { font-size: 1.3rem; flex-shrink: 0; }
+    .chair-info { flex-shrink: 0; width: 160px; }
+    .chair-name { font-weight: 900; font-size: .88rem; }
+    .chair-staff { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; gap: .3rem; }
+    .bar-track { background: var(--surface2); border-radius: 5px; height: 10px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 5px; background: var(--accent); opacity: .8; }
+    .util-track { background: var(--surface2); border-radius: 5px; height: 5px; overflow: hidden; }
+    .util-fill { height: 100%; border-radius: 5px; background: var(--green); opacity: .7; }
+    .chair-stats { flex-shrink: 0; text-align: right; width: 90px; }
+    .chair-rev { font-weight: 900; font-size: .9rem; color: var(--accent); }
+    .chair-util { font-size: .7rem; color: var(--green); margin-top: .15rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue per Chair</div>
+  <p class="page-sub">Monthly revenue and utilization attributed to each station in your shop.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Top-Earning Chair</div>
+      <div class="hero-val" style="color:var(--yellow)" id="h-top-chair">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Top Chair Revenue</div>
+      <div class="hero-val" style="color:var(--accent)" id="h-top-rev">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Chairs — Revenue &amp; Utilization</div>
+    <div id="chair-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/revenue-per-chair');
+    const d = await r.json();
+    document.getElementById('h-top-chair').textContent = d.top_chair || '—';
+    document.getElementById('h-top-rev').textContent   = '$' + (d.top_revenue||0).toLocaleString();
+
+    const chairs = d.chairs || [];
+    const maxRev = Math.max(...chairs.map(c=>c.revenue), 1);
+    document.getElementById('chair-list').innerHTML = chairs.map(c => `
+      <div class="chair-row">
+        <div class="chair-icon">💈</div>
+        <div class="chair-info">
+          <div class="chair-name">${esc(c.chair)}</div>
+          <div class="chair-staff">${esc(c.staff)}</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar-track"><div class="bar-fill" style="width:${(c.revenue/maxRev*100).toFixed(1)}%"></div></div>
+          <div class="util-track"><div class="util-fill" style="width:${c.utilization_pct}%"></div></div>
+        </div>
+        <div class="chair-stats">
+          <div class="chair-rev">$${c.revenue.toLocaleString()}</div>
+          <div class="chair-util">${c.utilization_pct}% utilization</div>
+        </div>
+      </div>`).join('');
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

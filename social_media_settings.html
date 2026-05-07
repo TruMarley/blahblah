@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Social Media — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .79rem; padding: .5rem .72rem; outline: none; resize: vertical; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .platform-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .8rem 1rem; margin-bottom: .45rem; border-left: 4px solid transparent; display: flex; align-items: center; gap: .75rem; }
+    .platform-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 900; color: #fff; flex-shrink: 0; }
+    .platform-name { font-size: .88rem; font-weight: 700; flex: 1; }
+    .platform-handle { font-size: .7rem; color: var(--muted); }
+    .platform-inactive { opacity: .4; }
+    .var-hint { font-size: .65rem; color: var(--muted); margin-top: .3rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Social Media</div>
+  <p class="page-sub">Connect your social profiles so your AI can mention them on calls and send follow links after bookings. Drive followers and conversions from every client interaction.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-clicks" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Link Clicks (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-followers" style="color:var(--green)">—</div>
+      <div class="stat-lbl">New Followers via AI (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-bookings" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Bookings from Social (30d)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">AI Behavior</div>
+    <div class="row">
+      <div><div class="row-label">Enable Social Integration</div><div class="row-sub">AI mentions and links to social profiles</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Mentions Instagram on Call</div><div class="row-sub">AI references your Instagram during bookings</div></div>
+      <label class="toggle"><input type="checkbox" id="ig-call"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Mentions Google on Call</div><div class="row-sub">AI asks clients to leave a Google review</div></div>
+      <label class="toggle"><input type="checkbox" id="goog-call"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Send Instagram Link via SMS</div><div class="row-sub">Include IG link in post-booking text</div></div>
+      <label class="toggle"><input type="checkbox" id="ig-sms"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Send After Booking</div></div>
+      <label class="toggle"><input type="checkbox" id="send-booking"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Send After Visit</div></div>
+      <label class="toggle"><input type="checkbox" id="send-visit"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Social Settings</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Connected Profiles</div>
+    <div id="platform-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">SMS Message Template</div>
+    <textarea id="sms-template" rows="3"></textarea>
+    <div class="var-hint">Variables: {business_name}, {instagram_url}, {first_name}</div>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  const platformInitials = { Instagram: 'IG', 'Google Business': 'G', Facebook: 'FB', TikTok: 'TK', Yelp: 'Y' };
+  let data = {};
+
+  async function load() {
+    data = await fetch('/api/settings/social-media-cfg').then(r => r.json());
+    document.getElementById('h-clicks').textContent = data.instagram_link_clicks_30d;
+    document.getElementById('h-followers').textContent = data.new_followers_from_ai_30d;
+    document.getElementById('h-bookings').textContent = data.bookings_from_social_30d;
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('ig-call').checked = data.ai_mentions_instagram_on_call;
+    document.getElementById('goog-call').checked = data.ai_mentions_google_on_call;
+    document.getElementById('ig-sms').checked = data.ai_sends_instagram_link_via_sms;
+    document.getElementById('send-booking').checked = data.send_social_link_after_booking;
+    document.getElementById('send-visit').checked = data.send_social_link_after_visit;
+    document.getElementById('sms-template').value = data.sms_message_template || '';
+
+    const list = document.getElementById('platform-list');
+    (data.profiles || []).forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'platform-card' + (p.active ? '' : ' platform-inactive');
+      card.style.borderLeftColor = p.color;
+      const initial = platformInitials[p.platform] || p.platform.slice(0, 2).toUpperCase();
+      card.innerHTML = `
+        <div class="platform-icon" style="background:${p.color}">${initial}</div>
+        <div style="flex:1">
+          <div class="platform-name">${p.platform}</div>
+          <div class="platform-handle">${p.handle}</div>
+        </div>
+        <label class="toggle"><input type="checkbox" class="plat-toggle" data-id="${p.id}" ${p.active?'checked':''}><span class="slider"></span></label>
+      `;
+      list.appendChild(card);
+    });
+    list.querySelectorAll('.plat-toggle').forEach(cb => cb.addEventListener('change', e => {
+      const p = data.profiles.find(x => x.id === e.target.dataset.id);
+      if (p) p.active = e.target.checked;
+    }));
+  }
+
+  async function save() {
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      ai_mentions_instagram_on_call: document.getElementById('ig-call').checked,
+      ai_mentions_google_on_call: document.getElementById('goog-call').checked,
+      ai_sends_instagram_link_via_sms: document.getElementById('ig-sms').checked,
+      send_social_link_after_booking: document.getElementById('send-booking').checked,
+      send_social_link_after_visit: document.getElementById('send-visit').checked,
+      sms_message_template: document.getElementById('sms-template').value,
+    };
+    await fetch('/api/settings/social-media-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

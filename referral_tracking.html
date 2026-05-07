@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Referral Tracking — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .stat-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .stat-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .field-group { margin-bottom: 1rem; }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; display: block; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .48rem .7rem; font-family: inherit; width: 100%; outline: none; }
+    .f-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .48rem .7rem; font-family: inherit; width: 100%; outline: none; cursor: pointer; }
+    .inline-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding: .75rem 0; border-bottom: 1px solid var(--border); }
+    .toggle-label { font-size: .88rem; font-weight: 700; }
+    .toggle-sub { font-size: .73rem; color: var(--muted); }
+    .toggle { position: relative; width: 38px; height: 21px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #222; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .slider:before { content: ''; position: absolute; width: 15px; height: 15px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: rgba(167,139,250,.3); }
+    input:checked + .slider:before { transform: translateX(17px); background: var(--accent); }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.4rem; border-radius: 9px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; width: 100%; margin-top: .25rem; }
+    .save-btn:hover { background: rgba(167,139,250,.2); }
+    .saved-msg { font-size: .75rem; color: var(--green); font-weight: 700; text-align: center; margin-top: .5rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Referral Tracking</div>
+  <p class="page-sub">Reward clients who send friends your way — configure and monitor your referral program.</p>
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total Referrals</div>
+      <div class="stat-val" id="s-refs" style="color:var(--accent)">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Rewards Issued</div>
+      <div class="stat-val" id="s-rewards" style="color:var(--green)">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Program</div>
+      <div class="stat-val" id="s-status" style="font-size:1.1rem;padding-top:.4rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Program Settings</div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Referral Program Active</div><div class="toggle-sub">Clients will see referral options in confirmation messages</div></div>
+      <label class="toggle"><input type="checkbox" id="f-enabled"><span class="slider"></span></label>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Program Name</label>
+      <input class="f-input" type="text" id="f-name" placeholder="Refer a Friend">
+    </div>
+    <div class="inline-row">
+      <div class="field-group">
+        <label class="field-label">Reward Type</label>
+        <select class="f-select" id="f-type">
+          <option value="discount">Discount</option>
+          <option value="credit">Account Credit</option>
+          <option value="free_service">Free Service</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Reward Unit</label>
+        <select class="f-select" id="f-unit">
+          <option value="percent">Percent (%)</option>
+          <option value="dollars">Dollars ($)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Reward Value</label>
+      <input class="f-input" type="number" id="f-val" min="1" step="1" placeholder="15">
+    </div>
+    <button class="save-btn" onclick="save()">Save Referral Settings</button>
+    <div class="saved-msg" id="saved-msg"></div>
+  </div>
+</div>
+<script>
+  let data = {};
+  async function load() {
+    const r = await fetch('/api/referral-tracking');
+    data = await r.json();
+    document.getElementById('s-refs').textContent = (data.referral_count || 0).toLocaleString();
+    document.getElementById('s-rewards').textContent = (data.total_rewards_issued || 0).toLocaleString();
+    document.getElementById('s-status').textContent = data.enabled ? '✓ Active' : 'Inactive';
+    document.getElementById('s-status').style.color = data.enabled ? 'var(--green)' : 'var(--muted)';
+    document.getElementById('f-enabled').checked = !!data.enabled;
+    document.getElementById('f-name').value = data.program_name || '';
+    document.getElementById('f-val').value = data.reward_value || '';
+    document.getElementById('f-type').value = data.reward_type || 'discount';
+    document.getElementById('f-unit').value = data.reward_unit || 'percent';
+  }
+  async function save() {
+    data.enabled = document.getElementById('f-enabled').checked;
+    data.program_name = document.getElementById('f-name').value.trim();
+    data.reward_value = parseFloat(document.getElementById('f-val').value) || 0;
+    data.reward_type = document.getElementById('f-type').value;
+    data.reward_unit = document.getElementById('f-unit').value;
+    await fetch('/api/referral-tracking', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const msg = document.getElementById('saved-msg');
+    msg.textContent = '✓ Saved';
+    setTimeout(() => { msg.textContent = ''; load(); }, 2000);
+  }
+  load();
+</script>
+</body>
+</html>

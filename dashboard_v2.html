@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard v2 — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { color: var(--muted); font-size: .82rem; text-decoration: none; }
+    .nav-links a:hover { color: var(--text); }
+    .shell { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 5rem; }
+    .page-title { font-size: 1.4rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: 1.75rem; }
+    .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.75rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.35rem 1.5rem; }
+    .stat-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .09em; margin-bottom: .4rem; }
+    .stat-val { font-size: 2rem; font-weight: 900; letter-spacing: -.05em; color: var(--text); }
+    .stat-val.accent { color: var(--accent); }
+    .stat-val.green { color: var(--green); }
+    .stat-val.red { color: var(--red); }
+    .charts-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem; }
+    .chart-title { font-size: .8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .chart-wrap { width: 100%; }
+    svg.sparkline { display: block; width: 100%; height: 60px; overflow: visible; }
+    .day-labels { display: flex; justify-content: space-between; margin-top: .4rem; }
+    .day-labels span { font-size: .6rem; color: var(--muted); }
+    .loading { color: var(--muted); font-size: .82rem; }
+    @media (max-width: 640px) { .stat-row, .charts-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <div class="nav-links">
+    <a href="/dashboard">Classic</a>
+    <a href="/appointments">Appointments</a>
+    <a href="/live">Live</a>
+    <a href="/settings">Settings</a>
+  </div>
+</nav>
+<div class="shell">
+  <div class="page-title">Dashboard</div>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-label">Calls this week</div>
+      <div class="stat-val accent" id="stat-calls">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Bookings this week</div>
+      <div class="stat-val green" id="stat-bookings">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">No-show rate</div>
+      <div class="stat-val" id="stat-noshows">—</div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Calls (7 days)</div>
+      <div class="chart-wrap"><svg class="sparkline" id="chart-calls" viewBox="0 0 200 60"><text x="50%" y="50%" text-anchor="middle" fill="#555" font-size="11">Loading…</text></svg></div>
+      <div class="day-labels" id="labels-calls"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Bookings (7 days)</div>
+      <div class="chart-wrap"><svg class="sparkline" id="chart-bookings" viewBox="0 0 200 60"><text x="50%" y="50%" text-anchor="middle" fill="#555" font-size="11">Loading…</text></svg></div>
+      <div class="day-labels" id="labels-bookings"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">No-shows (7 days)</div>
+      <div class="chart-wrap"><svg class="sparkline" id="chart-noshows" viewBox="0 0 200 60"><text x="50%" y="50%" text-anchor="middle" fill="#555" font-size="11">Loading…</text></svg></div>
+      <div class="day-labels" id="labels-noshows"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function buildPolyline(data, color) {
+    const W = 200, H = 60, pad = 4;
+    const max = Math.max(...data, 1);
+    const min = 0;
+    const pts = data.map((v, i) => {
+      const x = pad + (i / (data.length - 1)) * (W - pad * 2);
+      const y = H - pad - ((v - min) / (max - min)) * (H - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('class', 'sparkline');
+    const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    pl.setAttribute('points', pts);
+    pl.setAttribute('fill', 'none');
+    pl.setAttribute('stroke', color);
+    pl.setAttribute('stroke-width', '2');
+    pl.setAttribute('stroke-linecap', 'round');
+    pl.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(pl);
+    // dots
+    data.forEach((v, i) => {
+      const x = pad + (i / (data.length - 1)) * (W - pad * 2);
+      const y = H - pad - ((v - min) / (max - min)) * (H - pad * 2);
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', x.toFixed(1)); c.setAttribute('cy', y.toFixed(1)); c.setAttribute('r', '3');
+      c.setAttribute('fill', color);
+      svg.appendChild(c);
+    });
+    return svg;
+  }
+
+  function setLabels(id, labels) {
+    const el = document.getElementById(id);
+    el.innerHTML = labels.map(l => `<span>${l}</span>`).join('');
+  }
+
+  async function loadSparklines() {
+    try {
+      const r = await fetch('/dashboard/sparklines');
+      const d = await r.json();
+
+      // Stats
+      const totalCalls = d.calls.reduce((a,b)=>a+b,0);
+      const totalBookings = d.bookings.reduce((a,b)=>a+b,0);
+      const totalNS = d.no_shows.reduce((a,b)=>a+b,0);
+      const nsRate = totalCalls > 0 ? ((totalNS/totalCalls)*100).toFixed(1)+'%' : '0%';
+
+      document.getElementById('stat-calls').textContent = totalCalls;
+      document.getElementById('stat-bookings').textContent = totalBookings;
+      const nsEl = document.getElementById('stat-noshows');
+      nsEl.textContent = nsRate;
+      nsEl.className = 'stat-val ' + (parseFloat(nsRate) > 15 ? 'red' : parseFloat(nsRate) < 8 ? 'green' : '');
+
+      // Charts
+      document.getElementById('chart-calls').replaceWith(buildPolyline(d.calls, '#a78bfa'));
+      document.getElementById('chart-bookings').replaceWith(buildPolyline(d.bookings, '#34d399'));
+      document.getElementById('chart-noshows').replaceWith(buildPolyline(d.no_shows, '#f87171'));
+
+      setLabels('labels-calls', d.labels);
+      setLabels('labels-bookings', d.labels);
+      setLabels('labels-noshows', d.labels);
+    } catch(e) {
+      console.error('Sparkline load failed', e);
+    }
+  }
+
+  loadSparklines();
+</script>
+</body>
+</html>

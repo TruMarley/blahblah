@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New vs Returning — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem .9rem; text-align: center; }
+    .hero-label { font-size: .6rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: .85rem; }
+    .legend-item { display: flex; align-items: center; gap: .35rem; font-size: .75rem; font-weight: 600; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">New vs Returning Clients</div>
+  <p class="page-sub">A healthy shop grows new clients while retaining existing ones. High return rates mean your AI is helping clients rebook. Low return rates suggest a rebooking prompt or loyalty incentive may help.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">New Clients</div>
+      <div class="hero-val" id="h-new" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Returning</div>
+      <div class="hero-val" id="h-ret" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Return Rate</div>
+      <div class="hero-val" id="h-rate" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Returning Avg Spend</div>
+      <div class="hero-val" id="h-visits" style="color:var(--muted)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">6-Month New vs Returning Trend</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>New Clients</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Returning</div>
+    </div>
+    <svg id="chart" viewBox="0 0 680 140" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/new-vs-returning-stats').then(r => r.json());
+    document.getElementById('h-new').textContent = d.new_clients_30d ?? '—';
+    document.getElementById('h-ret').textContent = d.returning_clients_30d ?? '—';
+    document.getElementById('h-rate').textContent = d.returning_pct != null ? d.returning_pct + '%' : '—';
+    document.getElementById('h-visits').textContent = d.returning_client_avg_spend != null ? '$' + Number(d.returning_client_avg_spend).toFixed(0) : '—';
+
+    const monthly = d.monthly || [];
+    if (monthly.length > 1) {
+      const W=680,H=140,pL=36,pR=16,pT=14,pB=24,n=monthly.length;
+      const cW=W-pL-pR, cH=H-pT-pB;
+      const allVals=monthly.flatMap(m=>[m.new_clients,m.returning_clients]);
+      const mx=Math.max(...allVals)*1.15||50;
+      const bW=Math.floor(cW/(n*2+n-1)); const gap=bW/2;
+      let svg='';
+      monthly.forEach((m,i) => {
+        const groupX=pL+i*(2*bW+gap+bW);
+        const nH=Math.round((m.new_clients||0)/mx*cH);
+        const rH=Math.round((m.returning_clients||0)/mx*cH);
+        const bot=pT+cH;
+        svg+=`<rect x="${groupX}" y="${bot-nH}" width="${bW}" height="${nH}" rx="2" fill="var(--green)" opacity=".8"/>`;
+        svg+=`<rect x="${groupX+bW+2}" y="${bot-rH}" width="${bW}" height="${rH}" rx="2" fill="var(--accent)" opacity=".8"/>`;
+        svg+=`<text x="${groupX+bW}" y="${H-pB+14}" text-anchor="middle" fill="#555" font-size="9">${esc(m.month)}</text>`;
+      });
+      document.getElementById('chart').innerHTML=svg;
+    }
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

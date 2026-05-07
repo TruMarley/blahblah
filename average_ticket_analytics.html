@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Average Ticket — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem .9rem; text-align: center; }
+    .hero-label { font-size: .6rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; text-align: left; padding: .4rem .6rem; border-bottom: 1px solid var(--border); }
+    td { font-size: .82rem; padding: .6rem .6rem; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Average Ticket Value</div>
+  <p class="page-sub">Track how much clients spend per visit. Rising average tickets mean your AI's upsell suggestions are working. Use the by-service breakdown to identify high-value services worth promoting on every call.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg Ticket</div>
+      <div class="hero-val" id="h-avg" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Highest Ticket</div>
+      <div class="hero-val" id="h-high" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Trend (6-mo)</div>
+      <div class="hero-val" id="h-trend">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">6-Month Avg Ticket Trend</div>
+    <svg id="trend-chart" viewBox="0 0 680 120" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block"></svg>
+  </div>
+  <div class="card">
+    <div class="card-title">Avg Ticket by Service</div>
+    <table>
+      <thead><tr><th>Service</th><th>Avg Ticket</th><th>Visits</th></tr></thead>
+      <tbody id="svc-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/average-ticket-stats').then(r => r.json());
+    document.getElementById('h-avg').textContent = d.avg_ticket_30d != null ? '$' + Number(d.avg_ticket_30d).toFixed(2) : '—';
+    const byService = d.by_service || [];
+    const highSvc = byService.reduce((a, b) => b.avg_ticket > a.avg_ticket ? b : a, byService[0] || {});
+    document.getElementById('h-high').textContent = highSvc.service ? highSvc.service + ' ($' + Number(highSvc.avg_ticket).toFixed(0) + ')' : '—';
+    const trend = d.ticket_growth_pct;
+    const tEl = document.getElementById('h-trend');
+    if (trend != null) {
+      tEl.textContent = (trend >= 0 ? '+' : '') + trend + '%';
+      tEl.style.color = trend >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+
+    const monthly = d.monthly || [];
+    const vals = monthly.map(m => m.avg_ticket);
+    if (monthly.length > 1) {
+      const W=680,H=120,pL=40,pR=16,pT=12,pB=22,n=monthly.length;
+      const cW=W-pL-pR, cH=H-pT-pB;
+      const mx=Math.max(...vals)*1.15||80; const mn=Math.min(...vals)*0.85;
+      const range=mx-mn||1;
+      const pts=monthly.map((m,i)=>({x:pL+i*(cW/(n-1)),y:pT+cH-((m.avg_ticket-mn)/range)*cH,v:m.avg_ticket,lbl:m.month}));
+      const path=pts.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+      const bot=pT+cH;
+      const fill=path+' L'+pts[n-1].x.toFixed(1)+','+bot+' L'+pL+','+bot+' Z';
+      let svg=`<path d="${fill}" fill="rgba(167,139,250,.07)"/>`;
+      svg+=`<path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>`;
+      pts.forEach((p,i)=>{
+        svg+=`<text x="${p.x.toFixed(1)}" y="${H-pB+13}" text-anchor="middle" fill="#555" font-size="9">${esc(p.lbl)}</text>`;
+        svg+=`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="var(--accent)"/>`;
+        svg+=`<text x="${p.x.toFixed(1)}" y="${(p.y-6).toFixed(1)}" text-anchor="middle" fill="#aaa" font-size="7.5">$${Number(p.v).toFixed(0)}</text>`;
+      });
+      document.getElementById('trend-chart').innerHTML=svg;
+    }
+
+    const tbody = document.getElementById('svc-tbody');
+    byService.slice().sort((a,b) => b.avg_ticket - a.avg_ticket).forEach(s => {
+      tbody.innerHTML += `<tr>
+        <td style="font-weight:600;color:${esc(s.color||'var(--text)')}">${esc(s.service)}</td>
+        <td style="color:var(--accent);font-weight:700">$${Number(s.avg_ticket).toFixed(2)}</td>
+        <td style="color:var(--muted)">${s.transactions} visits</td>
+      </tr>`;
+    });
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

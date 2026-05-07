@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue Growth Rate — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: 1rem; }
+    .leg-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--muted); }
+    .leg-dot { width: 9px; height: 9px; border-radius: 2px; }
+    .chart-wrap { height: 240px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue Growth Rate</div>
+  <p class="page-sub">Monthly revenue with MoM growth rate overlay — tracking your business momentum.</p>
+
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg MoM Growth</div>
+      <div class="hero-val" id="h-growth" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Latest Revenue</div>
+      <div class="hero-val" id="h-rev" style="color:var(--accent)">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">8-Month Revenue &amp; Growth</div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#a78bfa"></div>Revenue</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#fbbf24;border-radius:50%"></div>Growth %</div>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 800 240" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/revenue-growth-rate');
+    const d = await r.json();
+    document.getElementById('h-growth').textContent = '+' + d.avg_growth_pct + '%';
+    const months = d.months || [];
+    const last = months[months.length-1];
+    document.getElementById('h-rev').textContent = last ? '$' + Math.round(last.revenue).toLocaleString() : '—';
+
+    const svg = document.getElementById('chart');
+    const W=800,H=240,pL=56,pR=46,pT=14,pB=34;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n = months.length;
+    const slotW = cW/n;
+    const bW = slotW * 0.55;
+
+    const maxRev = Math.max(...months.map(m=>m.revenue),1);
+    const growthValues = months.filter(m=>m.growth_pct!==null).map(m=>m.growth_pct);
+    const minG = Math.min(...growthValues, 0);
+    const maxG = Math.max(...growthValues, 20);
+
+    // left axis: revenue
+    [0,.25,.5,.75,1].forEach(f => {
+      const y = pT + cH*(1-f);
+      svg.innerHTML += `<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML += `<text x="${pL-4}" y="${y+3}" font-size="8.5" fill="#555" text-anchor="end">$${Math.round(maxRev*f/1000)}k</text>`;
+    });
+
+    // right axis: growth %
+    [minG, (minG+maxG)/2, maxG].forEach(v => {
+      const y = pT + cH - (v-minG)/(maxG-minG)*cH;
+      svg.innerHTML += `<text x="${W-pR+4}" y="${y+3}" font-size="8" fill="rgba(251,191,36,.5)" text-anchor="start">${v.toFixed(0)}%</text>`;
+    });
+
+    // revenue bars
+    months.forEach((m,i) => {
+      const cx = pL + i*slotW + slotW/2;
+      const bH = (m.revenue/maxRev)*cH;
+      svg.innerHTML += `<rect x="${cx-bW/2}" y="${pT+cH-bH}" width="${bW}" height="${bH}" rx="3" fill="#a78bfa" opacity=".65"/>`;
+      svg.innerHTML += `<text x="${cx}" y="${H-4}" font-size="9" fill="#666" text-anchor="middle">${m.month}</text>`;
+    });
+
+    // growth line overlay
+    const gPts = months.filter(m=>m.growth_pct!==null).map((m,i) => {
+      const actualI = months.findIndex(x=>x===m);
+      const cx = pL + actualI*slotW + slotW/2;
+      const gy = pT + cH - (m.growth_pct-minG)/(maxG-minG)*cH;
+      return [cx, Math.max(pT, Math.min(pT+cH, gy))];
+    });
+    if (gPts.length > 1) {
+      svg.innerHTML += `<polyline fill="none" stroke="#fbbf24" stroke-width="2" stroke-linejoin="round" stroke-dasharray="5 3" points="${gPts.map(p=>p.join(',')).join(' ')}"/>`;
+    }
+    gPts.forEach((p,i) => {
+      svg.innerHTML += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#fbbf24" opacity=".9"/>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

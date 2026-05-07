@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat Widget — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 160px; }
+    input[type=text]:focus { border-color: var(--accent); }
+    input[type=color] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; width: 48px; height: 34px; padding: 2px 4px; }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; cursor: pointer; }
+    select:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .8rem; padding: .55rem .75rem; outline: none; resize: vertical; min-height: 60px; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .28rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .field-wrap { margin-bottom: .9rem; }
+    .preview-widget { background: #0e0b18; border: 1px solid rgba(167,139,250,.15); border-radius: 12px; padding: 1rem; margin-top: 1rem; }
+    .preview-label { font-size: .6rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .6rem; }
+    .widget-mock { display: flex; gap: .65rem; align-items: flex-start; }
+    .widget-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .85rem; font-weight: 900; flex-shrink: 0; }
+    .widget-bubble { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .6rem .85rem; font-size: .8rem; color: var(--text); line-height: 1.5; flex: 1; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Chat Widget</div>
+  <p class="page-sub">Embed an AI chat assistant on your booking website. Captures leads after hours, answers common questions, and lets clients start a booking via text when they don't want to call.</p>
+
+  <div class="card">
+    <div class="card-title">Widget Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Chat Widget</div><div class="row-sub">Show widget on your booking page</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div class="row-label">Widget Color</div>
+      <input type="color" id="widget-color" value="#a78bfa">
+    </div>
+    <div class="row">
+      <div class="row-label">Position</div>
+      <select id="position">
+        <option value="bottom-right">Bottom Right</option>
+        <option value="bottom-left">Bottom Left</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Show Avatar</div><div class="row-sub">Display AI agent icon in widget</div></div>
+      <label class="toggle"><input type="checkbox" id="show-avatar"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div class="row-label">Avatar Name</div>
+      <input type="text" id="avatar-name" placeholder="Alex">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Show Business Hours</div><div class="row-sub">Display open/closed status in widget</div></div>
+      <label class="toggle"><input type="checkbox" id="show-hours"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Lead Capture</div>
+    <div class="row">
+      <div><div class="row-label">Collect Name</div></div>
+      <label class="toggle"><input type="checkbox" id="collect-name"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Collect Phone</div></div>
+      <label class="toggle"><input type="checkbox" id="collect-phone"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Collect Email</div></div>
+      <label class="toggle"><input type="checkbox" id="collect-email"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Messages</div>
+    <div class="field-wrap">
+      <div class="field-label">Greeting Message</div>
+      <textarea id="greeting" rows="2" oninput="updatePreview()"></textarea>
+    </div>
+    <div class="field-wrap">
+      <div class="field-label">After-Hours / Offline Message</div>
+      <textarea id="offline-msg" rows="2"></textarea>
+    </div>
+    <div class="preview-widget">
+      <div class="preview-label">Widget Preview</div>
+      <div class="widget-mock">
+        <div class="widget-avatar" id="preview-avatar" style="background:rgba(167,139,250,.2);color:#a78bfa">A</div>
+        <div class="widget-bubble" id="preview-bubble">Hi! I'm your AI assistant. How can I help you today?</div>
+      </div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Widget Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  function updatePreview() {
+    const name = document.getElementById('avatar-name').value || 'A';
+    const color = document.getElementById('widget-color').value || '#a78bfa';
+    document.getElementById('preview-avatar').textContent = name[0].toUpperCase();
+    document.getElementById('preview-avatar').style.color = color;
+    document.getElementById('preview-avatar').style.background = color + '33';
+    document.getElementById('preview-bubble').textContent = document.getElementById('greeting').value;
+  }
+  async function load() {
+    const d = await fetch('/api/settings/chat-widget-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled ?? false;
+    document.getElementById('widget-color').value = d.widget_color || '#a78bfa';
+    document.getElementById('position').value = d.position || 'bottom-right';
+    document.getElementById('show-avatar').checked = d.show_avatar ?? true;
+    document.getElementById('avatar-name').value = d.avatar_name || 'Alex';
+    document.getElementById('show-hours').checked = d.show_hours ?? true;
+    document.getElementById('collect-name').checked = d.collect_name ?? true;
+    document.getElementById('collect-phone').checked = d.collect_phone ?? true;
+    document.getElementById('collect-email').checked = d.collect_email ?? false;
+    document.getElementById('greeting').value = d.greeting_message || '';
+    document.getElementById('offline-msg').value = d.offline_message || '';
+    updatePreview();
+  }
+  async function save() {
+    const data = { enabled: document.getElementById('enabled').checked, widget_color: document.getElementById('widget-color').value, position: document.getElementById('position').value, show_avatar: document.getElementById('show-avatar').checked, avatar_name: document.getElementById('avatar-name').value, show_hours: document.getElementById('show-hours').checked, collect_name: document.getElementById('collect-name').checked, collect_phone: document.getElementById('collect-phone').checked, collect_email: document.getElementById('collect-email').checked, greeting_message: document.getElementById('greeting').value, offline_message: document.getElementById('offline-msg').value };
+    await fetch('/api/settings/chat-widget-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  document.getElementById('widget-color').addEventListener('input', updatePreview);
+  document.getElementById('avatar-name').addEventListener('input', updatePreview);
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Revenue Rank — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .rank-list { display: flex; flex-direction: column; gap: .75rem; }
+    .rank-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.4rem; display: flex; align-items: center; gap: 1.2rem; }
+    .rank-card.rank-1 { border-color: rgba(251,191,36,.4); background: rgba(251,191,36,.04); }
+    .rank-card.rank-2 { border-color: rgba(180,180,180,.3); background: rgba(180,180,180,.02); }
+    .rank-card.rank-3 { border-color: rgba(180,100,20,.25); background: rgba(180,100,20,.02); }
+    .rank-badge { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 900; flex-shrink: 0; }
+    .badge-1 { background: rgba(251,191,36,.2); color: var(--yellow); }
+    .badge-2 { background: rgba(180,180,180,.15); color: #bbb; }
+    .badge-3 { background: rgba(180,100,20,.15); color: #cd7f32; }
+    .badge-4 { background: rgba(100,100,100,.15); color: var(--muted); }
+    .rank-info { flex: 1; }
+    .rank-name { font-size: 1rem; font-weight: 800; margin-bottom: .2rem; }
+    .rank-pct { font-size: .75rem; color: var(--muted); }
+    .rank-rev { font-size: 1.3rem; font-weight: 900; color: var(--accent); }
+    .bar-wrap { flex: 1.5; }
+    .bar-bg { background: var(--border); border-radius: 4px; height: 8px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width .4s; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Revenue Rank</div>
+  <p class="page-sub">Revenue generated per team member over the last 30 days — celebrate your top performers.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Team Total</div>
+      <div class="hero-val" id="h-total" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">#1 This Month</div>
+      <div class="hero-val" id="h-top" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+  <div class="rank-list" id="rank-list"></div>
+</div>
+<script>
+  const BADGE_COLORS = ['rgba(167,139,250,1)', 'rgba(52,211,153,.9)', 'rgba(167,139,250,.6)', 'rgba(100,100,100,.5)'];
+  async function load() {
+    const r = await fetch('/api/analytics/staff-revenue-rank');
+    const d = await r.json();
+    document.getElementById('h-total').textContent = '$' + (d.total_revenue||0).toLocaleString();
+    const top = (d.staff||[])[0];
+    document.getElementById('h-top').textContent = top ? top.name : '—';
+
+    const maxRev = (d.staff||[])[0]?.revenue || 1;
+    document.getElementById('rank-list').innerHTML = (d.staff||[]).map(s => {
+      const rankCls = s.rank <= 3 ? `badge-${s.rank}` : 'badge-4';
+      const cardCls = s.rank <= 3 ? `rank-${s.rank}` : '';
+      const barPct = (s.revenue / maxRev * 100).toFixed(1);
+      const barColor = BADGE_COLORS[s.rank - 1] || BADGE_COLORS[3];
+      return `<div class="rank-card ${cardCls}">
+        <div class="rank-badge ${rankCls}">#${s.rank}</div>
+        <div class="rank-info">
+          <div class="rank-name">${esc(s.name)}</div>
+          <div class="rank-pct">${s.pct_of_total}% of team revenue</div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill" style="width:${barPct}%;background:${barColor}"></div></div>
+        </div>
+        <div class="rank-rev">$${s.revenue.toLocaleString()}</div>
+      </div>`;
+    }).join('');
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blocked Numbers — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    nav a.back:hover { color: var(--text); }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; gap: 1rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .info-box { background: rgba(248,113,113,.06); border: 1px solid rgba(248,113,113,.18); border-radius: 10px; padding: .75rem 1rem; margin-bottom: 1.5rem; font-size: .8rem; color: var(--muted); line-height: 1.6; }
+    .info-box strong { color: var(--text); }
+
+    .add-form { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; margin-bottom: 1.25rem; display: none; }
+    .add-form.show { display: block; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; margin-bottom: .75rem; }
+    .form-row input { background: #0d0d0d; border: 1px solid var(--border); color: var(--text); font-size: .85rem; padding: .55rem .85rem; border-radius: 7px; outline: none; font-family: inherit; width: 100%; }
+    .form-row input:focus { border-color: var(--accent); }
+    .form-row input::placeholder { color: #444; }
+    .form-btns { display: flex; gap: .5rem; }
+    .btn { padding: .5rem 1rem; border-radius: 8px; font-size: .8rem; font-weight: 700; border: none; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-accent:hover { opacity: .85; }
+    .btn-ghost { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); }
+    .btn-ghost:hover { color: var(--text); }
+    .btn-red { background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.25); color: var(--red); }
+    .btn-red:hover { opacity: .85; }
+
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .71rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .7rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .8rem 1.25rem; font-size: .83rem; vertical-align: middle; }
+    .phone-cell { font-weight: 700; font-family: monospace; font-size: .88rem; }
+    .reason-cell { color: var(--muted); font-size: .78rem; }
+    .date-cell { color: var(--muted); font-size: .75rem; white-space: nowrap; }
+    .empty { color: var(--muted); text-align: center; padding: 3rem; font-size: .85rem; }
+    .empty strong { display: block; color: var(--text); margin-bottom: .4rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="top-row">
+    <div class="page-title">Blocked Numbers</div>
+    <button class="btn btn-accent" onclick="toggleForm()">+ Block number</button>
+  </div>
+
+  <div class="info-box">
+    <strong>How it works:</strong> Your AI will not answer calls from blocked numbers. Blocked callers hear a standard message and are disconnected. Use this for spam, abusive callers, or numbers that should not be able to book.
+  </div>
+
+  <div class="add-form" id="add-form">
+    <div class="form-row">
+      <input id="f-phone"  placeholder="Phone number (digits only)" type="tel">
+      <input id="f-reason" placeholder="Reason (optional)">
+    </div>
+    <div class="form-btns">
+      <button class="btn btn-red" onclick="addEntry()">Block number</button>
+      <button class="btn btn-ghost" onclick="toggleForm()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="bl-table" style="display:none">
+      <thead><tr>
+        <th>Phone Number</th>
+        <th>Reason</th>
+        <th>Added</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="bl-body"></tbody>
+    </table>
+    <div class="empty" id="bl-empty">
+      <strong>No blocked numbers</strong>
+      Your block list is empty. Add numbers that shouldn't be able to reach your AI.
+    </div>
+  </div>
+</div>
+
+<script>
+  let entries = [];
+
+  async function load() {
+    const r = await fetch('/api/blacklist');
+    const d = await r.json();
+    entries = d.blacklist || [];
+    render();
+  }
+
+  function render() {
+    if (!entries.length) {
+      document.getElementById('bl-table').style.display = 'none';
+      document.getElementById('bl-empty').style.display = '';
+      return;
+    }
+    document.getElementById('bl-table').style.display = '';
+    document.getElementById('bl-empty').style.display = 'none';
+    document.getElementById('bl-body').innerHTML = entries.map(e => `
+      <tr>
+        <td class="phone-cell">${esc(e.phone)}</td>
+        <td class="reason-cell">${esc(e.reason || '—')}</td>
+        <td class="date-cell">${fmtDate(e.added_at)}</td>
+        <td><button class="btn btn-ghost" style="padding:.25rem .65rem;font-size:.72rem" onclick="remove('${esc(e.phone)}')">Unblock</button></td>
+      </tr>`).join('');
+  }
+
+  function toggleForm() { document.getElementById('add-form').classList.toggle('show'); }
+
+  async function addEntry() {
+    const phone = document.getElementById('f-phone').value.replace(/\D/g,'');
+    if (phone.length < 7) { alert('Enter a valid phone number.'); return; }
+    const reason = document.getElementById('f-reason').value.trim();
+    const r = await fetch('/api/blacklist', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({phone, reason}) });
+    const d = await r.json();
+    if (d.ok && !d.existing) entries.push(d.entry);
+    document.getElementById('f-phone').value = '';
+    document.getElementById('f-reason').value = '';
+    document.getElementById('add-form').classList.remove('show');
+    render();
+  }
+
+  async function remove(phone) {
+    await fetch(`/api/blacklist/${encodeURIComponent(phone)}`, { method:'DELETE' });
+    entries = entries.filter(e => e.phone !== phone);
+    render();
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  load();
+</script>
+</body>
+</html>

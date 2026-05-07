@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    /* Header */
+    .client-header { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2.5rem; }
+    .avatar { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #7c3aed); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; color: #fff; flex-shrink: 0; }
+    .client-info { flex: 1; }
+    .client-name { font-size: 1.8rem; font-weight: 900; letter-spacing: -.04em; line-height: 1; margin-bottom: .35rem; }
+    .client-meta { font-size: .8rem; color: var(--muted); }
+    .client-meta span { color: var(--text); }
+    .contact-row { display: flex; gap: 1rem; margin-top: .5rem; flex-wrap: wrap; }
+    .contact-chip { font-size: .75rem; background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: .2rem .75rem; color: var(--muted); }
+    /* Stats */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; }
+    .stat-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; }
+    .stat-value { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .stat-value.green { color: var(--green); }
+    .stat-value.accent { color: var(--accent); }
+    .stat-sub { font-size: .68rem; color: var(--muted); margin-top: .2rem; }
+    /* Sections */
+    .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+    .section-title { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 1rem; }
+    .prefs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .pref-item { }
+    .pref-label { font-size: .68rem; color: var(--muted); margin-bottom: .2rem; }
+    .pref-value { font-size: .85rem; font-weight: 700; }
+    /* Appointments table */
+    .appt-list { }
+    .appt-row { display: flex; align-items: center; gap: 1rem; padding: .65rem 0; border-bottom: 1px solid var(--border); }
+    .appt-row:last-child { border-bottom: none; }
+    .appt-date { font-size: .72rem; color: var(--muted); width: 130px; flex-shrink: 0; }
+    .appt-svc { font-size: .82rem; font-weight: 700; flex: 1; }
+    .appt-staff { font-size: .75rem; color: var(--muted); }
+    .appt-price { font-size: .82rem; font-weight: 700; color: var(--green); width: 60px; text-align: right; }
+    .appt-status { font-size: .68rem; font-weight: 700; padding: .15rem .5rem; border-radius: 99px; }
+    .status-completed { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .status-no_show { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+    .status-canceled { background: rgba(102,102,102,.1); color: var(--muted); border: 1px solid rgba(102,102,102,.2); }
+    /* Tags */
+    .tags-wrap { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .tag { font-size: .72rem; font-weight: 700; padding: .2rem .65rem; border-radius: 99px; background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); cursor: default; }
+    .tag-add { background: transparent; border: 1px dashed var(--border); color: var(--muted); font-size: .72rem; padding: .2rem .65rem; border-radius: 99px; cursor: pointer; font-family: inherit; }
+    /* Notes */
+    .notes-area { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: .85rem; padding: .75rem; border-radius: 8px; font-family: inherit; resize: vertical; min-height: 80px; outline: none; line-height: 1.6; }
+    .notes-area:focus { border-color: var(--accent); }
+    .save-notes-btn { margin-top: .75rem; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-size: .78rem; font-weight: 700; padding: .4rem .9rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .save-notes-btn:hover { color: var(--text); border-color: #3e3e3e; }
+    .empty-appts { color: var(--muted); font-size: .82rem; padding: 1rem 0; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/clients" class="back">← Clients</a>
+</nav>
+<div class="main" id="main">
+  <div style="color:var(--muted);padding:3rem;text-align:center">Loading...</div>
+</div>
+<script>
+  const clientId = location.pathname.split('/').pop();
+
+  async function load() {
+    const r = await fetch(`/api/clients/${clientId}`);
+    const d = await r.json();
+    render(d);
+  }
+
+  function render(d) {
+    const initial = (d.name || '?').charAt(0).toUpperCase();
+    const memberSince = d.first_visit ? new Date(d.first_visit).toLocaleDateString('en-US', {month:'long', year:'numeric'}) : 'Unknown';
+    const lastVisit = d.last_visit ? new Date(d.last_visit).toLocaleDateString() : 'Never';
+
+    const appts = d.recent_appointments || [];
+    const apptHtml = appts.length ? appts.map(a => {
+      const dt = a.time ? new Date(a.time).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit'}) : '';
+      const stCls = `status-${(a.status||'completed').replace(' ','_')}`;
+      return `<div class="appt-row">
+        <div class="appt-date">${esc(dt)}</div>
+        <div>
+          <div class="appt-svc">${esc(a.service || '—')}</div>
+          <div class="appt-staff">${esc(a.staff || '')}</div>
+        </div>
+        <div class="appt-price">${a.price ? '$' + a.price : '—'}</div>
+        <span class="appt-status ${stCls}">${esc(a.status || 'completed')}</span>
+      </div>`;
+    }).join('') : '<div class="empty-appts">No appointments on record.</div>';
+
+    const tags = d.tags || [];
+    const tagsHtml = tags.length ? tags.map(t => `<span class="tag">${esc(t)}</span>`).join('') : '<span style="color:var(--muted);font-size:.78rem">No tags yet</span>';
+
+    document.getElementById('main').innerHTML = `
+      <div class="client-header">
+        <div class="avatar">${initial}</div>
+        <div class="client-info">
+          <div class="client-name">${esc(d.name || 'Unknown')}</div>
+          <div class="client-meta">Member since <span>${memberSince}</span> · Last visit <span>${lastVisit}</span></div>
+          <div class="contact-row">
+            ${d.phone ? `<span class="contact-chip">📞 ${esc(d.phone)}</span>` : ''}
+            ${d.email ? `<span class="contact-chip">✉️ ${esc(d.email)}</span>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Visits</div>
+          <div class="stat-value accent">${d.visit_count || 0}</div>
+          <div class="stat-sub">appointments</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Spent</div>
+          <div class="stat-value green">$${(d.total_spent || 0).toLocaleString()}</div>
+          <div class="stat-sub">lifetime value</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Rating</div>
+          <div class="stat-value">${d.avg_rating_given ? d.avg_rating_given.toFixed(1) + '★' : '—'}</div>
+          <div class="stat-sub">given by client</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Return Cycle</div>
+          <div class="stat-value">${d.avg_interval_days ? d.avg_interval_days + 'd' : '—'}</div>
+          <div class="stat-sub">avg between visits</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Preferences</div>
+        <div class="prefs-grid">
+          <div class="pref-item">
+            <div class="pref-label">Preferred Staff</div>
+            <div class="pref-value">${esc(d.preferred_staff || '—')}</div>
+          </div>
+          <div class="pref-item">
+            <div class="pref-label">Preferred Service</div>
+            <div class="pref-value">${esc(d.preferred_service || '—')}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Recent Appointments</div>
+        <div class="appt-list">${apptHtml}</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Tags</div>
+        <div class="tags-wrap">${tagsHtml}</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Staff Notes</div>
+        <textarea class="notes-area" id="notes-area" placeholder="Add private notes about this client...">${esc(d.notes || '')}</textarea>
+        <button class="save-notes-btn" onclick="saveNotes()">Save Notes</button>
+      </div>
+    `;
+  }
+
+  async function saveNotes() {
+    const notes = document.getElementById('notes-area').value;
+    await fetch(`/api/clients/${clientId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({notes}) });
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

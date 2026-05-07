@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Tags — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text], input[type=number], input[type=color] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .38rem .65rem; outline: none; }
+    input[type=text] { width: 120px; }
+    input[type=number] { width: 70px; }
+    input[type=color] { width: 40px; height: 32px; padding: 2px 4px; cursor: pointer; }
+    input:focus { border-color: var(--accent); }
+    .tag-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .85rem; }
+    .tag-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .65rem .9rem; display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+    .tag-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .tag-name { font-size: .83rem; font-weight: 700; flex: 1; }
+    .tag-rule { font-size: .7rem; color: var(--muted); }
+    .remove-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; margin-left: auto; }
+    .remove-btn:hover { color: var(--red); }
+    .add-row { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+    .add-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--accent); font-size: .78rem; font-weight: 700; padding: .38rem .7rem; cursor: pointer; }
+    .add-btn:hover { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Tags</div>
+  <p class="page-sub">Create custom labels that auto-apply to clients based on behavior — VIP after 10 visits, At Risk after 60 days inactive, No-Show after a missed appointment. Tags help your AI and staff treat each client appropriately.</p>
+  <div class="card">
+    <div class="card-title">Tag Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Client Tags</div><div class="row-sub">Automatically label clients based on activity</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Staff Can Tag Clients</div><div class="row-sub">Allow staff to manually add or remove tags</div></div>
+      <label class="toggle"><input type="checkbox" id="staff-tag"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Show Tags on Call Screen</div><div class="row-sub">Display client tags during live AI call</div></div>
+      <label class="toggle"><input type="checkbox" id="show-call"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use Tags for Call Routing</div><div class="row-sub">Route VIP clients to priority queue</div></div>
+      <label class="toggle"><input type="checkbox" id="use-routing"><span class="slider"></span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Tags</div>
+    <div class="tag-list" id="tag-list"></div>
+    <div class="add-row">
+      <input type="text" id="new-name" placeholder="Tag name">
+      <input type="color" id="new-color" value="#a78bfa">
+      <button class="add-btn" onclick="addTag()">+ Add Tag</button>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let tags = [];
+  function ruleText(t) {
+    if (t.auto_apply_after_visits) return `Auto after ${t.auto_apply_after_visits} visits`;
+    if (t.auto_apply_after_days_inactive) return `Auto after ${t.auto_apply_after_days_inactive} days inactive`;
+    if (t.auto_apply_first_visit) return 'Auto on first visit';
+    if (t.auto_apply_after_no_shows) return `Auto after ${t.auto_apply_after_no_shows} no-show(s)`;
+    return 'Manual only';
+  }
+  function renderTags() {
+    const el = document.getElementById('tag-list');
+    el.innerHTML = '';
+    tags.forEach((t,i) => {
+      el.innerHTML += `<div class="tag-item">
+        <div class="tag-dot" style="background:${esc(t.color)}"></div>
+        <div class="tag-name" style="color:${esc(t.color)}">${esc(t.name)}</div>
+        <div class="tag-rule">${esc(ruleText(t))}</div>
+        <button class="remove-btn" onclick="removeTag(${i})">✕</button>
+      </div>`;
+    });
+  }
+  function addTag() {
+    const name = document.getElementById('new-name').value.trim();
+    if (!name) return;
+    tags.push({name, color: document.getElementById('new-color').value});
+    document.getElementById('new-name').value = '';
+    renderTags();
+  }
+  function removeTag(i) { tags.splice(i,1); renderTags(); }
+  async function load() {
+    const d = await fetch('/api/settings/client-tags-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('staff-tag').checked = d.allow_staff_to_tag;
+    document.getElementById('show-call').checked = d.show_tags_on_call_screen;
+    document.getElementById('use-routing').checked = d.use_tags_for_routing;
+    tags = d.tags || [];
+    renderTags();
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      allow_staff_to_tag: document.getElementById('staff-tag').checked,
+      show_tags_on_call_screen: document.getElementById('show-call').checked,
+      use_tags_for_routing: document.getElementById('use-routing').checked,
+      tags
+    };
+    await fetch('/api/settings/client-tags-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

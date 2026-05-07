@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>First-Time Clients — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px,1fr)); gap: .4rem; align-items: flex-end; }
+    .chart-col { display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+    .chart-bar-wrap { width: 100%; display: flex; flex-direction: column; justify-content: flex-end; height: 110px; }
+    .chart-bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 4px; }
+    .chart-label { font-size: .6rem; color: var(--muted); text-align: center; }
+    .chart-val { font-size: .62rem; color: var(--text); font-weight: 700; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .bar-row { display: flex; align-items: center; gap: .6rem; margin-bottom: .55rem; }
+    .bar-label { font-size: .78rem; flex: 1; }
+    .bar-track { flex: 2; background: var(--surface2); border-radius: 5px; height: 18px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 5px; }
+    .bar-val { font-size: .72rem; font-weight: 700; width: 32px; text-align: right; flex-shrink: 0; }
+    .insight { background: rgba(52,211,153,.07); border: 1px solid rgba(52,211,153,.2); border-radius: 10px; padding: .9rem 1rem; font-size: .8rem; color: var(--green); margin-top: .75rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">First-Time Clients</div>
+  <p class="page-sub">Track new client acquisition, first-visit services, and how many first-timers return. A high retention rate means your first impression is working.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-new" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">New Clients (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-pct" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">% of Total Clients</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-retention" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Return After First</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-first-ticket" style="color:var(--muted)">—</div>
+      <div class="stat-lbl">Avg First Ticket</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly New Client Acquisition</div>
+    <div class="chart-grid" id="monthly-chart"></div>
+    <div class="insight" id="insight"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">First Service &amp; Acquisition Source</div>
+    <div class="two-col">
+      <div>
+        <div style="font-size:.7rem;color:var(--muted);margin-bottom:.7rem">FIRST SERVICE</div>
+        <div id="first-services"></div>
+      </div>
+      <div>
+        <div style="font-size:.7rem;color:var(--muted);margin-bottom:.7rem">ACQUISITION SOURCE</div>
+        <div id="acq-sources"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/first-time-client-stats').then(r => r.json());
+    document.getElementById('h-new').textContent = data.new_clients_30d;
+    document.getElementById('h-pct').textContent = data.new_client_pct_of_total.toFixed(1) + '%';
+    document.getElementById('h-retention').textContent = data.retention_after_first_pct.toFixed(1) + '%';
+    document.getElementById('h-first-ticket').textContent = '$' + data.avg_first_ticket.toFixed(2);
+
+    const monthly = data.monthly || [];
+    const maxNew = Math.max(...monthly.map(m => m.new_clients), 1);
+    const chart = document.getElementById('monthly-chart');
+    monthly.forEach(m => {
+      const col = document.createElement('div');
+      col.className = 'chart-col';
+      const h = Math.round((m.new_clients / maxNew) * 100) + 10;
+      const rh = Math.round((m.retained / m.new_clients) * h);
+      col.innerHTML = `
+        <div class="chart-bar-wrap" style="position:relative">
+          <div class="chart-bar" style="height:${h}px;background:var(--surface2);border-radius:4px 4px 0 0;position:absolute;bottom:0;width:100%"></div>
+          <div class="chart-bar" style="height:${rh}px;background:var(--green);opacity:.8;position:absolute;bottom:0;width:100%"></div>
+        </div>
+        <div class="chart-val">${m.new_clients}</div>
+        <div class="chart-label">${m.month}</div>
+      `;
+      chart.appendChild(col);
+    });
+
+    document.getElementById('insight').textContent =
+      `${data.retention_after_first_pct.toFixed(1)}% of first-timers book again. Clients who return spend an avg of $${data.avg_second_ticket.toFixed(2)} on their second visit — $${(data.avg_second_ticket - data.avg_first_ticket).toFixed(2)} more than their first.`;
+
+    const maxSvc = Math.max(...(data.first_services||[]).map(s => s.count), 1);
+    const svcEl = document.getElementById('first-services');
+    (data.first_services||[]).forEach(s => {
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = `
+        <div class="bar-label" style="font-size:.72rem">${s.service}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(s.count/maxSvc*100).toFixed(1)}%;background:${s.color};opacity:.8"></div></div>
+        <div class="bar-val" style="color:${s.color}">${s.count}</div>
+      `;
+      svcEl.appendChild(row);
+    });
+
+    const maxPct = Math.max(...(data.acquisition_source||[]).map(a => a.pct), 1);
+    const acqEl = document.getElementById('acq-sources');
+    (data.acquisition_source||[]).forEach(a => {
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = `
+        <div class="bar-label" style="font-size:.72rem">${a.source}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(a.pct/maxPct*100).toFixed(1)}%;background:${a.color};opacity:.8"></div></div>
+        <div class="bar-val" style="color:${a.color}">${a.pct.toFixed(0)}%</div>
+      `;
+      acqEl.appendChild(row);
+    });
+  }
+  load();
+</script>
+</body>
+</html>

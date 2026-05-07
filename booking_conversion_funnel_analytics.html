@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Funnel — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.5rem; }
+    .funnel-stage { margin-bottom: .9rem; }
+    .stage-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .35rem; }
+    .stage-label { font-size: .82rem; font-weight: 700; }
+    .stage-count { font-size: .82rem; font-weight: 900; }
+    .stage-track { background: var(--surface2); border-radius: 4px; height: 12px; overflow: hidden; }
+    .stage-fill { height: 100%; border-radius: 4px; }
+    .drop-label { font-size: .65rem; color: var(--red); margin-top: .25rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Booking Conversion Funnel</div>
+  <p class="page-sub">Track where callers drop off between picking up the phone and showing up for their appointment. Each stage is a lever you can optimise.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-calls" style="color:var(--accent)">—</div><div class="stat-lbl">Total Calls (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-conv" style="color:var(--green)">—</div><div class="stat-lbl">Overall Conversion</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Funnel Stages</div>
+    <div id="funnel"></div>
+  </div>
+</div>
+<script>
+  const STAGES = [
+    { key: 'calls_30d', label: 'Calls received', color: 'var(--accent)', drop_key: 'drop_at_intent_pct', drop_label: 'dropped before booking intent' },
+    { key: 'reached_booking_intent', label: 'Reached booking intent', color: '#60a5fa', drop_key: 'drop_at_completion_pct', drop_label: 'dropped during booking' },
+    { key: 'booking_completed', label: 'Booking completed', color: 'var(--yellow)', drop_key: 'drop_at_confirmation_pct', drop_label: 'dropped before confirmation' },
+    { key: 'booking_confirmed', label: 'Booking confirmed', color: '#fb923c', drop_key: 'no_show_pct', drop_label: 'no-showed' },
+    { key: 'appointment_kept', label: 'Appointment kept', color: 'var(--green)', drop_key: null },
+  ];
+  async function load() {
+    const d = await fetch('/api/analytics/booking-conversion-funnel-stats').then(r => r.json());
+    document.getElementById('h-calls').textContent = d.calls_30d;
+    document.getElementById('h-conv').textContent = d.overall_conversion_pct.toFixed(1) + '%';
+    const f = document.getElementById('funnel');
+    const max = d.calls_30d;
+    STAGES.forEach((s, i) => {
+      const val = d[s.key];
+      const w = (val / max * 100).toFixed(1);
+      let drop = '';
+      if (s.drop_key && d[s.drop_key] > 0) {
+        drop = '<div class="drop-label">▼ ' + d[s.drop_key].toFixed(1) + '% ' + s.drop_label + '</div>';
+      }
+      f.innerHTML += '<div class="funnel-stage"><div class="stage-top"><div class="stage-label">' + s.label + '</div><div class="stage-count" style="color:' + s.color + '">' + val + '</div></div><div class="stage-track"><div class="stage-fill" style="width:' + w + '%;background:' + s.color + '"></div></div>' + drop + '</div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

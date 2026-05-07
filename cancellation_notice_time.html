@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancellation Notice Time — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .bucket-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .65rem; }
+    .bucket-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+    .bucket-label { font-size: .9rem; font-weight: 800; }
+    .bucket-right { text-align: right; }
+    .bucket-pct { font-size: 1.1rem; font-weight: 900; }
+    .bucket-count { font-size: .7rem; color: var(--muted); }
+    .bar-bg { width: 100%; height: 7px; background: var(--border); border-radius: 4px; }
+    .bar-fill { height: 7px; border-radius: 4px; }
+    .insight { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.2); border-radius: 10px; padding: .75rem 1rem; margin-top: 1rem; font-size: .78rem; color: var(--yellow); line-height: 1.5; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Cancellation Notice Time</div>
+  <p class="page-sub">How much notice clients give when cancelling — late cancellations are lost revenue; use this to tune your policy.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Cancellations</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Late (&lt; 2 hrs)</div>
+      <div class="hero-val" id="h-late" style="color:var(--red)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Cancellations by Notice Window</div>
+    <div id="bucket-list"></div>
+    <div class="insight" id="insight"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['var(--red)','var(--yellow)','var(--accent)','var(--green)','#60a5fa'];
+  async function load() {
+    const r = await fetch('/api/analytics/cancellation-notice-time');
+    const d = await r.json();
+    const buckets = d.buckets || [];
+    document.getElementById('h-total').textContent = d.total || '—';
+    const late = buckets.find(b=>b.key==='under_2h') || {};
+    document.getElementById('h-late').textContent = late.pct ? late.pct + '%' : '—';
+    const list = document.getElementById('bucket-list');
+    buckets.forEach((b,i) => {
+      const color = COLORS[i % COLORS.length];
+      list.innerHTML += `
+        <div class="bucket-row">
+          <div class="bucket-top">
+            <div class="bucket-label">${esc(b.label)}</div>
+            <div class="bucket-right">
+              <div class="bucket-pct" style="color:${color}">${b.pct}%</div>
+              <div class="bucket-count">${b.booking_count} cancellations</div>
+            </div>
+          </div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${b.pct}%;background:${color}"></div></div>
+        </div>`;
+    });
+    const latePct = late.pct || 0;
+    const insightEl = document.getElementById('insight');
+    if (latePct >= 20) {
+      insightEl.textContent = `${latePct}% of cancellations happen with less than 2 hours notice — consider enabling a stricter cancellation policy or charging a late fee to reduce last-minute gaps.`;
+    } else {
+      insightEl.textContent = `Only ${latePct}% of cancellations are last-minute — your clients are giving solid notice. Your current cancellation policy appears to be working well.`;
+      insightEl.style.color = 'var(--green)';
+      insightEl.style.borderColor = 'rgba(52,211,153,.2)';
+      insightEl.style.background = 'rgba(52,211,153,.06)';
+    }
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

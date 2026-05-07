@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMS Promos — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input:focus { border-color: var(--accent); }
+    .campaign-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .8rem 1rem; margin-bottom: .4rem; display: flex; align-items: center; gap: .75rem; }
+    .campaign-card.active { border-left: 3px solid var(--green); }
+    .campaign-card.paused { border-left: 3px solid var(--muted); opacity: .6; }
+    .campaign-name { font-size: .85rem; font-weight: 700; flex: 1; }
+    .campaign-discount { font-size: .72rem; color: var(--green); font-weight: 700; }
+    .campaign-sent { font-size: .65rem; color: var(--muted); }
+    .badge { font-size: .62rem; font-weight: 700; padding: .18rem .5rem; border-radius: 4px; }
+    .badge.active { background: rgba(52,211,153,.15); color: var(--green); }
+    .badge.paused { background: rgba(102,102,102,.15); color: var(--muted); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">SMS Promos</div>
+  <p class="page-sub">Send targeted promotional SMS messages to your client list. Fill slow days, re-engage inactive clients, and reward loyal regulars — all automated by AI.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-sent" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Promos Sent (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-book" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Bookings from Promos</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-conv" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Conversion Rate</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-opt" style="color:var(--red)">—</div>
+      <div class="stat-lbl">Opt-Outs (30d)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Promo Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable SMS Promos</div><div class="row-sub">AI sends promotional messages</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Sends Promotions</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-sends"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Inactive Clients Only</div><div class="row-sub">Target clients who haven't visited recently</div></div>
+      <label class="toggle"><input type="checkbox" id="inactive-only"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Inactive Threshold (days)</div></div>
+      <input type="number" id="threshold" min="7" max="365">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Promos / Month</div><div class="row-sub">Per client</div></div>
+      <input type="number" id="max-pm" min="1" max="10">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Opt Out on STOP Reply</div></div>
+      <label class="toggle"><input type="checkbox" id="opt-out"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Include Booking Link</div></div>
+      <label class="toggle"><input type="checkbox" id="incl-link"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Promo Settings</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Campaigns</div>
+    <div id="campaign-list"></div>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/sms-promo-cfg').then(r => r.json());
+    document.getElementById('h-sent').textContent = data.promos_sent_30d;
+    document.getElementById('h-book').textContent = data.bookings_from_promos_30d;
+    document.getElementById('h-conv').textContent = data.conversion_rate_pct.toFixed(1) + '%';
+    document.getElementById('h-opt').textContent = data.opt_outs_30d;
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('ai-sends').checked = data.ai_sends_promotions;
+    document.getElementById('inactive-only').checked = data.send_to_inactive_clients_only;
+    document.getElementById('threshold').value = data.inactive_threshold_days;
+    document.getElementById('max-pm').value = data.max_promos_per_month;
+    document.getElementById('opt-out').checked = data.opt_out_on_reply_stop;
+    document.getElementById('incl-link').checked = data.include_booking_link;
+
+    const list = document.getElementById('campaign-list');
+    (data.campaigns || []).forEach(c => {
+      list.innerHTML += `
+        <div class="campaign-card ${c.status}">
+          <div style="flex:1">
+            <div class="campaign-name">${c.name}</div>
+            <div class="campaign-discount">${c.discount} · <span class="campaign-sent">${c.sent} sent</span></div>
+          </div>
+          <span class="badge ${c.status}">${c.status}</span>
+        </div>`;
+    });
+  }
+  async function save() {
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      ai_sends_promotions: document.getElementById('ai-sends').checked,
+      send_to_inactive_clients_only: document.getElementById('inactive-only').checked,
+      inactive_threshold_days: parseInt(document.getElementById('threshold').value) || 60,
+      max_promos_per_month: parseInt(document.getElementById('max-pm').value) || 2,
+      opt_out_on_reply_stop: document.getElementById('opt-out').checked,
+      include_booking_link: document.getElementById('incl-link').checked,
+    };
+    await fetch('/api/settings/sms-promo-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

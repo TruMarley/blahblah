@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reviews — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; --gold: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 1.5rem; }
+    /* Rating hero */
+    .rating-hero { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 2rem; }
+    .rating-big { text-align: center; flex-shrink: 0; }
+    .rating-num { font-size: 3.5rem; font-weight: 900; color: var(--gold); line-height: 1; }
+    .rating-stars { font-size: 1.1rem; color: var(--gold); letter-spacing: .1em; margin: .25rem 0; }
+    .rating-count { font-size: .72rem; color: var(--muted); }
+    .rating-dist { flex: 1; display: flex; flex-direction: column; gap: .4rem; }
+    .dist-row { display: flex; align-items: center; gap: .6rem; }
+    .dist-label { font-size: .72rem; color: var(--muted); width: 32px; text-align: right; flex-shrink: 0; }
+    .dist-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+    .dist-fill { height: 100%; border-radius: 4px; background: var(--gold); }
+    .dist-count { font-size: .7rem; color: var(--muted); width: 22px; flex-shrink: 0; }
+    /* Reviews list */
+    .reviews-list { display: flex; flex-direction: column; gap: 1rem; }
+    .review-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .review-top { display: flex; align-items: flex-start; gap: .75rem; margin-bottom: .65rem; }
+    .review-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+    .review-meta { flex: 1; }
+    .review-name { font-weight: 800; font-size: .9rem; }
+    .review-date { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+    .review-stars { color: var(--gold); font-size: .9rem; margin-left: auto; letter-spacing: .05em; }
+    .review-text { font-size: .85rem; color: var(--text); line-height: 1.7; margin-bottom: .85rem; }
+    .review-response { background: rgba(167,139,250,.06); border: 1px solid rgba(167,139,250,.15); border-radius: 10px; padding: .75rem 1rem; margin-bottom: .85rem; }
+    .resp-label { font-size: .65rem; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: .09em; margin-bottom: .3rem; }
+    .resp-text { font-size: .8rem; color: var(--muted); line-height: 1.6; }
+    .reply-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: .78rem; font-weight: 700; padding: .38rem .85rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .reply-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .reply-form { display: none; margin-top: .85rem; }
+    .reply-form.open { display: block; }
+    .reply-textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-size: .83rem; padding: .65rem .9rem; border-radius: 8px; font-family: inherit; outline: none; resize: vertical; min-height: 80px; margin-bottom: .6rem; }
+    .reply-textarea:focus { border-color: var(--accent); }
+    .reply-footer { display: flex; justify-content: flex-end; gap: .5rem; }
+    .cancel-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: .78rem; padding: .38rem .8rem; border-radius: 8px; cursor: pointer; font-family: inherit; }
+    .post-btn { background: var(--accent); color: #fff; border: none; font-size: .78rem; font-weight: 700; padding: .38rem .9rem; border-radius: 8px; cursor: pointer; font-family: inherit; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Reviews</div>
+  <p class="page-sub">Client reviews from all connected platforms. Reply to build trust.</p>
+  <div class="rating-hero" id="rating-hero" style="display:none">
+    <div class="rating-big">
+      <div class="rating-num" id="h-avg">—</div>
+      <div class="rating-stars" id="h-stars">★★★★★</div>
+      <div class="rating-count" id="h-count">0 reviews</div>
+    </div>
+    <div class="rating-dist" id="h-dist"></div>
+  </div>
+  <div class="reviews-list" id="reviews-list"></div>
+</div>
+<script>
+  let reviews = [];
+  const AI_SUGGESTIONS = {
+    5: ["Thank you so much! We're thrilled you had a great experience. Looking forward to seeing you again soon!",
+        "Wow, this made our day! We work hard to make every visit special — can't wait to have you back."],
+    4: ["Thanks for the kind words and the honest feedback! We're always looking to improve. See you next time!",
+        "Really appreciate you taking the time to share this. We'll keep working on making things even better!"],
+    3: ["Thank you for your feedback — we take it seriously. We'd love the chance to make it right. Please reach out to us directly.",
+        "We're sorry things weren't perfect. Your experience matters to us and we're working to address this."],
+    2: ["We sincerely apologize for your experience. This isn't our standard and we'd like to make it right. Please contact us.",
+        "Thank you for letting us know. We're sorry we let you down and will do better."],
+    1: ["We're very sorry to hear this. Please reach out to us directly so we can address your concerns personally.",
+        "This is not acceptable and we sincerely apologize. We take all feedback seriously and will investigate immediately."],
+  };
+
+  async function load() {
+    const [rList, rStats] = await Promise.all([
+      fetch('/api/reviews').then(r => r.json()),
+      fetch('/api/reviews/stats').then(r => r.json()),
+    ]);
+    reviews = rList.reviews || [];
+
+    // Hero
+    const hero = document.getElementById('rating-hero');
+    hero.style.display = 'flex';
+    document.getElementById('h-avg').textContent = rStats.avg_rating || '—';
+    const avg = rStats.avg_rating || 0;
+    document.getElementById('h-stars').textContent = '★'.repeat(Math.round(avg)) + '☆'.repeat(5 - Math.round(avg));
+    document.getElementById('h-count').textContent = (rStats.total_reviews || 0) + ' reviews';
+    const dist = rStats.rating_breakdown || {};
+    const maxDist = Math.max(...Object.values(dist), 1);
+    document.getElementById('h-dist').innerHTML = [5,4,3,2,1].map(n => `
+      <div class="dist-row">
+        <div class="dist-label">${n}★</div>
+        <div class="dist-track"><div class="dist-fill" style="width:${Math.round((dist[n]||0)/maxDist*100)}%"></div></div>
+        <div class="dist-count">${dist[n]||0}</div>
+      </div>`).join('');
+
+    render();
+  }
+
+  function render() {
+    document.getElementById('reviews-list').innerHTML = reviews.map(rev => {
+      const stars = '★'.repeat(rev.rating) + '☆'.repeat(5 - rev.rating);
+      const initials = (rev.name || '?')[0];
+      return `<div class="review-card">
+        <div class="review-top">
+          <div class="review-avatar">${initials}</div>
+          <div class="review-meta">
+            <div class="review-name">${esc(rev.name)}</div>
+            <div class="review-date">${fmtDate(rev.date)}</div>
+          </div>
+          <div class="review-stars">${stars}</div>
+        </div>
+        <div class="review-text">${esc(rev.text)}</div>
+        ${rev.response ? `<div class="review-response"><div class="resp-label">Owner response</div><div class="resp-text">${esc(rev.response)}</div></div>` : ''}
+        ${!rev.response ? `<button class="reply-btn" onclick="openReply('${rev.id}')">Reply →</button>
+          <div class="reply-form" id="rf-${rev.id}">
+            <textarea class="reply-textarea" id="rt-${rev.id}">${getSuggestion(rev.rating)}</textarea>
+            <div class="reply-footer">
+              <button class="cancel-btn" onclick="closeReply('${rev.id}')">Cancel</button>
+              <button class="post-btn" onclick="postReply('${rev.id}')">Post Response</button>
+            </div>
+          </div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function openReply(id) { document.getElementById('rf-' + id).classList.add('open'); }
+  function closeReply(id) { document.getElementById('rf-' + id).classList.remove('open'); }
+
+  async function postReply(id) {
+    const text = document.getElementById('rt-' + id).value.trim();
+    if (!text) return;
+    await fetch('/api/reviews/respond', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({review_id: id, response_text: text})});
+    const rev = reviews.find(r => r.id === id);
+    if (rev) rev.response = text;
+    render();
+  }
+
+  function getSuggestion(rating) {
+    const opts = AI_SUGGESTIONS[rating] || AI_SUGGESTIONS[3];
+    return opts[Math.floor(Math.random() * opts.length)];
+  }
+  function fmtDate(d) { if (!d) return ''; try { return new Date(d + 'T00:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}); } catch(e) { return d; } }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

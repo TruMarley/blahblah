@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Persona &amp; Intro — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text], textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    input[type=text] { width: 140px; }
+    textarea { width: 100%; resize: vertical; min-height: 56px; margin-top: .4rem; font-family: inherit; }
+    input[type=text]:focus, textarea:focus { border-color: var(--accent); }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 75px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    .full-row { margin-bottom: 1.1rem; }
+    .full-row .row-label { font-size: .85rem; font-weight: 600; margin-bottom: .2rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Persona &amp; Intro</div>
+  <p class="page-sub">Customise how your AI receptionist introduces itself and interacts with callers. Give it a name, style, and greeting that matches your salon's brand personality.</p>
+  <div class="card">
+    <div class="card-title">Persona Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Custom Persona</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Name</div><div class="row-sub">Name callers will hear on greeting</div></div>
+      <input type="text" id="ai-name">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Greeting Style</div></div>
+      <select id="greeting-style">
+        <option value="friendly">Friendly &amp; Warm</option>
+        <option value="professional">Professional</option>
+        <option value="casual">Casual</option>
+        <option value="upbeat">Upbeat &amp; Energetic</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Voice Gender</div></div>
+      <select id="voice-gender">
+        <option value="female">Female</option>
+        <option value="male">Male</option>
+        <option value="neutral">Neutral</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Language</div></div>
+      <select id="language">
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="es-US">Spanish (US)</option>
+        <option value="fr-FR">French</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Speak Slowly</div><div class="row-sub">Reduce speech rate for clarity</div></div>
+      <label class="toggle"><input type="checkbox" id="speak-slowly"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Pause After Greeting (ms)</div></div>
+      <input type="number" id="pause-ms" min="0" max="2000">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use Client Name</div><div class="row-sub">Personalise greeting for known callers</div></div>
+      <label class="toggle"><input type="checkbox" id="use-name"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Confirm Identity on Return</div><div class="row-sub">Verify returning clients by name</div></div>
+      <label class="toggle"><input type="checkbox" id="confirm-identity"><span class="slider"></span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Custom Scripts</div>
+    <div class="full-row">
+      <div class="row-label">Opening Line</div>
+      <textarea id="opening-line"></textarea>
+    </div>
+    <div class="full-row">
+      <div class="row-label">Closing Line</div>
+      <textarea id="closing-line"></textarea>
+    </div>
+    <button class="save-btn" onclick="save()">Save Persona Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/ai-persona-intro-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('ai-name').value = data.ai_name;
+    document.getElementById('greeting-style').value = data.greeting_style;
+    document.getElementById('voice-gender').value = data.voice_gender;
+    document.getElementById('language').value = data.language;
+    document.getElementById('speak-slowly').checked = data.speak_slowly;
+    document.getElementById('pause-ms').value = data.pause_after_greeting_ms;
+    document.getElementById('use-name').checked = data.use_client_name;
+    document.getElementById('confirm-identity').checked = data.confirm_identity_on_return;
+    document.getElementById('opening-line').value = data.opening_line;
+    document.getElementById('closing-line').value = data.closing_line;
+  }
+  async function save() {
+    const payload = { ...data,
+      enabled: document.getElementById('enabled').checked,
+      ai_name: document.getElementById('ai-name').value,
+      greeting_style: document.getElementById('greeting-style').value,
+      voice_gender: document.getElementById('voice-gender').value,
+      language: document.getElementById('language').value,
+      speak_slowly: document.getElementById('speak-slowly').checked,
+      pause_after_greeting_ms: parseInt(document.getElementById('pause-ms').value) || 400,
+      use_client_name: document.getElementById('use-name').checked,
+      confirm_identity_on_return: document.getElementById('confirm-identity').checked,
+      opening_line: document.getElementById('opening-line').value,
+      closing_line: document.getElementById('closing-line').value,
+    };
+    await fetch('/api/settings/ai-persona-intro-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

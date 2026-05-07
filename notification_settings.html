@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notifications — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text], input[type=time] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    input[type=text] { width: 210px; }
+    input[type=time] { width: 100px; }
+    input:focus { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Notifications</div>
+  <p class="page-sub">Control which events trigger an alert to you as the owner. Stay informed on bookings, cancellations, and AI escalations without being overwhelmed.</p>
+
+  <div class="card">
+    <div class="card-title">Notify Me When</div>
+    <div class="row">
+      <div><div class="row-label">New Booking Confirmed</div></div>
+      <label class="toggle"><input type="checkbox" id="n-book"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Cancellation Received</div></div>
+      <label class="toggle"><input type="checkbox" id="n-cancel"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">No-Show Detected</div></div>
+      <label class="toggle"><input type="checkbox" id="n-noshow"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Blocked Call Received</div></div>
+      <label class="toggle"><input type="checkbox" id="n-blocked"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Transfers a Call</div></div>
+      <label class="toggle"><input type="checkbox" id="n-handoff"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Negative Sentiment Detected</div></div>
+      <label class="toggle"><input type="checkbox" id="n-sentiment"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">New Client Booked</div></div>
+      <label class="toggle"><input type="checkbox" id="n-newclient"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Notification Settings</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Delivery & Schedule</div>
+    <div class="row">
+      <div><div class="row-label">Notify via SMS</div></div>
+      <label class="toggle"><input type="checkbox" id="via-sms"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notify via Email</div></div>
+      <label class="toggle"><input type="checkbox" id="via-email"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notify via Push</div></div>
+      <label class="toggle"><input type="checkbox" id="via-push"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Owner Phone</div></div>
+      <input type="text" id="owner-phone" placeholder="+1 (555) 000-0000">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Owner Email</div></div>
+      <input type="text" id="owner-email" placeholder="you@example.com">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Quiet Hours</div><div class="row-sub">Pause notifications during these hours</div></div>
+      <label class="toggle"><input type="checkbox" id="quiet"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Quiet Start</div></div>
+      <input type="time" id="quiet-start">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Quiet End</div></div>
+      <input type="time" id="quiet-end">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Daily Summary</div><div class="row-sub">End-of-day recap of activity</div></div>
+      <label class="toggle"><input type="checkbox" id="daily-sum"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Daily Summary Time</div></div>
+      <input type="time" id="sum-time">
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/notification-cfg').then(r => r.json());
+    document.getElementById('n-book').checked = data.notify_on_new_booking;
+    document.getElementById('n-cancel').checked = data.notify_on_cancellation;
+    document.getElementById('n-noshow').checked = data.notify_on_no_show;
+    document.getElementById('n-blocked').checked = data.notify_on_blocked_call;
+    document.getElementById('n-handoff').checked = data.notify_on_handoff;
+    document.getElementById('n-sentiment').checked = data.notify_on_negative_sentiment;
+    document.getElementById('n-newclient').checked = data.notify_on_new_client;
+    document.getElementById('via-sms').checked = data.notify_via_sms;
+    document.getElementById('via-email').checked = data.notify_via_email;
+    document.getElementById('via-push').checked = data.notify_via_push;
+    document.getElementById('owner-phone').value = data.owner_phone || '';
+    document.getElementById('owner-email').value = data.owner_email || '';
+    document.getElementById('quiet').checked = data.quiet_hours_enabled;
+    document.getElementById('quiet-start').value = data.quiet_start;
+    document.getElementById('quiet-end').value = data.quiet_end;
+    document.getElementById('daily-sum').checked = data.daily_summary_enabled;
+    document.getElementById('sum-time').value = data.daily_summary_time;
+  }
+  async function save() {
+    const payload = {
+      ...data,
+      notify_on_new_booking: document.getElementById('n-book').checked,
+      notify_on_cancellation: document.getElementById('n-cancel').checked,
+      notify_on_no_show: document.getElementById('n-noshow').checked,
+      notify_on_blocked_call: document.getElementById('n-blocked').checked,
+      notify_on_handoff: document.getElementById('n-handoff').checked,
+      notify_on_negative_sentiment: document.getElementById('n-sentiment').checked,
+      notify_on_new_client: document.getElementById('n-newclient').checked,
+      notify_via_sms: document.getElementById('via-sms').checked,
+      notify_via_email: document.getElementById('via-email').checked,
+      notify_via_push: document.getElementById('via-push').checked,
+      owner_phone: document.getElementById('owner-phone').value,
+      owner_email: document.getElementById('owner-email').value,
+      quiet_hours_enabled: document.getElementById('quiet').checked,
+      quiet_start: document.getElementById('quiet-start').value,
+      quiet_end: document.getElementById('quiet-end').value,
+      daily_summary_enabled: document.getElementById('daily-sum').checked,
+      daily_summary_time: document.getElementById('sum-time').value,
+    };
+    await fetch('/api/settings/notification-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

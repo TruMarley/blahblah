@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monthly Client Growth — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.9rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: 1.25rem; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+    .chart-wrap { height: 260px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Monthly Client Growth</div>
+  <p class="page-sub">Track new client acquisition versus churn each month — understand the health of your client base growth.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Clients</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg New / Month</div>
+      <div class="hero-val" id="h-new" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Churned / Month</div>
+      <div class="hero-val" id="h-churn" style="color:var(--red)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">New vs. Churned Clients per Month</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(52,211,153,.8)"></div>New Clients</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(248,113,113,.7)"></div>Churned</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent);border-radius:50%"></div>Net Growth</div>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 720 260" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/monthly-client-growth');
+    const d = await r.json();
+    const months = d.months || [];
+    document.getElementById('h-total').textContent = (d.current_total||0).toLocaleString();
+    const avgNew = months.length ? Math.round(months.reduce((s,m)=>s+m.new_clients,0)/months.length) : 0;
+    const avgChurn = months.length ? Math.round(months.reduce((s,m)=>s+m.churned_clients,0)/months.length) : 0;
+    document.getElementById('h-new').textContent = '+' + avgNew;
+    document.getElementById('h-churn').textContent = '-' + avgChurn;
+
+    const svg = document.getElementById('chart');
+    const W=720, H=260, pL=36, pR=16, pT=14, pB=30;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n = months.length;
+    const grpW = cW/n;
+    const bW = grpW*0.28;
+    const maxV = Math.max(...months.map(m=>Math.max(m.new_clients,m.churned_clients)))*1.2;
+    const yOf = v => pT+cH - v/maxV*cH;
+    const xOf = i => pL + i*grpW + grpW/2;
+
+    [5,10,15,20,25].filter(v=>v<maxV).forEach(v=>{
+      const y=yOf(v);
+      svg.innerHTML+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML+=`<text x="${pL-4}" y="${y+3.5}" font-size="8.5" fill="#555" text-anchor="end">${v}</text>`;
+    });
+
+    // Bars
+    months.forEach((m,i) => {
+      const cx = xOf(i);
+      const bh_new = cH*m.new_clients/maxV;
+      const bh_churn = cH*m.churned_clients/maxV;
+      svg.innerHTML+=`<rect x="${cx-bW-1}" y="${yOf(m.new_clients)}" width="${bW}" height="${bh_new}" rx="4" fill="rgba(52,211,153,.75)"/>`;
+      svg.innerHTML+=`<rect x="${cx+1}" y="${yOf(m.churned_clients)}" width="${bW}" height="${bh_churn}" rx="4" fill="rgba(248,113,113,.65)"/>`;
+      svg.innerHTML+=`<text x="${cx}" y="${H-4}" font-size="9" fill="#666" text-anchor="middle">${esc(m.month)}</text>`;
+    });
+
+    // Net growth line
+    const netPts = months.map((m,i)=>`${xOf(i)},${yOf(m.net_growth)}`).join(' ');
+    svg.innerHTML+=`<polyline points="${netPts}" fill="none" stroke="rgba(167,139,250,.85)" stroke-width="2"/>`;
+    months.forEach((m,i)=>{
+      svg.innerHTML+=`<circle cx="${xOf(i)}" cy="${yOf(m.net_growth)}" r="3" fill="var(--accent)"/>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

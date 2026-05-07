@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Peak Hour Heatmap — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.8rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .legend { display: flex; align-items: center; gap: .5rem; margin-bottom: 1.25rem; font-size: .72rem; color: var(--muted); }
+    .legend-grad { width: 120px; height: 10px; border-radius: 5px; background: linear-gradient(to right, rgba(167,139,250,.08), rgba(167,139,250,1)); }
+    .chart-wrap { overflow-x: auto; }
+    svg.chart { overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Peak Hour Heatmap</div>
+  <p class="page-sub">Call and booking volume by day and hour — identify peak times to staff up and stay responsive.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Peak Slot</div>
+      <div class="hero-val" id="h-peak" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Peak Volume</div>
+      <div class="hero-val" id="h-vol" style="color:var(--green)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Volume by Day × Hour</div>
+    <div class="legend"><span>Low</span><div class="legend-grad"></div><span>High</span></div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/peak-hour-heatmap');
+    const d = await r.json();
+    const grid = d.grid || [];
+    const hours = d.hours || [];
+    const days = d.days || [];
+    const allVals = grid.flatMap(row => row.hours.map(h => h.volume));
+    const maxV = Math.max(...allVals);
+
+    let peakDay = '', peakHour = '', peakVol = 0;
+    grid.forEach(row => row.hours.forEach(h => {
+      if (h.volume > peakVol) { peakVol = h.volume; peakDay = row.day; peakHour = h.hour; }
+    }));
+    document.getElementById('h-peak').textContent = `${peakDay} ${peakHour}`;
+    document.getElementById('h-vol').textContent = peakVol + ' calls';
+
+    const cellW = 60, cellH = 36, pL = 44, pT = 24;
+    const W = pL + hours.length * cellW + 10;
+    const H = pT + days.length * cellH + 10;
+    const svg = document.getElementById('chart');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('width', W);
+    svg.setAttribute('height', H);
+
+    // Hour labels
+    hours.forEach((hr, j) => {
+      svg.innerHTML += `<text x="${pL + j * cellW + cellW/2}" y="${pT-8}" font-size="8.5" fill="#555" text-anchor="middle">${hr}</text>`;
+    });
+
+    grid.forEach((row, i) => {
+      svg.innerHTML += `<text x="${pL-5}" y="${pT + i * cellH + cellH/2 + 3.5}" font-size="9.5" fill="#888" text-anchor="end" font-weight="700">${row.day}</text>`;
+      row.hours.forEach((cell, j) => {
+        const t = cell.volume / maxV;
+        const alpha = 0.06 + t * 0.88;
+        const fill = `rgba(167,139,250,${alpha.toFixed(2)})`;
+        const x = pL + j * cellW + 2, y = pT + i * cellH + 2;
+        const isPeak = cell.volume === maxV;
+        svg.innerHTML += `<rect x="${x}" y="${y}" width="${cellW-4}" height="${cellH-4}" rx="5" fill="${fill}" ${isPeak ? 'stroke="rgba(167,139,250,.6)" stroke-width="1.5"' : ''}/>`;
+        svg.innerHTML += `<text x="${x + (cellW-4)/2}" y="${y + (cellH-4)/2 + 3.5}" font-size="9" fill="${t > 0.5 ? '#fff' : '#888'}" text-anchor="middle" font-weight="${isPeak ? '800' : '400'}">${cell.volume}</text>`;
+      });
+    });
+  }
+  load();
+</script>
+</body>
+</html>

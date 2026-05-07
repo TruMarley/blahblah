@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tip Policy Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: .7rem 0; border-bottom: 1px solid var(--border); }
+    .toggle-row:last-of-type { border-bottom: none; }
+    .toggle-label { font-size: .88rem; font-weight: 700; }
+    .toggle-sub { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+    .toggle { position: relative; width: 38px; height: 21px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #222; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .slider:before { content: ''; position: absolute; width: 15px; height: 15px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: rgba(167,139,250,.3); }
+    input:checked + .slider:before { transform: translateX(17px); background: var(--accent); }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; display: block; }
+    .field-group { margin-bottom: .9rem; margin-top: 1rem; }
+    .f-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .48rem .7rem; font-family: inherit; width: 100%; outline: none; cursor: pointer; }
+    .tip-options { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .9rem; margin-top: .75rem; }
+    .tip-chip { background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); border-radius: 20px; color: var(--yellow); font-size: .78rem; font-weight: 700; padding: .25rem .65rem; cursor: pointer; user-select: none; }
+    .tip-chip.active { background: rgba(251,191,36,.3); border-color: var(--yellow); }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.4rem; border-radius: 9px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; width: 100%; margin-top: 1rem; }
+    .save-btn:hover { background: rgba(167,139,250,.2); }
+    .saved-msg { font-size: .75rem; color: var(--green); font-weight: 700; text-align: center; margin-top: .5rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Tip Policy Settings</div>
+  <p class="page-sub">Configure how your AI handles tip suggestions during and after booking calls.</p>
+  <div class="card">
+    <div class="card-title">Tip Suggestions</div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Suggest Tips</div><div class="toggle-sub">AI mentions tip options during the call checkout flow</div></div>
+      <label class="toggle"><input type="checkbox" id="f-suggest"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Allow Custom Tip</div><div class="toggle-sub">Clients can enter any tip amount beyond the presets</div></div>
+      <label class="toggle"><input type="checkbox" id="f-custom"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Auto-Include in Total</div><div class="toggle-sub">Pre-select the suggested tip in the payment total</div></div>
+      <label class="toggle"><input type="checkbox" id="f-auto"><span class="slider"></span></label>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Tip Prompt Timing</label>
+      <select class="f-select" id="f-timing">
+        <option value="after_service">After service (at checkout)</option>
+        <option value="at_booking">At booking confirmation</option>
+        <option value="sms_followup">Via SMS follow-up after visit</option>
+      </select>
+    </div>
+    <label class="field-label">Preset Tip Options (%)</label>
+    <div class="tip-options" id="tip-chips">
+      <div class="tip-chip" data-v="10">10%</div>
+      <div class="tip-chip" data-v="15">15%</div>
+      <div class="tip-chip" data-v="18">18%</div>
+      <div class="tip-chip" data-v="20">20%</div>
+      <div class="tip-chip" data-v="25">25%</div>
+      <div class="tip-chip" data-v="30">30%</div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Tip Policy</button>
+    <div class="saved-msg" id="saved-msg"></div>
+  </div>
+</div>
+<script>
+  let data = {};
+  let selectedTips = new Set();
+  document.querySelectorAll('.tip-chip').forEach(c=>{
+    c.addEventListener('click',()=>{
+      const v=parseInt(c.dataset.v);
+      if(selectedTips.has(v)){selectedTips.delete(v);c.classList.remove('active');}
+      else{selectedTips.add(v);c.classList.add('active');}
+    });
+  });
+  async function load() {
+    const r = await fetch('/api/tip-policy-settings');
+    data = await r.json();
+    document.getElementById('f-suggest').checked = !!data.suggest_tips;
+    document.getElementById('f-custom').checked = !!data.allow_custom_tip;
+    document.getElementById('f-auto').checked = !!data.auto_include_tip_in_total;
+    document.getElementById('f-timing').value = data.tip_prompt_timing || 'after_service';
+    selectedTips = new Set(data.tip_options_pct || [15, 18, 20, 25]);
+    document.querySelectorAll('.tip-chip').forEach(c=>{
+      c.classList.toggle('active', selectedTips.has(parseInt(c.dataset.v)));
+    });
+  }
+  async function save() {
+    data.suggest_tips = document.getElementById('f-suggest').checked;
+    data.allow_custom_tip = document.getElementById('f-custom').checked;
+    data.auto_include_tip_in_total = document.getElementById('f-auto').checked;
+    data.tip_prompt_timing = document.getElementById('f-timing').value;
+    data.tip_options_pct = Array.from(selectedTips).sort((a,b)=>a-b);
+    await fetch('/api/tip-policy-settings', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const msg = document.getElementById('saved-msg');
+    msg.textContent = '✓ Saved';
+    setTimeout(() => { msg.textContent = ''; }, 2000);
+  }
+  load();
+</script>
+</body>
+</html>

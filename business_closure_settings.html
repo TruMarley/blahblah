@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Business Closures — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=date], input[type=time], input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    input[type=date]:focus, input[type=time]:focus, input[type=text]:focus { border-color: var(--accent); }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 75px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    .closure-list { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1rem; }
+    .closure-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; display: flex; align-items: center; gap: .75rem; }
+    .closure-date { font-size: .8rem; font-weight: 800; color: var(--accent); min-width: 90px; }
+    .closure-reason { font-size: .78rem; color: var(--text); flex: 1; }
+    .closure-hours { font-size: .7rem; color: var(--muted); }
+    .remove-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .8rem; padding: .2rem; }
+    .remove-btn:hover { color: var(--red); }
+    .add-form { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+    .add-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-bottom: .6rem; }
+    .add-label { font-size: .72rem; color: var(--muted); margin-bottom: .2rem; }
+    .add-btn { background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; color: var(--accent); font-size: .8rem; font-weight: 700; padding: .4rem .85rem; cursor: pointer; }
+    .add-btn:hover { background: rgba(167,139,250,.08); }
+    .empty-state { font-size: .78rem; color: var(--muted); text-align: center; padding: 1.25rem 0; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Business Closures</div>
+  <p class="page-sub">Add holidays, personal days, and planned closures so the AI never books appointments when you're not open. When a closure falls within the advance notice window, the AI proactively contacts affected clients to reschedule.</p>
+
+  <div class="card">
+    <div class="card-title">Closure Notifications</div>
+    <div class="row">
+      <div><div class="row-label">Advance Notice (days)</div><div class="row-sub">Days before closure to notify booked clients</div></div>
+      <input type="number" id="advance-days" min="1" max="60" placeholder="7">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notify Booked Clients</div><div class="row-sub">AI texts clients with appointments during closure</div></div>
+      <label class="toggle"><input type="checkbox" id="notify-clients"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Scheduled Closures</div>
+    <div class="closure-list" id="closure-list"></div>
+    <div class="add-form">
+      <div class="add-grid">
+        <div>
+          <div class="add-label">Date</div>
+          <input type="date" id="new-date" style="width:100%">
+        </div>
+        <div>
+          <div class="add-label">Reason</div>
+          <input type="text" id="new-reason" placeholder="Holiday, personal day..." style="width:100%">
+        </div>
+        <div>
+          <div class="add-label">Start Time (if partial)</div>
+          <input type="time" id="new-start" style="width:100%">
+        </div>
+        <div>
+          <div class="add-label">End Time (if partial)</div>
+          <input type="time" id="new-end" style="width:100%">
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:.75rem">
+        <div><div class="row-label" style="font-size:.8rem">Full Day Closure</div></div>
+        <label class="toggle"><input type="checkbox" id="new-fullday" checked><span class="slider"></span></label>
+      </div>
+      <button class="add-btn" onclick="addClosure()">+ Add Closure</button>
+    </div>
+    <button class="save-btn" onclick="save()">Save Closures</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let closures = [];
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function renderClosures() {
+    const el = document.getElementById('closure-list');
+    if (!closures.length) { el.innerHTML = '<div class="empty-state">No closures scheduled</div>'; return; }
+    el.innerHTML = '';
+    closures.forEach((c, i) => {
+      const hours = c.full_day ? 'Full day' : `${c.start_time||'—'} – ${c.end_time||'—'}`;
+      el.innerHTML += `<div class="closure-item">
+        <div class="closure-date">${esc(c.date)}</div>
+        <div>
+          <div class="closure-reason">${esc(c.reason)}</div>
+          <div class="closure-hours">${hours}</div>
+        </div>
+        <button class="remove-btn" onclick="removeClosure(${i})">✕</button>
+      </div>`;
+    });
+  }
+  function addClosure() {
+    const date = document.getElementById('new-date').value;
+    const reason = document.getElementById('new-reason').value.trim();
+    if (!date || !reason) return;
+    closures.push({ date, reason, full_day: document.getElementById('new-fullday').checked, start_time: document.getElementById('new-start').value || null, end_time: document.getElementById('new-end').value || null });
+    closures.sort((a,b) => a.date.localeCompare(b.date));
+    document.getElementById('new-date').value = '';
+    document.getElementById('new-reason').value = '';
+    renderClosures();
+  }
+  function removeClosure(i) { closures.splice(i, 1); renderClosures(); }
+  async function load() {
+    const d = await fetch('/api/settings/business-closure-cfg').then(r => r.json());
+    document.getElementById('advance-days').value = d.advance_notice_days ?? 7;
+    document.getElementById('notify-clients').checked = d.notify_booked_clients ?? true;
+    closures = d.closures || [];
+    renderClosures();
+  }
+  async function save() {
+    const data = { closures, advance_notice_days: parseInt(document.getElementById('advance-days').value)||7, notify_booked_clients: document.getElementById('notify-clients').checked };
+    await fetch('/api/settings/business-closure-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

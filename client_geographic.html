@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Geographic — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .45rem; }
+    .hero-val { font-size: 1.8rem; font-weight: 900; }
+    .hero-sub { font-size: .72rem; color: var(--muted); margin-top: .25rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .zip-row { display: flex; align-items: center; gap: .85rem; margin-bottom: .75rem; }
+    .zip-row:last-child { margin-bottom: 0; }
+    .rank-num { font-size: .75rem; font-weight: 900; color: var(--muted); width: 20px; text-align: right; flex-shrink: 0; }
+    .zip-code { font-family: monospace; font-weight: 900; font-size: .88rem; color: var(--accent); width: 56px; flex-shrink: 0; }
+    .zip-city { font-size: .78rem; color: var(--muted); width: 150px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-track { flex: 1; background: var(--surface2); border-radius: 5px; height: 10px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 5px; background: var(--accent); opacity: .75; }
+    .zip-count { font-size: .78rem; font-weight: 900; width: 36px; text-align: right; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Geographic</div>
+  <p class="page-sub">Where your clients are coming from — top zip codes by client count.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Top Zip Code</div>
+      <div class="hero-val" style="color:var(--accent)" id="h-zip">—</div>
+      <div class="hero-sub" id="h-city">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Clients from Top Zip</div>
+      <div class="hero-val" style="color:var(--green)" id="h-count">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Top 8 Zip Codes</div>
+    <div id="zip-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/client-geographic-heatmap');
+    const d = await r.json();
+    document.getElementById('h-zip').textContent   = d.top_zip || '—';
+    document.getElementById('h-city').textContent  = d.top_city || '—';
+    document.getElementById('h-count').textContent = d.top_count || '—';
+
+    const zips = d.zips || [];
+    const maxCnt = Math.max(...zips.map(z=>z.count), 1);
+    document.getElementById('zip-list').innerHTML = zips.map((z, i) => `
+      <div class="zip-row">
+        <div class="rank-num">${i+1}</div>
+        <div class="zip-code">${esc(String(z.zip))}</div>
+        <div class="zip-city">${esc(z.city)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(z.count/maxCnt*100).toFixed(1)}%"></div></div>
+        <div class="zip-count">${z.count}</div>
+      </div>`).join('');
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

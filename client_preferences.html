@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Preferences — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .5rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .65rem 1rem; font-size: .82rem; vertical-align: middle; }
+    .notes-cell { display: flex; align-items: center; gap: .5rem; }
+    .notes-text { flex: 1; font-size: .78rem; color: var(--muted); }
+    .notes-input { flex: 1; background: var(--surface2); border: 1px solid rgba(167,139,250,.4); border-radius: 6px; color: var(--text); font-size: .78rem; padding: .3rem .55rem; font-family: inherit; display: none; }
+    .edit-btn { font-size: .7rem; font-weight: 800; padding: .2rem .55rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0; }
+    .edit-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .save-btn { font-size: .7rem; font-weight: 800; padding: .2rem .55rem; border-radius: 6px; border: 1px solid rgba(52,211,153,.3); background: rgba(52,211,153,.07); color: var(--green); cursor: pointer; font-family: inherit; display: none; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Preferences</div>
+  <p class="page-sub">Stored preferences for returning clients — the AI uses these to personalize every call.</p>
+
+  <div class="card">
+    <div class="card-title">Client Preferences</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Client</th>
+          <th>Preferred Staff</th>
+          <th>Preferred Time</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="pref-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  let prefs = [];
+
+  async function load() {
+    const r = await fetch('/api/client-preferences');
+    const d = await r.json();
+    prefs = d.preferences || [];
+    render();
+  }
+
+  function render() {
+    document.getElementById('pref-tbody').innerHTML = prefs.map(p => `
+      <tr>
+        <td style="font-weight:800">${esc(p.name)}</td>
+        <td style="color:var(--muted)">${esc(p.preferred_staff)}</td>
+        <td style="color:var(--muted)">${esc(p.preferred_time)}</td>
+        <td>
+          <div class="notes-cell">
+            <span class="notes-text" id="nt-${p.client_id}">${esc(p.notes) || '<span style="color:#444;font-style:italic">No notes</span>'}</span>
+            <input class="notes-input" id="ni-${p.client_id}" type="text" value="${esc(p.notes)}" maxlength="120">
+            <button class="edit-btn" id="eb-${p.client_id}" onclick="startEdit('${p.client_id}')">Edit</button>
+            <button class="save-btn" id="sb-${p.client_id}" onclick="saveNote('${p.client_id}')">Save</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  function startEdit(id) {
+    document.getElementById('nt-' + id).style.display = 'none';
+    document.getElementById('ni-' + id).style.display = 'flex';
+    document.getElementById('eb-' + id).style.display = 'none';
+    document.getElementById('sb-' + id).style.display = 'inline-block';
+    document.getElementById('ni-' + id).focus();
+  }
+
+  async function saveNote(id) {
+    const val = document.getElementById('ni-' + id).value.trim();
+    await fetch(`/api/client-preferences/${id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({notes: val})});
+    const idx = prefs.findIndex(p => p.client_id === id);
+    if (idx >= 0) prefs[idx].notes = val;
+    render();
+  }
+
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

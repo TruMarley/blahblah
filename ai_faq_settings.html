@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI FAQ — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    .faq-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .5rem; }
+    .faq-card.inactive { opacity: .4; }
+    .faq-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .4rem; }
+    .faq-q { font-size: .82rem; font-weight: 700; flex: 1; }
+    .faq-count { font-size: .65rem; color: var(--accent); font-weight: 700; }
+    .faq-a { font-size: .74rem; color: var(--muted); line-height: 1.5; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI FAQ</div>
+  <p class="page-sub">Train the AI to answer common questions about your business. The more FAQs you configure, the fewer calls escalate to you for simple information.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-answered" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Questions Answered (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-esc" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Escalation Rate</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-top" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Top Question</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">FAQ Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable FAQ Responses</div><div class="row-sub">AI answers known questions automatically</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Answer FAQ</div><div class="row-sub">No human approval needed</div></div>
+      <label class="toggle"><input type="checkbox" id="auto-ans"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Escalate Unknown Questions</div><div class="row-sub">Transfer if AI cannot find an answer</div></div>
+      <label class="toggle"><input type="checkbox" id="esc-unknown"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save FAQ Settings</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">FAQ Entries</div>
+    <div id="faq-list"></div>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/ai-faq-cfg').then(r => r.json());
+    document.getElementById('h-answered').textContent = data.questions_answered_30d;
+    document.getElementById('h-esc').textContent = data.escalation_rate_pct.toFixed(1) + '%';
+    document.getElementById('h-top').textContent = data.top_question.length > 20 ? data.top_question.slice(0,20)+'…' : data.top_question;
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('auto-ans').checked = data.ai_answers_faq_automatically;
+    document.getElementById('esc-unknown').checked = data.ai_escalates_unknown_questions;
+
+    const list = document.getElementById('faq-list');
+    (data.faq_entries || []).forEach(f => {
+      const card = document.createElement('div');
+      card.className = 'faq-card' + (f.active ? '' : ' inactive');
+      card.innerHTML = `
+        <div class="faq-header">
+          <div class="faq-q">${f.question}</div>
+          <div class="faq-count">${f.asks_30d} asks</div>
+          <label class="toggle"><input type="checkbox" class="faq-toggle" data-id="${f.id}" ${f.active?'checked':''}><span class="slider"></span></label>
+        </div>
+        <div class="faq-a">${f.answer}</div>
+      `;
+      list.appendChild(card);
+    });
+    list.querySelectorAll('.faq-toggle').forEach(cb => cb.addEventListener('change', e => {
+      const f = data.faq_entries.find(x => x.id === e.target.dataset.id);
+      if (f) { f.active = e.target.checked; e.target.closest('.faq-card').className = 'faq-card' + (f.active ? '' : ' inactive'); }
+    }));
+  }
+  async function save() {
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      ai_answers_faq_automatically: document.getElementById('auto-ans').checked,
+      ai_escalates_unknown_questions: document.getElementById('esc-unknown').checked,
+    };
+    await fetch('/api/settings/ai-faq-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

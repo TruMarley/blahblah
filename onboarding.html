@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Onboarding — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 1.75rem; }
+    /* Progress bar */
+    .prog-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 2rem; }
+    .prog-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: .6rem; }
+    .prog-label { font-size: .78rem; font-weight: 700; }
+    .prog-pct { font-size: .78rem; color: var(--muted); }
+    .prog-bar { background: var(--surface2); border-radius: 99px; height: 8px; overflow: hidden; }
+    .prog-fill { height: 8px; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--green)); transition: width .5s ease; }
+    /* Steps */
+    .steps { display: flex; flex-direction: column; gap: .65rem; }
+    .step { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; display: flex; gap: 1rem; align-items: flex-start; transition: opacity .2s; }
+    .step.done { opacity: .5; }
+    .step-check { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .9rem; transition: all .2s; }
+    .step.done .step-check { background: var(--green); border-color: var(--green); }
+    .step-body { flex: 1; }
+    .step-title { font-size: .9rem; font-weight: 800; margin-bottom: .2rem; }
+    .step.done .step-title { text-decoration: line-through; }
+    .step-desc { font-size: .78rem; color: var(--muted); line-height: 1.5; margin-bottom: .65rem; }
+    .step.done .step-desc { display: none; }
+    .step-action { display: inline-block; font-size: .78rem; font-weight: 700; padding: .38rem .9rem; border-radius: 8px; background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.25); color: var(--accent); text-decoration: none; transition: opacity .15s; }
+    .step-action:hover { opacity: .8; }
+    .mark-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: .72rem; font-weight: 600; padding: .3rem .7rem; border-radius: 7px; cursor: pointer; font-family: inherit; margin-left: .5rem; }
+    .mark-btn:hover { border-color: var(--green); color: var(--green); }
+    /* Confetti */
+    .confetti-wrap { display: none; position: fixed; inset: 0; pointer-events: none; z-index: 999; overflow: hidden; }
+    .confetti-wrap.show { display: block; }
+    .confetti-piece { position: absolute; width: 10px; height: 10px; border-radius: 2px; animation: confetti-fall 3s ease-in forwards; }
+    @keyframes confetti-fall {
+      0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+    .all-done-msg { display: none; text-align: center; padding: 2rem; }
+    .all-done-msg.show { display: block; }
+    .done-emoji { font-size: 3rem; margin-bottom: 1rem; }
+    .done-title { font-size: 1.3rem; font-weight: 900; margin-bottom: .5rem; color: var(--green); }
+    .done-sub { font-size: .85rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Setup Checklist</div>
+  <p class="page-sub">Complete these steps to get your AI receptionist fully configured.</p>
+  <div class="prog-wrap">
+    <div class="prog-top">
+      <span class="prog-label" id="prog-label">Loading…</span>
+      <span class="prog-pct" id="prog-pct"></span>
+    </div>
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+  <div class="steps" id="steps"></div>
+  <div class="all-done-msg" id="all-done">
+    <div class="done-emoji">🎉</div>
+    <div class="done-title">You're all set!</div>
+    <div class="done-sub">Your AI receptionist is fully configured and ready to handle calls.</div>
+  </div>
+</div>
+<div class="confetti-wrap" id="confetti"></div>
+<script>
+  let steps = [];
+
+  async function load() {
+    const r = await fetch('/api/onboarding');
+    const d = await r.json();
+    steps = d.steps || [];
+    const pct = Math.round(d.completed / d.total * 100);
+    document.getElementById('prog-label').textContent = d.completed + ' of ' + d.total + ' steps complete';
+    document.getElementById('prog-pct').textContent = pct + '%';
+    document.getElementById('prog-fill').style.width = pct + '%';
+    if (d.completed === d.total) {
+      document.getElementById('steps').style.display = 'none';
+      document.getElementById('all-done').classList.add('show');
+      launchConfetti();
+    } else {
+      document.getElementById('steps').innerHTML = steps.map(s => `
+        <div class="step ${s.completed ? 'done' : ''}" id="step-${s.id}">
+          <div class="step-check">${s.completed ? '✓' : ''}</div>
+          <div class="step-body">
+            <div class="step-title">${esc(s.title)}</div>
+            <div class="step-desc">${esc(s.description)}</div>
+            ${!s.completed ? `<a class="step-action" href="${s.action_url}">Go →</a>
+              <button class="mark-btn" onclick="markDone('${s.id}')">Mark done</button>` : ''}
+          </div>
+        </div>`).join('');
+    }
+  }
+
+  async function markDone(id) {
+    await fetch('/api/onboarding/' + id + '/complete', {method:'POST'});
+    load();
+  }
+
+  function launchConfetti() {
+    const wrap = document.getElementById('confetti');
+    wrap.classList.add('show');
+    const colors = ['#a78bfa','#34d399','#fbbf24','#f87171','#60a5fa','#fff'];
+    for (let i = 0; i < 80; i++) {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      el.style.cssText = [
+        'left:' + Math.random()*100 + 'vw',
+        'top:' + (Math.random()*-50) + 'px',
+        'background:' + colors[Math.floor(Math.random()*colors.length)],
+        'animation-duration:' + (2 + Math.random()*2) + 's',
+        'animation-delay:' + Math.random()*1.5 + 's',
+        'width:' + (6+Math.random()*8) + 'px',
+        'height:' + (6+Math.random()*8) + 'px',
+      ].join(';');
+      wrap.appendChild(el);
+    }
+    setTimeout(() => wrap.classList.remove('show'), 5000);
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

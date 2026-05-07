@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancellation Reasons — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .reason-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .7rem; }
+    .reason-label { font-size: .82rem; font-weight: 600; width: 160px; flex-shrink: 0; }
+    .reason-bar-wrap { flex: 1; background: var(--surface2); border-radius: 6px; height: 22px; overflow: hidden; }
+    .reason-bar { height: 100%; border-radius: 6px; }
+    .reason-right { display: flex; align-items: center; gap: .45rem; flex-shrink: 0; }
+    .reason-count { font-size: .72rem; color: var(--muted); width: 30px; text-align: right; }
+    .reason-pct { font-size: .78rem; font-weight: 700; width: 38px; text-align: right; }
+    .chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px,1fr)); gap: .4rem; align-items: flex-end; }
+    .chart-col { display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+    .chart-bar-wrap { width: 100%; display: flex; flex-direction: column; justify-content: flex-end; height: 100px; }
+    .chart-bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 4px; }
+    .chart-label { font-size: .58rem; color: var(--muted); text-align: center; }
+    .chart-val { font-size: .6rem; color: var(--text); font-weight: 700; }
+    .insight { background: rgba(52,211,153,.07); border: 1px solid rgba(52,211,153,.2); border-radius: 10px; padding: .9rem 1rem; font-size: .8rem; color: var(--green); margin-top: .75rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Cancellation Reasons</div>
+  <p class="page-sub">Understand why clients cancel. Patterns reveal fixable problems — high "cost concerns" may mean pricing needs context; high "schedule conflict" may mean you need more flexible slots.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-total" style="color:var(--red)">—</div>
+      <div class="stat-lbl">Cancellations (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-rate" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Cancellation Rate</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-sameday" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Same-Day Cancels</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-rebooked" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Rebooked After Cancel</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Cancellation Reasons Breakdown</div>
+    <div id="reason-list"></div>
+    <div class="insight" id="insight"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Cancellation Volume</div>
+    <div class="chart-grid" id="monthly-chart"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/cancellation-reason-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = data.total_cancellations_30d;
+    document.getElementById('h-rate').textContent = data.cancellation_rate_pct.toFixed(1) + '%';
+    document.getElementById('h-sameday').textContent = data.same_day_cancel_pct.toFixed(1) + '%';
+    document.getElementById('h-rebooked').textContent = data.rebooked_after_cancel_pct.toFixed(1) + '%';
+
+    const list = document.getElementById('reason-list');
+    const sorted = [...(data.reasons||[])].sort((a,b) => b.count - a.count);
+    const maxCount = sorted[0]?.count || 1;
+    sorted.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'reason-row';
+      row.innerHTML = `
+        <div class="reason-label">${r.reason}</div>
+        <div class="reason-bar-wrap"><div class="reason-bar" style="width:${(r.count/maxCount*100).toFixed(1)}%;background:${r.color};opacity:.8"></div></div>
+        <div class="reason-right">
+          <div class="reason-count">${r.count}</div>
+          <div class="reason-pct" style="color:${r.color}">${r.pct.toFixed(1)}%</div>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    const top = sorted[0];
+    document.getElementById('insight').textContent =
+      `"${top?.reason}" accounts for ${top?.pct.toFixed(1)}% of cancellations. ${data.rebooked_after_cancel_pct.toFixed(1)}% of clients who cancel do rebook — ensuring a smooth rebooking offer in your cancellation flow can retain significant revenue.`;
+
+    const monthly = data.monthly || [];
+    const maxC = Math.max(...monthly.map(m => m.cancellations), 1);
+    const chart = document.getElementById('monthly-chart');
+    monthly.forEach(m => {
+      const h = Math.round((m.cancellations / maxC) * 90) + 10;
+      const col = document.createElement('div');
+      col.className = 'chart-col';
+      col.innerHTML = `
+        <div class="chart-bar-wrap"><div class="chart-bar" style="height:${h}px;background:var(--red);opacity:.7"></div></div>
+        <div class="chart-val">${m.cancellations}</div>
+        <div class="chart-label">${m.month}</div>
+      `;
+      chart.appendChild(col);
+    });
+  }
+  load();
+</script>
+</body>
+</html>

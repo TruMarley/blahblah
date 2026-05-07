@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk — Instagram DM Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0a; --surface: #111; --surface2: #161616;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --orange: #f97316; --blue: #60a5fa;
+      --red: #f87171; --pink: #ec4899;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    .header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent-light); }
+    .header-right { display: flex; align-items: center; gap: 1.5rem; }
+    .header-right a { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
+    .header-right a:hover { color: var(--text); }
+
+    .main { padding: 2rem; }
+
+    /* Stats strip */
+    .stats-strip {
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      gap: 1rem; margin-bottom: 2rem;
+    }
+    .stat-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1rem 1.25rem;
+    }
+    .stat-box .sl { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+    .stat-box .sv { font-size: 1.6rem; font-weight: 800; color: #fff; }
+
+    /* Add lead form */
+    .add-panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.5rem; margin-bottom: 2rem;
+    }
+    .add-panel-title {
+      font-size: 0.9rem; font-weight: 700; color: #fff;
+      margin-bottom: 1.25rem; display: flex; align-items: center; gap: 8px;
+    }
+    .add-panel-title .ig-icon { font-size: 1.1rem; }
+    .form-row { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr 1fr auto; gap: 0.75rem; align-items: end; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    label { font-size: 0.68rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    input, select {
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 7px; padding: 9px 11px; color: var(--text);
+      font-size: 0.85rem; font-family: inherit; outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--muted2); }
+    select option { background: #1a1a1a; }
+    .btn-add {
+      background: var(--pink); color: #fff; border: none;
+      padding: 9px 18px; border-radius: 7px; font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: background 0.2s; height: 37px;
+    }
+    .btn-add:hover { background: #db2777; }
+
+    /* Filters row */
+    .filters-row {
+      display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap;
+    }
+    .filters-row .filter-label { font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+    .filter-chip {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--muted); font-size: 0.75rem; font-weight: 600;
+      padding: 5px 14px; border-radius: 20px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .filter-chip:hover { border-color: var(--border2); color: var(--text); }
+    .filter-chip.active { background: rgba(124,58,237,0.15); border-color: var(--accent); color: var(--accent-light); }
+    .filter-chip.all.active { background: rgba(124,58,237,0.15); }
+
+    /* Table */
+    .table-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 0.75rem 1.25rem; text-align: left;
+      font-size: 0.68rem; color: var(--muted); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      background: #0e0e0e; border-bottom: 1px solid var(--border);
+    }
+    td { padding: 0.85rem 1.25rem; border-bottom: 1px solid #141414; font-size: 0.85rem; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #141414; }
+
+    .shop-name { font-weight: 600; color: #fff; }
+    .ig-handle { color: var(--pink); font-family: monospace; font-size: 0.8rem; }
+    .ig-handle a { color: inherit; text-decoration: none; }
+    .ig-handle a:hover { text-decoration: underline; }
+    .city { color: var(--muted); font-size: 0.8rem; }
+    .date-sent { font-family: monospace; font-size: 0.78rem; color: var(--muted); }
+    .notes-cell { font-size: 0.78rem; color: var(--muted); max-width: 200px; }
+
+    /* Status pills */
+    .pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+    .pill-dot { width: 5px; height: 5px; border-radius: 50%; }
+    .pill-sent { background: rgba(96,165,250,0.12); color: var(--blue); }
+    .pill-sent .pill-dot { background: var(--blue); }
+    .pill-replied { background: rgba(249,115,22,0.12); color: var(--orange); }
+    .pill-replied .pill-dot { background: var(--orange); }
+    .pill-demo_booked { background: rgba(167,139,250,0.12); color: var(--accent-light); }
+    .pill-demo_booked .pill-dot { background: var(--accent-light); }
+    .pill-converted { background: rgba(34,197,94,0.12); color: var(--green); }
+    .pill-converted .pill-dot { background: var(--green); }
+    .pill-ghosted { background: rgba(100,100,100,0.12); color: #555; }
+    .pill-ghosted .pill-dot { background: #444; }
+
+    /* Status update dropdown in row */
+    .status-select {
+      background: transparent; border: none; color: inherit; font-family: inherit;
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+      cursor: pointer; outline: none; padding: 0; width: 100%;
+    }
+    .status-select:focus { outline: none; }
+
+    .empty-row td { text-align: center; color: var(--muted); padding: 3rem; font-size: 0.85rem; }
+
+    /* Progress bar */
+    .pipeline-bar {
+      display: flex; gap: 0; height: 6px; border-radius: 3px; overflow: hidden;
+      margin-bottom: 1.5rem; background: var(--surface2);
+    }
+    .pb-seg { height: 100%; transition: width 0.4s ease; }
+
+    @media (max-width: 1024px) {
+      .form-row { grid-template-columns: 1fr 1fr; }
+      .stats-strip { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .form-row { grid-template-columns: 1fr; }
+      .main { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <div class="header-right">
+    <a href="/outreach">Outreach Templates</a>
+    <a href="/dashboard">Dashboard</a>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Stats strip -->
+  <div class="stats-strip" id="stats-strip">
+    <div class="stat-box"><div class="sl">Total DMed</div><div class="sv" id="s-total">—</div></div>
+    <div class="stat-box"><div class="sl">Replied</div><div class="sv" id="s-replied" style="color:var(--orange)">—</div></div>
+    <div class="stat-box"><div class="sl">Demos Booked</div><div class="sv" id="s-demos" style="color:var(--accent-light)">—</div></div>
+    <div class="stat-box"><div class="sl">Converted</div><div class="sv" id="s-conv" style="color:var(--green)">—</div></div>
+    <div class="stat-box"><div class="sl">Reply Rate</div><div class="sv" id="s-rate" style="color:var(--blue)">—</div></div>
+  </div>
+
+  <!-- Pipeline bar -->
+  <div class="pipeline-bar" id="pipeline-bar"></div>
+
+  <!-- Add lead form -->
+  <div class="add-panel">
+    <div class="add-panel-title">
+      <span class="ig-icon">📸</span> Add New Lead
+    </div>
+    <form id="add-form" onsubmit="addLead(event)">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Shop Name</label>
+          <input type="text" id="f-shop" placeholder="Kings Cuts Barbershop" required>
+        </div>
+        <div class="form-group">
+          <label>Instagram Handle</label>
+          <input type="text" id="f-handle" placeholder="@kingscutsmiami" required>
+        </div>
+        <div class="form-group">
+          <label>City</label>
+          <input type="text" id="f-city" placeholder="Miami, FL">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="f-status">
+            <option value="sent">Sent</option>
+            <option value="replied">Replied</option>
+            <option value="demo_booked">Demo Booked</option>
+            <option value="converted">Converted</option>
+            <option value="ghosted">Ghosted</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <input type="text" id="f-notes" placeholder="Interested, follow up Mon">
+        </div>
+        <button type="submit" class="btn-add">+ Add</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-row">
+    <span class="filter-label">Filter:</span>
+    <span class="filter-chip all active" onclick="filter('all', this)">All</span>
+    <span class="filter-chip" onclick="filter('sent', this)">Sent</span>
+    <span class="filter-chip" onclick="filter('replied', this)">Replied</span>
+    <span class="filter-chip" onclick="filter('demo_booked', this)">Demo Booked</span>
+    <span class="filter-chip" onclick="filter('converted', this)">Converted 💰</span>
+    <span class="filter-chip" onclick="filter('ghosted', this)">Ghosted</span>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table id="leads-table">
+      <thead>
+        <tr>
+          <th>Shop Name</th>
+          <th>Instagram</th>
+          <th>City</th>
+          <th>Date Sent</th>
+          <th>Status</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="leads-tbody">
+        <tr class="empty-row"><td colspan="6">Loading leads...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  let allLeads = [];
+  let currentFilter = 'all';
+
+  const STATUS_LABELS = {
+    sent: 'Sent', replied: 'Replied', demo_booked: 'Demo Booked',
+    converted: 'Converted', ghosted: 'Ghosted',
+  };
+
+  const PIPE_COLORS = {
+    sent: 'var(--blue)', replied: 'var(--orange)',
+    demo_booked: 'var(--accent-light)', converted: 'var(--green)', ghosted: '#333',
+  };
+
+  async function loadLeads() {
+    try {
+      const res = await fetch('/api/dm-leads');
+      const data = await res.json();
+      allLeads = data.leads || [];
+      renderAll();
+    } catch (e) {
+      allLeads = [];
+      renderAll();
+    }
+  }
+
+  function renderAll() {
+    updateStats();
+    renderPipeline();
+    renderTable();
+  }
+
+  function updateStats() {
+    const total = allLeads.length;
+    const replied = allLeads.filter(l => ['replied','demo_booked','converted'].includes(l.status)).length;
+    const demos = allLeads.filter(l => ['demo_booked','converted'].includes(l.status)).length;
+    const conv = allLeads.filter(l => l.status === 'converted').length;
+    const rate = total > 0 ? Math.round((replied / total) * 100) : 0;
+
+    document.getElementById('s-total').textContent = total;
+    document.getElementById('s-replied').textContent = replied;
+    document.getElementById('s-demos').textContent = demos;
+    document.getElementById('s-conv').textContent = conv;
+    document.getElementById('s-rate').textContent = rate + '%';
+  }
+
+  function renderPipeline() {
+    const total = allLeads.length || 1;
+    const counts = {};
+    allLeads.forEach(l => { counts[l.status] = (counts[l.status] || 0) + 1; });
+    const bar = document.getElementById('pipeline-bar');
+    bar.innerHTML = Object.entries(counts).map(([s, c]) =>
+      `<div class="pb-seg" style="width:${Math.round((c/total)*100)}%;background:${PIPE_COLORS[s] || '#333'}" title="${STATUS_LABELS[s]}: ${c}"></div>`
+    ).join('');
+  }
+
+  function renderTable() {
+    const leads = currentFilter === 'all' ? allLeads : allLeads.filter(l => l.status === currentFilter);
+    const tbody = document.getElementById('leads-tbody');
+    if (leads.length === 0) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="6">${currentFilter === 'all' ? 'No leads yet. Add your first one above!' : `No ${STATUS_LABELS[currentFilter] || currentFilter} leads.`}</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = leads.map((l, i) => {
+      const handle = l.handle.startsWith('@') ? l.handle : '@' + l.handle;
+      const igUrl = `https://instagram.com/${handle.replace('@', '')}`;
+      return `
+        <tr data-status="${l.status}">
+          <td class="shop-name">${l.shop_name}</td>
+          <td class="ig-handle"><a href="${igUrl}" target="_blank">${handle}</a></td>
+          <td class="city">${l.city || '—'}</td>
+          <td class="date-sent">${l.date_sent || '—'}</td>
+          <td>
+            <span class="pill pill-${l.status}">
+              <span class="pill-dot"></span>
+              ${STATUS_LABELS[l.status] || l.status}
+            </span>
+          </td>
+          <td class="notes-cell">${l.notes || '—'}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  function filter(status, chip) {
+    currentFilter = status;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    renderTable();
+  }
+
+  async function addLead(e) {
+    e.preventDefault();
+    const payload = {
+      shop_name: document.getElementById('f-shop').value.trim(),
+      handle: document.getElementById('f-handle').value.trim(),
+      city: document.getElementById('f-city').value.trim(),
+      status: document.getElementById('f-status').value,
+      notes: document.getElementById('f-notes').value.trim(),
+    };
+    try {
+      const res = await fetch('/api/dm-leads/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        document.getElementById('add-form').reset();
+        loadLeads();
+      }
+    } catch (err) { console.error(err); }
+  }
+
+  loadLeads();
+</script>
+</body>
+</html>

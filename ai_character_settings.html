@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Character — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 160px; }
+    input[type=text]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    .preview-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-top: 1rem; }
+    .preview-label { font-size: .62rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
+    .preview-text { font-size: .82rem; color: var(--text); line-height: 1.5; font-style: italic; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Character</div>
+  <p class="page-sub">Personalise how your AI receptionist sounds. A consistent, warm character that matches your brand makes clients feel at ease and builds trust from the first ring.</p>
+  <div class="card">
+    <div class="card-title">Personality Settings</div>
+    <div class="row">
+      <div><div class="row-label">AI Name</div></div>
+      <input type="text" id="ai-name" placeholder="e.g. Alex">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Tone</div></div>
+      <select id="tone">
+        <option value="friendly">Friendly</option>
+        <option value="professional">Professional</option>
+        <option value="warm">Warm</option>
+        <option value="energetic">Energetic</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Formality</div></div>
+      <select id="formality">
+        <option value="casual">Casual</option>
+        <option value="semi-formal">Semi-Formal</option>
+        <option value="formal">Formal</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Speak Speed</div></div>
+      <select id="speed">
+        <option value="slow">Slow</option>
+        <option value="normal">Normal</option>
+        <option value="fast">Fast</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Language / Locale</div></div>
+      <select id="language">
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="es-US">Spanish (US)</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use Client Name</div><div class="row-sub">Address clients by first name on call</div></div>
+      <label class="toggle"><input type="checkbox" id="use-name"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Emojis in SMS</div><div class="row-sub">Add tasteful emojis to outbound texts</div></div>
+      <label class="toggle"><input type="checkbox" id="emojis"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Filler Words</div><div class="row-sub">Use "um", "like", "you know" for naturalness</div></div>
+      <label class="toggle"><input type="checkbox" id="fillers"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Catchphrase</div><div class="row-sub">Optional closing line on calls</div></div>
+      <input type="text" id="catchphrase" placeholder="e.g. See you soon!">
+    </div>
+    <div class="preview-box">
+      <div class="preview-label">Preview</div>
+      <div class="preview-text" id="preview">Loading preview…</div>
+    </div>
+    <button class="save-btn" onclick="save()">Save AI Character</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  function updatePreview() {
+    const name = document.getElementById('ai-name').value || 'Alex';
+    const tone = document.getElementById('tone').value;
+    const useName = document.getElementById('use-name').checked;
+    const greeting = useName ? 'Hi Sarah!' : 'Hello!';
+    document.getElementById('preview').textContent = '"' + greeting + ' Thanks for calling — this is ' + name + '. ' + (tone === 'professional' ? 'How may I assist you today?' : 'How can I help you today?') + '"';
+  }
+  async function load() {
+    data = await fetch('/api/settings/ai-character-cfg').then(r => r.json());
+    document.getElementById('ai-name').value = data.name;
+    document.getElementById('tone').value = data.tone;
+    document.getElementById('formality').value = data.formality;
+    document.getElementById('speed').value = data.speak_speed;
+    document.getElementById('language').value = data.language;
+    document.getElementById('use-name').checked = data.use_client_name;
+    document.getElementById('emojis').checked = data.use_emojis_in_sms;
+    document.getElementById('fillers').checked = data.filler_words;
+    document.getElementById('catchphrase').value = data.catchphrase;
+    updatePreview();
+    ['ai-name','tone','use-name'].forEach(id => document.getElementById(id).addEventListener('change', updatePreview));
+  }
+  async function save() {
+    const payload = { ...data,
+      name: document.getElementById('ai-name').value,
+      tone: document.getElementById('tone').value,
+      formality: document.getElementById('formality').value,
+      speak_speed: document.getElementById('speed').value,
+      language: document.getElementById('language').value,
+      use_client_name: document.getElementById('use-name').checked,
+      use_emojis_in_sms: document.getElementById('emojis').checked,
+      filler_words: document.getElementById('fillers').checked,
+      catchphrase: document.getElementById('catchphrase').value,
+    };
+    await fetch('/api/settings/ai-character-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancellation Fee — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 70px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Cancellation Fee</div>
+  <p class="page-sub">Configure late-cancellation charges. The AI reads the policy during booking so clients are informed upfront — eliminating the "I didn't know" objection when fees are applied.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-collected" style="color:var(--yellow)">—</div><div class="stat-lbl">Fees Collected (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-rev" style="color:var(--green)">—</div><div class="stat-lbl">Fee Revenue (30d)</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Fee Configuration</div>
+    <div class="row">
+      <div><div class="row-label">Enable Cancellation Fee</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Charge Type</div></div>
+      <select id="charge-type">
+        <option value="flat">Flat Fee ($)</option>
+        <option value="pct">% of Service</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Flat Fee Amount ($)</div></div>
+      <input type="number" id="flat-fee" min="5" max="200">
+    </div>
+    <div class="row">
+      <div><div class="row-label">% of Service</div></div>
+      <input type="number" id="pct-fee" min="10" max="100">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Waive First Offense</div><div class="row-sub">Give clients one free pass</div></div>
+      <label class="toggle"><input type="checkbox" id="waive-first"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Waive for Emergency</div><div class="row-sub">Override at staff discretion</div></div>
+      <label class="toggle"><input type="checkbox" id="waive-emergency"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Notifies at Booking</div><div class="row-sub">AI reads fee policy during call</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-notify"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Fee Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/cancel-charge-cfg').then(r => r.json());
+    document.getElementById('h-collected').textContent = data.fees_collected_30d;
+    document.getElementById('h-rev').textContent = '$' + data.fees_revenue_30d;
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('charge-type').value = data.charge_type;
+    document.getElementById('flat-fee').value = data.flat_fee;
+    document.getElementById('pct-fee').value = data.pct_of_service;
+    document.getElementById('waive-first').checked = data.waive_first_offense;
+    document.getElementById('waive-emergency').checked = data.waive_for_emergency;
+    document.getElementById('ai-notify').checked = data.ai_notifies_on_booking;
+  }
+  async function save() {
+    const payload = { ...data,
+      enabled: document.getElementById('enabled').checked,
+      charge_type: document.getElementById('charge-type').value,
+      flat_fee: parseInt(document.getElementById('flat-fee').value) || 25,
+      pct_of_service: parseInt(document.getElementById('pct-fee').value) || 50,
+      waive_first_offense: document.getElementById('waive-first').checked,
+      waive_for_emergency: document.getElementById('waive-emergency').checked,
+      ai_notifies_on_booking: document.getElementById('ai-notify').checked,
+    };
+    await fetch('/api/settings/cancel-charge-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

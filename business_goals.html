@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Business Goals — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.4rem; }
+    .goal-row { display: flex; align-items: center; gap: .9rem; margin-bottom: 1.3rem; padding-bottom: 1.3rem; border-bottom: 1px solid var(--border); }
+    .goal-row:last-of-type { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+    .goal-label { font-size: .78rem; font-weight: 700; width: 170px; flex-shrink: 0; }
+    .goal-input-wrap { flex: 1; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .88rem; font-weight: 800; padding: .45rem .7rem; font-family: inherit; width: 100%; outline: none; text-align: right; }
+    .f-input:focus { border-color: rgba(167,139,250,.5); }
+    .goal-unit { font-size: .75rem; color: var(--muted); width: 50px; flex-shrink: 0; }
+    .updated-note { font-size: .7rem; color: var(--muted); margin-top: 1rem; text-align: right; }
+    .save-row { display: flex; align-items: center; gap: 1rem; margin-top: 1.4rem; }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.5rem; border-radius: 9px; border: 1px solid rgba(52,211,153,.4); background: rgba(52,211,153,.1); color: var(--green); cursor: pointer; font-family: inherit; }
+    .save-btn:hover { background: rgba(52,211,153,.2); }
+    .saved-msg { font-size: .78rem; color: var(--green); font-weight: 700; opacity: 0; transition: opacity .3s; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Business Goals</div>
+  <p class="page-sub">Set monthly targets — RingDesk tracks your progress against each goal in the analytics dashboard.</p>
+  <div class="card">
+    <div class="card-title">Monthly Targets</div>
+
+    <div class="goal-row">
+      <div class="goal-label">Revenue Target</div>
+      <div class="goal-input-wrap"><input class="f-input" id="g-rev" type="number" min="0"></div>
+      <div class="goal-unit">$ / mo</div>
+    </div>
+    <div class="goal-row">
+      <div class="goal-label">New Clients</div>
+      <div class="goal-input-wrap"><input class="f-input" id="g-clients" type="number" min="0"></div>
+      <div class="goal-unit">clients</div>
+    </div>
+    <div class="goal-row">
+      <div class="goal-label">Appointments</div>
+      <div class="goal-input-wrap"><input class="f-input" id="g-appts" type="number" min="0"></div>
+      <div class="goal-unit">appts</div>
+    </div>
+    <div class="goal-row">
+      <div class="goal-label">Churn Target</div>
+      <div class="goal-input-wrap"><input class="f-input" id="g-churn" type="number" min="0" max="100" step="0.1"></div>
+      <div class="goal-unit">% max</div>
+    </div>
+    <div class="goal-row">
+      <div class="goal-label">NPS Target</div>
+      <div class="goal-input-wrap"><input class="f-input" id="g-nps" type="number" min="0" max="100"></div>
+      <div class="goal-unit">score</div>
+    </div>
+
+    <div class="save-row">
+      <button class="save-btn" onclick="save()">Save Goals</button>
+      <span class="saved-msg" id="saved-msg">✓ Goals saved</span>
+    </div>
+    <div class="updated-note" id="updated-note"></div>
+  </div>
+</div>
+<script>
+  let config = {};
+  async function load() {
+    const r = await fetch('/api/business-goals');
+    config = await r.json();
+    document.getElementById('g-rev').value = config.monthly_revenue_target ?? 25000;
+    document.getElementById('g-clients').value = config.new_clients_target ?? 40;
+    document.getElementById('g-appts').value = config.appointment_target ?? 200;
+    document.getElementById('g-churn').value = config.churn_target_pct ?? 3.0;
+    document.getElementById('g-nps').value = config.nps_target ?? 55;
+    if (config.updated_at) document.getElementById('updated-note').textContent = 'Last updated: ' + config.updated_at;
+  }
+  async function save() {
+    config.monthly_revenue_target = parseFloat(document.getElementById('g-rev').value) || 0;
+    config.new_clients_target = parseInt(document.getElementById('g-clients').value) || 0;
+    config.appointment_target = parseInt(document.getElementById('g-appts').value) || 0;
+    config.churn_target_pct = parseFloat(document.getElementById('g-churn').value) || 0;
+    config.nps_target = parseInt(document.getElementById('g-nps').value) || 0;
+    const r2 = await fetch('/api/business-goals', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(config)});
+    const saved = await r2.json();
+    document.getElementById('updated-note').textContent = 'Last updated: ' + (saved.updated_at || '');
+    const msg = document.getElementById('saved-msg');
+    msg.style.opacity = '1';
+    setTimeout(() => { msg.style.opacity = '0'; }, 2000);
+  }
+  load();
+</script>
+</body>
+</html>

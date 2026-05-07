@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    nav a.back:hover { color: var(--text); }
+
+    .shell { max-width: 720px; margin: 0 auto; padding: 2.5rem 1.5rem 6rem; }
+
+    .page-header { margin-bottom: 2rem; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 900; letter-spacing: -.04em; margin-bottom: .3rem; }
+    .page-header p { font-size: .85rem; color: var(--muted); }
+
+    /* Section cards */
+    .section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.75rem; margin-bottom: 1.25rem; }
+    .section-title { font-size: .95rem; font-weight: 800; margin-bottom: 1.25rem; display: flex; align-items: center; gap: .5rem; }
+    .section-title .icon { font-size: 1.1rem; }
+
+    /* Form elements */
+    label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: .35rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    input[type="text"], input[type="url"], textarea, select {
+      width: 100%; background: #0d0d0d; border: 1px solid var(--border); color: var(--text);
+      font-size: .88rem; padding: .65rem .9rem; border-radius: 9px; outline: none;
+      font-family: inherit; transition: border-color .15s;
+    }
+    input[type="text"]:focus, input[type="url"]:focus, textarea:focus, select:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; }
+    .field { margin-bottom: 1.1rem; }
+    .field:last-child { margin-bottom: 0; }
+
+    /* Char counter */
+    .char-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: .35rem; }
+    .char-count { font-size: .72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .char-count.warn { color: var(--red); }
+
+    /* Hours grid */
+    .hours-grid { display: flex; flex-direction: column; gap: .55rem; }
+    .hours-row { display: grid; grid-template-columns: 80px 60px 1fr 1fr; align-items: center; gap: .75rem; }
+    .hours-row .day-label { font-size: .82rem; color: var(--text); font-weight: 600; }
+    .closed-badge { font-size: .68rem; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 99px; padding: .15rem .55rem; display: inline-block; }
+
+    /* Toggle switch */
+    .toggle-wrap { display: flex; align-items: center; gap: .6rem; cursor: pointer; }
+    .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 20px; transition: background .2s; border: 1px solid var(--border); }
+    .slider::before { content: ''; position: absolute; height: 14px; width: 14px; left: 2px; top: 2px; background: #555; border-radius: 50%; transition: transform .2s, background .2s; }
+    .toggle input:checked + .slider { background: rgba(167,139,250,.25); border-color: var(--accent); }
+    .toggle input:checked + .slider::before { transform: translateX(16px); background: var(--accent); }
+
+    /* Services list */
+    .services-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .9rem; }
+    .service-item { display: flex; align-items: center; gap: .6rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: .5rem .75rem; }
+    .service-name { flex: 1; font-size: .88rem; }
+    .remove-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; padding: 0 .25rem; line-height: 1; transition: color .15s; }
+    .remove-btn:hover { color: var(--red); }
+    .add-service-row { display: flex; gap: .6rem; }
+    .add-service-row input { flex: 1; }
+    .add-btn { padding: .65rem 1rem; border-radius: 9px; font-size: .82rem; font-weight: 700; background: var(--surface2); border: 1px solid var(--border); color: var(--text); cursor: pointer; white-space: nowrap; transition: border-color .15s; }
+    .add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Notification rows */
+    .notif-row { display: flex; align-items: center; justify-content: space-between; padding: .75rem 0; border-bottom: 1px solid var(--border); gap: 1rem; }
+    .notif-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .notif-info { flex: 1; }
+    .notif-label { font-size: .88rem; font-weight: 600; }
+    .notif-desc { font-size: .75rem; color: var(--muted); margin-top: .1rem; }
+    .webhook-field { margin-top: .75rem; display: none; }
+    .webhook-field.show { display: block; }
+
+    /* Save bar */
+    .save-bar { position: sticky; bottom: 0; background: rgba(8,8,8,.96); border-top: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; backdrop-filter: blur(8px); z-index: 50; }
+    .save-status { font-size: .8rem; color: var(--green); display: none; align-items: center; gap: .35rem; }
+    .save-status.show { display: flex; }
+    .btn { padding: .7rem 1.75rem; border-radius: 10px; font-size: .88rem; font-weight: 700; border: none; cursor: pointer; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-ghost { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+
+    select option { background: #111; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+
+<div class="shell">
+  <div class="page-header">
+    <h1>Settings</h1>
+    <p>Configure your AI receptionist, shop hours, services, and notifications.</p>
+  </div>
+
+  <!-- AI Configuration -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🤖</span> AI Configuration</div>
+
+    <div class="field">
+      <label for="ai-name">AI Receptionist Name</label>
+      <input type="text" id="ai-name" placeholder="Alex" maxlength="30">
+    </div>
+
+    <div class="field">
+      <label for="ai-voice">AI Voice</label>
+      <select id="ai-voice">
+        <option value="aura-asteria-en">Aura-Asteria (Female, Warm)</option>
+        <option value="aura-luna-en">Aura-Luna (Female, Bright)</option>
+        <option value="aura-zeus-en">Aura-Zeus (Male, Deep)</option>
+        <option value="aura-orion-en">Aura-Orion (Male, Smooth)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <div class="char-row">
+        <label for="ai-greeting">AI Greeting Template</label>
+        <span class="char-count" id="greeting-count">0 / 200</span>
+      </div>
+      <textarea id="ai-greeting" maxlength="200" rows="3" placeholder="Hi! Thanks for calling {shop_name}. This is {ai_name}, your AI receptionist. How can I help you today?"></textarea>
+    </div>
+  </div>
+
+  <!-- Shop Hours -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🕐</span> Shop Hours</div>
+    <div class="hours-grid" id="hours-grid"></div>
+  </div>
+
+  <!-- Services List -->
+  <div class="section">
+    <div class="section-title"><span class="icon">✂️</span> Services</div>
+    <div class="services-list" id="services-list"></div>
+    <div class="add-service-row">
+      <input type="text" id="new-service" placeholder="Add a service (e.g. Hot Towel Shave)" maxlength="50">
+      <button class="add-btn" onclick="addService()">+ Add</button>
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🔔</span> Notifications</div>
+
+    <div class="notif-row">
+      <div class="notif-info">
+        <div class="notif-label">Email daily summary</div>
+        <div class="notif-desc">Receive a midnight recap of bookings, missed calls, and insights</div>
+      </div>
+      <label class="toggle-wrap">
+        <div class="toggle">
+          <input type="checkbox" id="notif-email" checked onchange="save()">
+          <span class="slider"></span>
+        </div>
+      </label>
+    </div>
+
+    <div class="notif-row">
+      <div class="notif-info">
+        <div class="notif-label">SMS alerts for missed calls</div>
+        <div class="notif-desc">Get a text when a caller couldn't be served</div>
+      </div>
+      <label class="toggle-wrap">
+        <div class="toggle">
+          <input type="checkbox" id="notif-sms" onchange="save()">
+          <span class="slider"></span>
+        </div>
+      </label>
+    </div>
+
+    <div class="notif-row" style="flex-direction: column; align-items: flex-start;">
+      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 1rem;">
+        <div class="notif-info">
+          <div class="notif-label">Webhook on new booking</div>
+          <div class="notif-desc">POST booking data to your endpoint (Zapier, Make, etc.)</div>
+        </div>
+        <label class="toggle-wrap">
+          <div class="toggle">
+            <input type="checkbox" id="notif-webhook" onchange="toggleWebhook()">
+            <span class="slider"></span>
+          </div>
+        </label>
+      </div>
+      <div class="webhook-field" id="webhook-field">
+        <label for="webhook-url">Webhook URL</label>
+        <input type="url" id="webhook-url" placeholder="https://hooks.zapier.com/hooks/catch/..." oninput="save()">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sticky save bar -->
+<div class="save-bar">
+  <div class="save-status" id="save-status">✓ Settings saved</div>
+  <div style="display: flex; gap: .75rem; margin-left: auto;">
+    <button class="btn btn-ghost" onclick="resetDefaults()">Reset to defaults</button>
+    <button class="btn btn-accent" onclick="saveToServer()">Save to server</button>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'ringdesk_settings';
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const DEFAULT_SERVICES = ['Haircut', 'Fade', 'Beard Trim', 'Color', 'Highlights'];
+  const TIME_SLOTS = [];
+
+  // Build 30-min time slots 8am–10pm
+  for (let h = 8; h <= 22; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      if (h === 22 && m > 0) break;
+      const hh = h % 12 === 0 ? 12 : h % 12;
+      const ampm = h < 12 ? 'AM' : 'PM';
+      const label = `${hh}:${m === 0 ? '00' : '30'} ${ampm}`;
+      const val = `${String(h).padStart(2,'0')}:${m === 0 ? '00' : '30'}`;
+      TIME_SLOTS.push({ val, label });
+    }
+  }
+
+  const DEFAULTS = {
+    aiName: 'Alex',
+    aiVoice: 'aura-asteria-en',
+    aiGreeting: 'Hi! Thanks for calling {shop_name}. This is {ai_name}, your AI receptionist. How can I help you today?',
+    hours: DAYS.map((d, i) => ({
+      day: d,
+      open: i < 5, // Mon-Fri open, Sat-Sun open too
+      openTime: '09:00',
+      closeTime: '18:00',
+    })),
+    services: [...DEFAULT_SERVICES],
+    notifEmail: true,
+    notifSms: false,
+    notifWebhook: false,
+    webhookUrl: '',
+  };
+
+  // Override Sat/Sun defaults to be open with shorter hours
+  DEFAULTS.hours[5].openTime = '09:00';
+  DEFAULTS.hours[5].closeTime = '16:00';
+  DEFAULTS.hours[6].open = false;
+
+  let settings = { ...DEFAULTS };
+
+  function load() {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) settings = { ...DEFAULTS, ...JSON.parse(stored) };
+    } catch (e) {}
+    render();
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    const el = document.getElementById('save-status');
+    el.classList.add('show');
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  function readFields() {
+    settings.aiName = document.getElementById('ai-name').value || 'Alex';
+    settings.aiVoice = document.getElementById('ai-voice').value;
+    settings.aiGreeting = document.getElementById('ai-greeting').value;
+    settings.notifEmail = document.getElementById('notif-email').checked;
+    settings.notifSms = document.getElementById('notif-sms').checked;
+    settings.notifWebhook = document.getElementById('notif-webhook').checked;
+    settings.webhookUrl = document.getElementById('webhook-url').value;
+    // hours read inline in buildHoursGrid handlers
+    save();
+  }
+
+  function render() {
+    document.getElementById('ai-name').value = settings.aiName;
+    document.getElementById('ai-voice').value = settings.aiVoice;
+    document.getElementById('ai-greeting').value = settings.aiGreeting;
+    updateGreetingCount();
+    document.getElementById('notif-email').checked = settings.notifEmail;
+    document.getElementById('notif-sms').checked = settings.notifSms;
+    document.getElementById('notif-webhook').checked = settings.notifWebhook;
+    document.getElementById('webhook-url').value = settings.webhookUrl;
+    if (settings.notifWebhook) document.getElementById('webhook-field').classList.add('show');
+    buildHoursGrid();
+    renderServices();
+  }
+
+  // ── Greeting char counter ──
+  document.getElementById('ai-greeting').addEventListener('input', function() {
+    settings.aiGreeting = this.value;
+    updateGreetingCount();
+    save();
+  });
+  document.getElementById('ai-name').addEventListener('input', function() { settings.aiName = this.value; save(); });
+  document.getElementById('ai-voice').addEventListener('change', function() { settings.aiVoice = this.value; save(); });
+
+  function updateGreetingCount() {
+    const len = document.getElementById('ai-greeting').value.length;
+    const el = document.getElementById('greeting-count');
+    el.textContent = `${len} / 200`;
+    el.classList.toggle('warn', len > 180);
+  }
+
+  // ── Hours grid ──
+  function buildHoursGrid() {
+    const grid = document.getElementById('hours-grid');
+    grid.innerHTML = '';
+    settings.hours.forEach((h, i) => {
+      const row = document.createElement('div');
+      row.className = 'hours-row';
+
+      const dayLabel = document.createElement('div');
+      dayLabel.className = 'day-label';
+      dayLabel.textContent = h.day.slice(0, 3);
+
+      const toggleLabel = document.createElement('label');
+      toggleLabel.className = 'toggle-wrap';
+      toggleLabel.innerHTML = `<div class="toggle"><input type="checkbox" ${h.open ? 'checked' : ''}><span class="slider"></span></div>`;
+      toggleLabel.querySelector('input').addEventListener('change', function() {
+        settings.hours[i].open = this.checked;
+        openSel.disabled = !this.checked;
+        closeSel.disabled = !this.checked;
+        save();
+      });
+
+      const openSel = buildTimeSel(h.openTime, !h.open);
+      openSel.addEventListener('change', function() { settings.hours[i].openTime = this.value; save(); });
+
+      const closeSel = buildTimeSel(h.closeTime, !h.open);
+      closeSel.addEventListener('change', function() { settings.hours[i].closeTime = this.value; save(); });
+
+      row.appendChild(dayLabel);
+      row.appendChild(toggleLabel);
+      row.appendChild(openSel);
+      row.appendChild(closeSel);
+      grid.appendChild(row);
+    });
+  }
+
+  function buildTimeSel(current, disabled) {
+    const sel = document.createElement('select');
+    sel.disabled = disabled;
+    TIME_SLOTS.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.val;
+      opt.textContent = t.label;
+      if (t.val === current) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    return sel;
+  }
+
+  // ── Services ──
+  function renderServices() {
+    const list = document.getElementById('services-list');
+    list.innerHTML = '';
+    settings.services.forEach((name, i) => {
+      const item = document.createElement('div');
+      item.className = 'service-item';
+      item.innerHTML = `<span class="service-name">${name}</span><button class="remove-btn" title="Remove" onclick="removeService(${i})">×</button>`;
+      list.appendChild(item);
+    });
+  }
+
+  function addService() {
+    const input = document.getElementById('new-service');
+    const name = input.value.trim();
+    if (!name || settings.services.includes(name)) return;
+    settings.services.push(name);
+    input.value = '';
+    renderServices();
+    save();
+  }
+
+  document.getElementById('new-service').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addService();
+  });
+
+  function removeService(i) {
+    settings.services.splice(i, 1);
+    renderServices();
+    save();
+  }
+
+  // ── Notifications ──
+  function toggleWebhook() {
+    settings.notifWebhook = document.getElementById('notif-webhook').checked;
+    const field = document.getElementById('webhook-field');
+    field.classList.toggle('show', settings.notifWebhook);
+    save();
+  }
+
+  // ── Save to server ──
+  async function saveToServer() {
+    readFields();
+    try {
+      const res = await fetch('/api/setup-shop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ai_name: settings.aiName,
+          ai_voice: settings.aiVoice,
+          greeting: settings.aiGreeting,
+          hours: settings.hours,
+          services: settings.services,
+        }),
+      });
+      if (res.ok) {
+        const el = document.getElementById('save-status');
+        el.textContent = '✓ Saved to server';
+        el.classList.add('show');
+        clearTimeout(el._timer);
+        el._timer = setTimeout(() => { el.textContent = '✓ Settings saved'; el.classList.remove('show'); }, 3000);
+      }
+    } catch (e) {
+      console.error('Save to server failed', e);
+    }
+  }
+
+  function resetDefaults() {
+    if (!confirm('Reset all settings to defaults?')) return;
+    settings = JSON.parse(JSON.stringify(DEFAULTS));
+    save();
+    render();
+  }
+
+  load();
+</script>
+</body>
+</html>

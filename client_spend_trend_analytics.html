@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spend Trend — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .month-row { display: grid; grid-template-columns: 36px 1fr 90px; gap: .75rem; align-items: center; margin-bottom: .65rem; }
+    .month-lbl { font-size: .78rem; color: var(--muted); }
+    .month-bar-wrap { background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+    .month-bar { height: 100%; border-radius: 4px; background: var(--accent); }
+    .month-meta { text-align: right; }
+    .month-avg { font-size: .78rem; font-weight: 800; color: var(--accent); }
+    .month-total { font-size: .62rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Spend Trend</div>
+  <p class="page-sub">Track how average client spend per visit has changed month over month. A rising trend confirms that upsell efforts, package promotions, and service mix changes are working.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-curr" style="color:var(--accent)">—</div><div class="stat-lbl">Current Avg Spend</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-growth" style="color:var(--green)">—</div><div class="stat-lbl">Growth</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-trend" style="color:var(--yellow)">—</div><div class="stat-lbl">Trend Direction</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Monthly Spend</div>
+    <div id="month-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/client-spend-trend-stats').then(r => r.json());
+    document.getElementById('h-curr').textContent = '$' + d.current_avg.toFixed(2);
+    document.getElementById('h-growth').textContent = '+' + d.growth_pct.toFixed(1) + '%';
+    document.getElementById('h-trend').textContent = d.trend_direction === 'up' ? '↑ Rising' : '↓ Falling';
+    const ml = document.getElementById('month-list');
+    const maxTotal = Math.max(...d.months.map(m => m.total));
+    d.months.forEach(m => {
+      const w = (m.total / maxTotal * 100).toFixed(1);
+      ml.innerHTML += '<div class="month-row"><div class="month-lbl">' + m.month + '</div><div class="month-bar-wrap"><div class="month-bar" style="width:' + w + '%"></div></div><div class="month-meta"><div class="month-avg">$' + m.avg_spend.toFixed(2) + '</div><div class="month-total">$' + m.total.toLocaleString() + ' total</div></div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

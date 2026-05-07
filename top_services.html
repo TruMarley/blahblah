@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Top Services — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --gold: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 880px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .svc-list { display: flex; flex-direction: column; gap: .75rem; }
+    .svc-row { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; }
+    .svc-top { display: flex; align-items: center; gap: .85rem; margin-bottom: .65rem; }
+    .rank { font-size: 1.1rem; width: 2rem; flex-shrink: 0; text-align: center; }
+    .svc-info { flex: 1; }
+    .svc-name { font-size: .92rem; font-weight: 900; }
+    .svc-chips { display: flex; gap: .4rem; margin-top: .25rem; }
+    .cat-chip { font-size: .65rem; font-weight: 700; padding: .1rem .45rem; border-radius: 5px; background: rgba(167,139,250,.08); color: var(--accent); border: 1px solid rgba(167,139,250,.18); }
+    .ticket-chip { font-size: .65rem; font-weight: 700; padding: .1rem .45rem; border-radius: 5px; background: rgba(102,102,102,.1); color: var(--muted); border: 1px solid rgba(102,102,102,.2); }
+    .svc-revenue { font-size: 1rem; font-weight: 900; color: var(--accent); }
+    .svc-bookings { font-size: .72rem; color: var(--muted); }
+    .growth-up   { font-size: .72rem; font-weight: 800; color: var(--green); }
+    .growth-down { font-size: .72rem; font-weight: 800; color: var(--red); }
+    .bar-track { background: var(--surface2); border-radius: 4px; height: 6px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; background: var(--accent); opacity: .7; }
+    .svc-right { text-align: right; flex-shrink: 0; width: 120px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Top Services</div>
+  <p class="page-sub">Highest-revenue services this month — with growth vs last month.</p>
+  <div class="svc-list" id="svc-list"></div>
+</div>
+<script>
+  const MEDALS = ['🥇','🥈','🥉'];
+
+  async function load() {
+    const r = await fetch('/api/analytics/top-services');
+    const d = await r.json();
+    const services = d.services || [];
+    const maxRev = services[0]?.revenue || 1;
+
+    document.getElementById('svc-list').innerHTML = services.map((s, i) => {
+      const rank = MEDALS[i] || (i+1);
+      const pct = (s.revenue / maxRev * 100).toFixed(1);
+      const growthHtml = s.growth_pct >= 0
+        ? `<span class="growth-up">▲ ${s.growth_pct}%</span>`
+        : `<span class="growth-down">▼ ${Math.abs(s.growth_pct)}%</span>`;
+      return `<div class="svc-row">
+        <div class="svc-top">
+          <div class="rank">${rank}</div>
+          <div class="svc-info">
+            <div class="svc-name">${esc(s.name)}</div>
+            <div class="svc-chips">
+              <span class="cat-chip">${esc(s.category)}</span>
+              <span class="ticket-chip">$${s.avg_ticket} avg</span>
+            </div>
+          </div>
+          <div class="svc-right">
+            <div class="svc-revenue">$${s.revenue.toLocaleString()}</div>
+            <div class="svc-bookings">${s.bookings} bookings</div>
+            <div>${growthHtml}</div>
+          </div>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

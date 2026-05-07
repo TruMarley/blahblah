@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feedback — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    nav a.back:hover { color: var(--text); }
+
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+
+    /* Rating hero */
+    .rating-hero { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.75rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 2rem; }
+    .avg-num { font-size: 4rem; font-weight: 900; letter-spacing: -.06em; color: var(--yellow); line-height: 1; }
+    .avg-right { flex: 1; }
+    .stars-large { font-size: 1.5rem; letter-spacing: .15em; margin-bottom: .4rem; }
+    .avg-label { font-size: .8rem; color: var(--muted); }
+    .bar-wrap { flex: 1; }
+    .rating-bar-row { display: flex; align-items: center; gap: .6rem; margin-bottom: .3rem; }
+    .rating-bar-label { font-size: .72rem; color: var(--muted); width: 16px; text-align: right; flex-shrink: 0; }
+    .rating-bar-track { flex: 1; height: 6px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+    .rating-bar-fill { height: 100%; border-radius: 99px; background: var(--yellow); transition: width .5s ease; }
+    .rating-bar-count { font-size: .7rem; color: var(--muted); width: 20px; flex-shrink: 0; }
+
+    /* Filters */
+    .filter-row { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .filter-btn { padding: .3rem .8rem; border-radius: 99px; font-size: .75rem; font-weight: 700; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; transition: all .15s; font-family: inherit; }
+    .filter-btn:hover { color: var(--text); }
+    .filter-btn.active { background: rgba(167,139,250,.15); border-color: var(--accent); color: var(--accent); }
+
+    /* Cards */
+    .fb-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; margin-bottom: .75rem; }
+    .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .55rem; }
+    .stars { color: var(--yellow); font-size: .85rem; letter-spacing: .1em; }
+    .card-meta { font-size: .72rem; color: var(--muted); }
+    .card-msg { font-size: .85rem; line-height: 1.6; color: var(--text); margin-bottom: .55rem; }
+    .card-footer { display: flex; align-items: center; gap: .75rem; }
+    .name-chip { font-size: .75rem; font-weight: 700; color: var(--muted); }
+    .svc-chip { font-size: .7rem; padding: .18rem .55rem; border-radius: 6px; background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.2); color: var(--accent); font-weight: 700; }
+
+    .empty { color: var(--muted); text-align: center; padding: 3rem; font-size: .85rem; }
+    .spinner { display: none; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; margin: 2rem auto; }
+    .spinner.show { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Feedback</div>
+  <p class="page-sub">Ratings collected after appointments via AI follow-up call or SMS.</p>
+
+  <div class="rating-hero" id="hero" style="display:none">
+    <div>
+      <div class="avg-num" id="avg-num">—</div>
+    </div>
+    <div class="avg-right">
+      <div class="stars-large" id="stars-large"></div>
+      <div class="avg-label" id="avg-label"></div>
+    </div>
+    <div class="bar-wrap" id="bar-wrap"></div>
+  </div>
+
+  <div class="filter-row">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter(5,this)">5★</button>
+    <button class="filter-btn" onclick="setFilter(4,this)">4★</button>
+    <button class="filter-btn" onclick="setFilter(3,this)">3★ &amp; below</button>
+  </div>
+
+  <div class="spinner show" id="spinner"></div>
+  <div id="fb-list"></div>
+</div>
+
+<script>
+  let allFeedback = [], curFilter = 'all';
+
+  async function load() {
+    const r = await fetch('/api/feedback');
+    const d = await r.json();
+    allFeedback = d.feedback || [];
+    document.getElementById('spinner').classList.remove('show');
+    renderHero(d.avg_rating, allFeedback);
+    render();
+  }
+
+  function renderHero(avg, fb) {
+    if (!fb.length) return;
+    document.getElementById('hero').style.display = '';
+    document.getElementById('avg-num').textContent = avg.toFixed(1);
+    document.getElementById('stars-large').textContent = stars(Math.round(avg));
+    document.getElementById('avg-label').textContent = `${fb.length} reviews`;
+
+    const counts = [5,4,3,2,1].map(n => ({n, c: fb.filter(f => f.rating === n).length}));
+    const maxC = Math.max(...counts.map(x => x.c), 1);
+    document.getElementById('bar-wrap').innerHTML = counts.map(({n, c}) => `
+      <div class="rating-bar-row">
+        <div class="rating-bar-label">${n}</div>
+        <div class="rating-bar-track"><div class="rating-bar-fill" style="width:${Math.round(c/fb.length*100)}%"></div></div>
+        <div class="rating-bar-count">${c}</div>
+      </div>`).join('');
+  }
+
+  function render() {
+    const filtered = curFilter === 'all' ? allFeedback
+      : curFilter === 3 ? allFeedback.filter(f => f.rating <= 3)
+      : allFeedback.filter(f => f.rating === curFilter);
+
+    if (!filtered.length) {
+      document.getElementById('fb-list').innerHTML = '<div class="empty">No feedback matching this filter.</div>';
+      return;
+    }
+    document.getElementById('fb-list').innerHTML = filtered.map(f => `
+      <div class="fb-card">
+        <div class="card-top">
+          <div class="stars">${stars(f.rating)}</div>
+          <div class="card-meta">${relTime(f.created_at)}</div>
+        </div>
+        <div class="card-msg">${esc(f.message)}</div>
+        <div class="card-footer">
+          <div class="name-chip">${esc(f.name)}</div>
+          ${f.service ? `<span class="svc-chip">${esc(f.service)}</span>` : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  function setFilter(val, btn) {
+    curFilter = val;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  }
+
+  function stars(n) { return '★'.repeat(n) + '☆'.repeat(5 - n); }
+  function relTime(iso) {
+    const d = new Date(iso.replace(' ','T')), now = new Date();
+    const s = Math.floor((now - d) / 1000);
+    if (s < 3600) return `${Math.floor(s/60)}m ago`;
+    if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+    return `${Math.floor(s/86400)}d ago`;
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  load();
+</script>
+</body>
+</html>

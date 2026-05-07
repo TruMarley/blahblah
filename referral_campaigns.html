@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Referral Campaigns — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .5rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th:not(:first-child):not(:nth-child(2)) { text-align: center; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .65rem 1rem; font-size: .82rem; vertical-align: middle; }
+    tbody td:not(:first-child):not(:nth-child(2)) { text-align: center; }
+    .code-chip { font-family: "SF Mono", "Fira Code", monospace; font-size: .78rem; background: var(--surface2); border: 1px solid var(--border); padding: .15rem .5rem; border-radius: 5px; letter-spacing: .04em; }
+    .status-badge { font-size: .65rem; font-weight: 800; padding: .15rem .5rem; border-radius: 99px; }
+    .s-active   { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .s-inactive { background: rgba(255,255,255,.05); color: var(--muted); border: 1px solid var(--border); }
+    .conv-rate { font-size: .72rem; color: var(--muted); }
+    .icon-btn { background: none; border: none; cursor: pointer; font-size: .88rem; padding: .2rem .4rem; border-radius: 5px; }
+    .icon-btn:hover { background: var(--surface2); }
+    .add-form { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+    .add-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .45rem .75rem; font-family: inherit; }
+    .add-input.code { text-transform: uppercase; font-family: monospace; width: 140px; }
+    .add-input.pct { width: 80px; }
+    .add-input.date { width: 140px; }
+    .add-input.name { flex: 1; min-width: 160px; }
+    .add-btn { font-size: .78rem; font-weight: 800; padding: .45rem 1rem; border-radius: 8px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .add-btn:hover { background: rgba(167,139,250,.2); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Referral Campaigns</div>
+  <p class="page-sub">Track referral codes and discount campaigns — the AI mentions active offers during calls.</p>
+
+  <div class="card">
+    <div class="card-title">Active Campaigns</div>
+    <table>
+      <thead><tr><th>Campaign</th><th>Code</th><th>Discount</th><th>Referrals</th><th>Converted</th><th>Conv %</th><th>Expires</th><th>Status</th><th>Toggle</th><th>Del</th></tr></thead>
+      <tbody id="camp-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Add Campaign</div>
+    <div class="add-form">
+      <input class="add-input name" id="c-name" type="text" placeholder="Campaign name…" maxlength="40">
+      <input class="add-input code" id="c-code" type="text" placeholder="CODE" maxlength="20">
+      <input class="add-input pct" id="c-pct" type="number" placeholder="%" min="1" max="100">
+      <input class="add-input date" id="c-exp" type="date">
+      <button class="add-btn" onclick="addCamp()">+ Add</button>
+    </div>
+  </div>
+</div>
+<script>
+  let camps = [];
+
+  async function load() {
+    const r = await fetch('/api/referral-campaigns');
+    const d = await r.json();
+    camps = d.campaigns || [];
+    render();
+  }
+
+  function render() {
+    document.getElementById('camp-tbody').innerHTML = camps.map(c => {
+      const conv = c.referrals > 0 ? Math.round(c.conversions/c.referrals*100) : 0;
+      return `<tr>
+        <td style="font-weight:800">${esc(c.name)}</td>
+        <td><span class="code-chip">${esc(c.code)}</span></td>
+        <td style="color:var(--yellow);font-weight:800">${c.discount_pct}%</td>
+        <td>${c.referrals}</td>
+        <td>${c.conversions}</td>
+        <td class="conv-rate">${conv}%</td>
+        <td style="color:var(--muted);font-size:.78rem">${esc(c.expires)}</td>
+        <td><span class="status-badge ${c.active ? 's-active' : 's-inactive'}">${c.active ? 'Active' : 'Paused'}</span></td>
+        <td><button class="icon-btn" onclick="toggle('${c.id}')">${c.active ? '⏸' : '▶'}</button></td>
+        <td><button class="icon-btn" onclick="del('${c.id}')" style="color:var(--red)">✕</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function toggle(id) {
+    const r = await fetch(`/api/referral-campaigns/${id}/toggle`, {method:'POST'});
+    const d = await r.json();
+    const idx = camps.findIndex(c => c.id === id);
+    if (idx >= 0) camps[idx] = d.campaign;
+    render();
+  }
+
+  async function del(id) {
+    await fetch(`/api/referral-campaigns/${id}`, {method:'DELETE'});
+    camps = camps.filter(c => c.id !== id);
+    render();
+  }
+
+  async function addCamp() {
+    const name = document.getElementById('c-name').value.trim();
+    const code = document.getElementById('c-code').value.trim().toUpperCase();
+    const pct  = parseInt(document.getElementById('c-pct').value) || 10;
+    const exp  = document.getElementById('c-exp').value || '2026-12-31';
+    if (!name || !code) return;
+    const r = await fetch('/api/referral-campaigns', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, code, discount_pct: pct, expires: exp})});
+    const d = await r.json();
+    camps.push(d.campaign);
+    document.getElementById('c-name').value = '';
+    document.getElementById('c-code').value = '';
+    document.getElementById('c-pct').value = '';
+    render();
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

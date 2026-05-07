@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Custom Questions — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .top-bar { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
+    .add-btn { font-size: .8rem; font-weight: 800; padding: .45rem 1.1rem; border-radius: 8px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; }
+    .add-btn:hover { background: rgba(167,139,250,.2); }
+    .q-list { display: flex; flex-direction: column; gap: .85rem; }
+    .q-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+    .q-left { flex: 1; }
+    .q-text { font-size: .9rem; font-weight: 700; margin-bottom: .4rem; }
+    .q-meta { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .type-badge { font-size: .62rem; font-weight: 800; padding: .12rem .38rem; border-radius: 4px; }
+    .type-yesno { background: rgba(52,211,153,.12); color: var(--green); }
+    .type-text { background: rgba(167,139,250,.12); color: var(--accent); }
+    .type-choice { background: rgba(251,191,36,.1); color: var(--yellow); }
+    .req-badge { font-size: .62rem; font-weight: 800; padding: .12rem .38rem; border-radius: 4px; background: rgba(248,113,113,.1); color: var(--red); }
+    .opt-badge { font-size: .62rem; font-weight: 800; padding: .12rem .38rem; border-radius: 4px; background: rgba(100,100,100,.15); color: var(--muted); }
+    .del-btn { font-size: .62rem; font-weight: 800; padding: .18rem .48rem; border-radius: 5px; border: 1px solid rgba(248,113,113,.3); background: rgba(248,113,113,.07); color: var(--red); cursor: pointer; font-family: inherit; flex-shrink: 0; }
+    .del-btn:hover { background: rgba(248,113,113,.18); }
+    .empty { color: var(--muted); font-size: .84rem; text-align: center; padding: 2rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Custom Questions</div>
+  <p class="page-sub">Questions the AI asks clients during booking — collect intake info automatically on every call.</p>
+  <div class="top-bar">
+    <button class="add-btn" onclick="showAdd()">+ Add Question</button>
+  </div>
+  <div class="q-list" id="q-list"></div>
+</div>
+<script>
+  let data = {questions:[]};
+  async function load() {
+    const r = await fetch('/api/custom-questions');
+    data = await r.json();
+    render();
+  }
+  function render() {
+    const list = document.getElementById('q-list');
+    if (!data.questions?.length) { list.innerHTML = '<div class="empty">No questions yet — add your first intake question.</div>'; return; }
+    list.innerHTML = data.questions.map(q => {
+      const tc = q.type === 'yesno' ? 'type-yesno' : q.type === 'choice' ? 'type-choice' : 'type-text';
+      const tl = q.type === 'yesno' ? 'Yes / No' : q.type === 'choice' ? 'Multiple Choice' : 'Free Text';
+      return `<div class="q-card">
+        <div class="q-left">
+          <div class="q-text">${esc(q.question_text)}</div>
+          <div class="q-meta">
+            <span class="type-badge ${tc}">${tl}</span>
+            <span class="${q.required ? 'req-badge' : 'opt-badge'}">${q.required ? 'Required' : 'Optional'}</span>
+          </div>
+        </div>
+        <button class="del-btn" onclick="del('${q.q_id}')">Remove</button>
+      </div>`;
+    }).join('');
+  }
+  async function del(id) {
+    await fetch(`/api/custom-questions/${id}`, {method:'DELETE'});
+    load();
+  }
+  function showAdd() {
+    const text = prompt('Question text:'); if (!text) return;
+    const type = prompt('Type (text / yesno / choice):', 'yesno') || 'yesno';
+    const req = confirm('Is this question required?');
+    fetch('/api/custom-questions', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({question_text: text, type, required: req})
+    }).then(() => load());
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loyalty Rewards — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number], input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 90px; }
+    input[type=text] { width: 180px; }
+    input[type=number]:focus, input[type=text]:focus { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Loyalty Rewards</div>
+  <p class="page-sub">Clients earn points every visit and every dollar spent. The AI announces their balance on every call and nudges redemption at the right moment to drive return visits.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-members" style="color:var(--accent)">—</div><div class="stat-lbl">New Members (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-redeemed" style="color:var(--green)">—</div><div class="stat-lbl">Points Redeemed (30d)</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Program Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Loyalty Program</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Program Name</div></div>
+      <input type="text" id="program-name">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Points per Dollar Spent</div></div>
+      <input type="number" id="pts-dollar" min="1" max="10">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Bonus Points per Visit</div></div>
+      <input type="number" id="pts-visit" min="0" max="100">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Redemption Threshold (pts)</div></div>
+      <input type="number" id="redeem-threshold" min="10" max="1000">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Redemption Value ($)</div></div>
+      <input type="number" id="redeem-value" min="1" max="100">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Birthday Bonus (pts)</div></div>
+      <input type="number" id="birthday-bonus" min="0" max="500">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Referral Bonus (pts)</div></div>
+      <input type="number" id="referral-bonus" min="0" max="500">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Points Expire After (months)</div></div>
+      <input type="number" id="expire-months" min="0" max="36">
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Announces Balance on Call</div></div>
+      <label class="toggle"><input type="checkbox" id="announce"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Promotes Redemption</div><div class="row-sub">Suggest redeeming when threshold is near</div></div>
+      <label class="toggle"><input type="checkbox" id="promotes"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Loyalty Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/loyalty-reward-cfg').then(r => r.json());
+    document.getElementById('h-members').textContent = data.members_30d;
+    document.getElementById('h-redeemed').textContent = data.points_redeemed_30d.toLocaleString();
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('program-name').value = data.program_name;
+    document.getElementById('pts-dollar').value = data.points_per_dollar;
+    document.getElementById('pts-visit').value = data.points_per_visit;
+    document.getElementById('redeem-threshold').value = data.redemption_threshold;
+    document.getElementById('redeem-value').value = data.redemption_value_dollars;
+    document.getElementById('birthday-bonus').value = data.bonus_points_on_birthday;
+    document.getElementById('referral-bonus').value = data.bonus_points_on_referral;
+    document.getElementById('expire-months').value = data.expire_points_after_months;
+    document.getElementById('announce').checked = data.ai_announces_balance_on_call;
+    document.getElementById('promotes').checked = data.ai_promotes_redemption;
+  }
+  async function save() {
+    const payload = { ...data,
+      enabled: document.getElementById('enabled').checked,
+      program_name: document.getElementById('program-name').value,
+      points_per_dollar: parseInt(document.getElementById('pts-dollar').value) || 1,
+      points_per_visit: parseInt(document.getElementById('pts-visit').value) || 10,
+      redemption_threshold: parseInt(document.getElementById('redeem-threshold').value) || 100,
+      redemption_value_dollars: parseFloat(document.getElementById('redeem-value').value) || 10,
+      bonus_points_on_birthday: parseInt(document.getElementById('birthday-bonus').value) || 50,
+      bonus_points_on_referral: parseInt(document.getElementById('referral-bonus').value) || 25,
+      expire_points_after_months: parseInt(document.getElementById('expire-months').value) || 12,
+      ai_announces_balance_on_call: document.getElementById('announce').checked,
+      ai_promotes_redemption: document.getElementById('promotes').checked,
+    };
+    await fetch('/api/settings/loyalty-reward-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

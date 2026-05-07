@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Busiest Times — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .heatmap-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; overflow-x: auto; }
+    .heatmap-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .heatmap-grid { display: grid; }
+    .hm-row { display: flex; align-items: center; gap: 3px; margin-bottom: 3px; }
+    .hm-day-label { width: 36px; font-size: .65rem; color: var(--muted); text-align: right; flex-shrink: 0; padding-right: 6px; }
+    .hm-cell { width: 32px; height: 28px; border-radius: 4px; cursor: pointer; transition: transform .1s; position: relative; flex-shrink: 0; }
+    .hm-cell:hover { transform: scale(1.15); z-index: 10; }
+    .hm-hour-labels { display: flex; gap: 3px; margin-left: 42px; margin-bottom: 4px; }
+    .hm-hlabel { width: 32px; font-size: .55rem; color: var(--muted); text-align: center; flex-shrink: 0; }
+    /* Tooltip */
+    .tooltip { position: fixed; background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: .5rem .75rem; font-size: .75rem; pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 100; max-width: 160px; }
+    .tt-time { font-weight: 800; color: var(--accent); margin-bottom: .2rem; }
+    .tt-count { color: var(--text); }
+    .tt-rev { color: var(--green); }
+    /* Stat cards */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; }
+    .stat-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .5rem; }
+    .stat-value { font-size: 1.5rem; font-weight: 900; color: var(--accent); letter-spacing: -.03em; }
+    .stat-sub { font-size: .72rem; color: var(--muted); margin-top: .25rem; }
+    /* Legend */
+    .legend { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; }
+    .legend-label { font-size: .68rem; color: var(--muted); }
+    .legend-bar { display: flex; gap: 2px; }
+    .legend-swatch { width: 18px; height: 14px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Busiest Times</div>
+  <p class="page-sub">Heatmap of appointment volume by hour and day of week.</p>
+
+  <div class="heatmap-card">
+    <div class="heatmap-title">Appointment Volume Heatmap</div>
+    <div id="heatmap">Loading...</div>
+    <div class="legend">
+      <span class="legend-label">Less</span>
+      <div class="legend-bar" id="legend-bar"></div>
+      <span class="legend-label">More</span>
+    </div>
+  </div>
+
+  <div class="stat-row" id="stat-row">
+    <div class="stat-card"><div class="stat-label">Peak Hour</div><div class="stat-value">—</div></div>
+    <div class="stat-card"><div class="stat-label">Busiest Day</div><div class="stat-value">—</div></div>
+    <div class="stat-card"><div class="stat-label">Quietest Time</div><div class="stat-value">—</div></div>
+    <div class="stat-card"><div class="stat-label">Weekend vs Weekday</div><div class="stat-value">—</div></div>
+  </div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+  const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const HOURS = Array.from({length: 17}, (_, i) => i + 7); // 7am–11pm
+
+  function fmt12(h) {
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h > 12 ? h - 12 : h;
+    return `${h12}${ampm}`;
+  }
+
+  function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return [r, g, b];
+  }
+
+  function lerpColor(t) {
+    // 0→#111111, 1→#a78bfa
+    const base = hexToRgb('#111111');
+    const peak = hexToRgb('#a78bfa');
+    const r = Math.round(base[0] + (peak[0]-base[0]) * t);
+    const g = Math.round(base[1] + (peak[1]-base[1]) * t);
+    const b = Math.round(base[2] + (peak[2]-base[2]) * t);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  async function load() {
+    const r = await fetch('/api/analytics/busiest-times');
+    const d = await r.json();
+    const data = d.data || [];
+
+    // Build lookup
+    const lookup = {};
+    data.forEach(p => { lookup[`${p.day}:${p.hour}`] = p; });
+    const maxCount = Math.max(...data.map(p => p.count), 1);
+
+    // Hour labels
+    const hourLabels = `<div class="hm-hour-labels">${HOURS.map(h => `<div class="hm-hlabel">${fmt12(h)}</div>`).join('')}</div>`;
+
+    // Grid rows
+    const rows = DAYS.map((day, di) => {
+      const cells = HOURS.map(h => {
+        const p = lookup[`${di}:${h}`] || {count:0, revenue:0};
+        const t = p.count / maxCount;
+        const bg = lerpColor(t);
+        const opacity = p.count ? Math.max(0.2, t) : 0.05;
+        return `<div class="hm-cell" style="background:${bg};opacity:${opacity}" data-day="${day}" data-hour="${h}" data-count="${p.count}" data-rev="${p.revenue.toFixed(0)}" onmouseenter="showTip(event,this)" onmouseleave="hideTip()"></div>`;
+      }).join('');
+      return `<div class="hm-row"><div class="hm-day-label">${day}</div>${cells}</div>`;
+    }).join('');
+
+    // Legend swatches
+    const swatches = Array.from({length: 7}, (_, i) => {
+      const t = i / 6;
+      return `<div class="legend-swatch" style="background:${lerpColor(t)};opacity:${Math.max(0.15, t)}"></div>`;
+    }).join('');
+
+    document.getElementById('heatmap').innerHTML = hourLabels + rows;
+    document.getElementById('legend-bar').innerHTML = swatches;
+
+    // Stats
+    const hourTotals = {};
+    const dayTotals = {};
+    data.forEach(p => {
+      hourTotals[p.hour] = (hourTotals[p.hour] || 0) + p.count;
+      dayTotals[p.day] = (dayTotals[p.day] || 0) + p.count;
+    });
+    const peakHour = Object.entries(hourTotals).sort((a,b)=>b[1]-a[1])[0];
+    const peakDay = Object.entries(dayTotals).sort((a,b)=>b[1]-a[1])[0];
+    const quietHour = Object.entries(hourTotals).sort((a,b)=>a[1]-b[1])[0];
+    const weekdayTotal = [0,1,2,3,4].reduce((s, d) => s + (dayTotals[d]||0), 0);
+    const weekendTotal = [5,6].reduce((s, d) => s + (dayTotals[d]||0), 0);
+    const wkRatio = weekdayTotal ? Math.round(weekendTotal/weekdayTotal*100) : 0;
+
+    document.getElementById('stat-row').innerHTML = `
+      <div class="stat-card"><div class="stat-label">Peak Hour</div><div class="stat-value">${peakHour ? fmt12(parseInt(peakHour[0])) : '—'}</div><div class="stat-sub">${peakHour ? peakHour[1] + ' avg appts' : ''}</div></div>
+      <div class="stat-card"><div class="stat-label">Busiest Day</div><div class="stat-value">${peakDay ? DAYS[parseInt(peakDay[0])] : '—'}</div><div class="stat-sub">${peakDay ? peakDay[1] + ' total appts' : ''}</div></div>
+      <div class="stat-card"><div class="stat-label">Quietest Hour</div><div class="stat-value">${quietHour ? fmt12(parseInt(quietHour[0])) : '—'}</div><div class="stat-sub">Consider promo fills</div></div>
+      <div class="stat-card"><div class="stat-label">Weekend Volume</div><div class="stat-value">${wkRatio}%</div><div class="stat-sub">of weekday volume</div></div>
+    `;
+  }
+
+  function showTip(e, el) {
+    const tip = document.getElementById('tooltip');
+    tip.innerHTML = `<div class="tt-time">${el.dataset.day} ${fmt12(parseInt(el.dataset.hour))}</div><div class="tt-count">${el.dataset.count} appointments</div><div class="tt-rev">$${parseInt(el.dataset.rev).toLocaleString()} revenue</div>`;
+    tip.style.opacity = '1';
+    tip.style.left = (e.clientX + 12) + 'px';
+    tip.style.top = (e.clientY - 10) + 'px';
+  }
+  function hideTip() { document.getElementById('tooltip').style.opacity = '0'; }
+  document.addEventListener('mousemove', e => {
+    const tip = document.getElementById('tooltip');
+    if (tip.style.opacity === '1') { tip.style.left = (e.clientX + 12) + 'px'; tip.style.top = (e.clientY - 10) + 'px'; }
+  });
+
+  load();
+</script>
+</body>
+</html>

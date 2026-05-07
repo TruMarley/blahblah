@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deposit Rules — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text], input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    input[type=text] { width: 160px; }
+    input[type=number] { width: 80px; }
+    input:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    .pct-chip-wrap { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .5rem; }
+    .pct-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: .18rem .55rem; font-size: .75rem; cursor: pointer; user-select: none; }
+    .pct-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .info-box { background: #1a1500; border: 1px solid #3a2a00; border-radius: 9px; padding: .75rem 1rem; font-size: .78rem; color: var(--yellow); margin-bottom: 1.1rem; line-height: 1.55; }
+    .service-rule-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .85rem; }
+    .service-rule-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .6rem .9rem; display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+    .sr-name { font-size: .83rem; font-weight: 700; flex: 1; }
+    .sr-pct { font-size: .78rem; color: var(--accent); font-weight: 700; }
+    .sr-type { font-size: .7rem; color: var(--muted); }
+    .remove-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; margin-left: auto; }
+    .remove-btn:hover { color: var(--red); }
+    .add-row { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+    .add-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--accent); font-size: .78rem; font-weight: 700; padding: .38rem .7rem; cursor: pointer; }
+    .add-btn:hover { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Deposit Rules</div>
+  <p class="page-sub">Require deposits to reduce no-shows — set a flat % or dollar amount, define which services require a deposit, and control how long a booking link stays valid before the deposit expires.</p>
+  <div class="card">
+    <div class="card-title">Global Deposit Settings</div>
+    <div class="info-box">Deposits are collected at booking time and applied to the final service total. Clients who cancel within your refund window receive a full refund.</div>
+    <div class="row">
+      <div><div class="row-label">Require Deposits</div><div class="row-sub">Enforce deposit at time of booking</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Deposit Type</div><div class="row-sub">Flat percentage or fixed dollar amount</div></div>
+      <select id="deposit-type">
+        <option value="percent">Percentage (%)</option>
+        <option value="flat">Flat Amount ($)</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Default Deposit Amount</div><div class="row-sub">% of service total or fixed $ value</div></div>
+      <input type="number" id="deposit-amount" min="0" placeholder="25">
+    </div>
+    <div>
+      <div class="row-label" style="font-size:.78rem;color:var(--muted);margin-bottom:.4rem">Quick % Presets</div>
+      <div class="pct-chip-wrap" id="pct-chips">
+        <div class="pct-chip" data-v="10">10%</div>
+        <div class="pct-chip" data-v="15">15%</div>
+        <div class="pct-chip" data-v="20">20%</div>
+        <div class="pct-chip" data-v="25">25%</div>
+        <div class="pct-chip" data-v="50">50%</div>
+        <div class="pct-chip" data-v="100">100%</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Refund & Expiry</div>
+    <div class="row">
+      <div><div class="row-label">Refund Window (hours)</div><div class="row-sub">Cancel within this window for full refund</div></div>
+      <input type="number" id="refund-window" min="0" placeholder="24">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Link Expiry (hours)</div><div class="row-sub">Booking link expires if deposit not paid</div></div>
+      <input type="number" id="link-expiry" min="1" placeholder="2">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Partial Refund on Late Cancel</div><div class="row-sub">Refund 50% if outside refund window</div></div>
+      <label class="toggle"><input type="checkbox" id="partial-refund"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">New Clients Always Pay Deposit</div><div class="row-sub">First-time callers always required</div></div>
+      <label class="toggle"><input type="checkbox" id="new-clients"><span class="slider"></span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Per-Service Overrides</div>
+    <div class="service-rule-list" id="rule-list"></div>
+    <div class="add-row">
+      <input type="text" id="new-service" placeholder="Service name">
+      <input type="number" id="new-pct" min="0" placeholder="%" style="width:65px">
+      <select id="new-type">
+        <option value="percent">%</option>
+        <option value="flat">$</option>
+      </select>
+      <button class="add-btn" onclick="addRule()">+ Add</button>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let rules = [];
+  function renderRules() {
+    const el = document.getElementById('rule-list');
+    el.innerHTML = '';
+    rules.forEach((r,i) => {
+      el.innerHTML += `<div class="service-rule-item">
+        <div class="sr-name">${esc(r.service)}</div>
+        <div class="sr-pct">${r.amount}${r.type==='percent'?'%':'$'}</div>
+        <div class="sr-type">${r.type==='percent'?'of total':'flat'}</div>
+        <button class="remove-btn" onclick="removeRule(${i})">✕</button>
+      </div>`;
+    });
+  }
+  function addRule() {
+    const svc = document.getElementById('new-service').value.trim();
+    const amt = parseFloat(document.getElementById('new-pct').value);
+    if (!svc || isNaN(amt)) return;
+    rules.push({service: svc, amount: amt, type: document.getElementById('new-type').value});
+    document.getElementById('new-service').value = '';
+    document.getElementById('new-pct').value = '';
+    renderRules();
+  }
+  function removeRule(i) { rules.splice(i,1); renderRules(); }
+  document.querySelectorAll('.pct-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.pct-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      document.getElementById('deposit-amount').value = chip.dataset.v;
+      document.getElementById('deposit-type').value = 'percent';
+    });
+  });
+  async function load() {
+    const d = await fetch('/api/settings/deposit-rules-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('deposit-type').value = d.deposit_type || 'percent';
+    document.getElementById('deposit-amount').value = d.default_deposit_amount ?? 25;
+    document.getElementById('refund-window').value = d.refund_window_hours ?? 24;
+    document.getElementById('link-expiry').value = d.link_expiry_hours ?? 2;
+    document.getElementById('partial-refund').checked = d.partial_refund_on_late_cancel;
+    document.getElementById('new-clients').checked = d.new_clients_always_pay;
+    rules = d.per_service_rules || [];
+    renderRules();
+    document.querySelectorAll('.pct-chip').forEach(c => {
+      if (parseInt(c.dataset.v) === d.default_deposit_amount) c.classList.add('active');
+    });
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      deposit_type: document.getElementById('deposit-type').value,
+      default_deposit_amount: parseFloat(document.getElementById('deposit-amount').value) || 25,
+      refund_window_hours: parseInt(document.getElementById('refund-window').value) || 24,
+      link_expiry_hours: parseInt(document.getElementById('link-expiry').value) || 2,
+      partial_refund_on_late_cancel: document.getElementById('partial-refund').checked,
+      new_clients_always_pay: document.getElementById('new-clients').checked,
+      per_service_rules: rules
+    };
+    await fetch('/api/settings/deposit-rules-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

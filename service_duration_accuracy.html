@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Duration Accuracy — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .svc-row { margin-bottom: 1rem; }
+    .svc-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .35rem; }
+    .svc-name { font-size: .83rem; font-weight: 700; flex: 1; }
+    .acc-badge { font-size: .68rem; font-weight: 800; padding: .12rem .45rem; border-radius: 20px; }
+    .acc-badge.green { background: rgba(52,211,153,.15); color: var(--green); border: 1px solid rgba(52,211,153,.3); }
+    .acc-badge.yellow { background: rgba(251,191,36,.15); color: var(--yellow); border: 1px solid rgba(251,191,36,.3); }
+    .acc-badge.red { background: rgba(248,113,113,.15); color: var(--red); border: 1px solid rgba(248,113,113,.3); }
+    .delta-label { font-size: .7rem; color: var(--muted); width: 60px; text-align: right; flex-shrink: 0; }
+    .bars-wrap { display: flex; flex-direction: column; gap: .25rem; }
+    .bar-row-inner { display: flex; align-items: center; gap: .5rem; }
+    .bar-type { font-size: .62rem; color: var(--muted); width: 46px; text-align: right; flex-shrink: 0; }
+    .bar-bg { flex: 1; background: #1a1a1a; border-radius: 3px; height: 8px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 3px; }
+    .bar-val { font-size: .68rem; color: var(--muted); width: 32px; flex-shrink: 0; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: 1.25rem; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Service Duration Accuracy</div>
+  <p class="page-sub">How closely actual service times match the booked duration — large overruns cause scheduling pile-ups and frustrated clients waiting.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Most Accurate</div>
+      <div class="hero-val" id="h-best" style="color:var(--green);font-size:1rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Accuracy</div>
+      <div class="hero-val" id="h-avg" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Biggest Overrun</div>
+      <div class="hero-val" id="h-worst" style="color:var(--red);font-size:1rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Booked vs. Actual Duration by Service</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(167,139,250,.7)"></div>Booked (min)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(52,211,153,.65)"></div>Actual (min)</div>
+    </div>
+    <div id="svc-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/service-timing-variance');
+    const d = await r.json();
+    const services = d.services || [];
+    const avgAcc = (services.reduce((s,sv)=>s+sv.accuracy_pct,0)/services.length).toFixed(1);
+    const bestSvc = services.reduce((a,b)=>b.accuracy_pct>a.accuracy_pct?b:a, services[0]);
+    const overruns = services.map(sv=>({...sv, overrun: sv.actual_minutes-sv.booked_minutes}));
+    const worstOverrun = overruns.reduce((a,b)=>b.overrun>a.overrun?b:a, overruns[0]);
+    document.getElementById('h-best').textContent = bestSvc ? bestSvc.service_name : '—';
+    document.getElementById('h-avg').textContent = avgAcc + '%';
+    document.getElementById('h-worst').textContent = worstOverrun && worstOverrun.overrun>0 ? '+'+worstOverrun.overrun+'min ('+worstOverrun.service_name+')' : '—';
+
+    const maxMin = Math.max(...services.map(sv=>Math.max(sv.booked_minutes, sv.actual_minutes)))*1.15;
+    document.getElementById('svc-list').innerHTML = services.map(sv=>{
+      const delta = sv.actual_minutes - sv.booked_minutes;
+      const accClass = sv.accuracy_pct>=90?'green':sv.accuracy_pct>=75?'yellow':'red';
+      const deltaStr = delta===0 ? 'On time' : (delta>0 ? '+'+delta+'min over' : Math.abs(delta)+'min under');
+      const bookedPct = sv.booked_minutes/maxMin*100;
+      const actualPct = sv.actual_minutes/maxMin*100;
+      return `<div class="svc-row">
+        <div class="svc-header">
+          <div class="svc-name">${esc(sv.service_name)}</div>
+          <span class="acc-badge ${accClass}">${sv.accuracy_pct}%</span>
+          <div class="delta-label" style="color:${delta>0?'var(--red)':delta===0?'var(--green)':'var(--yellow)'}">${deltaStr}</div>
+        </div>
+        <div class="bars-wrap">
+          <div class="bar-row-inner">
+            <div class="bar-type">Booked</div>
+            <div class="bar-bg"><div class="bar-fill" style="width:${bookedPct}%;background:rgba(167,139,250,.7)"></div></div>
+            <div class="bar-val">${sv.booked_minutes}m</div>
+          </div>
+          <div class="bar-row-inner">
+            <div class="bar-type">Actual</div>
+            <div class="bar-bg"><div class="bar-fill" style="width:${actualPct}%;background:${delta>0?'rgba(248,113,113,.65)':'rgba(52,211,153,.65)'}"></div></div>
+            <div class="bar-val">${sv.actual_minutes}m</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

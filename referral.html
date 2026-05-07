@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk — Referral Program</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0a; --surface: #111; --surface2: #161616;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --blue: #60a5fa; --orange: #f97316; --gold: #fbbf24;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    .header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent-light); }
+    .back { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
+
+    .hero-section {
+      background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(124,58,237,0.2) 0%, transparent 70%);
+      padding: 4rem 2rem 3rem; text-align: center;
+    }
+    .money-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.3);
+      color: var(--gold); font-size: 0.75rem; font-weight: 700;
+      padding: 6px 16px; border-radius: 20px; margin-bottom: 1.5rem;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .hero-section h1 {
+      font-size: clamp(2rem, 6vw, 3.5rem); font-weight: 900; color: #fff;
+      letter-spacing: -0.04em; margin-bottom: 0.75rem; line-height: 1.1;
+    }
+    .hero-section h1 em { font-style: normal; color: var(--gold); }
+    .hero-section p { color: var(--muted); font-size: 1rem; max-width: 480px; margin: 0 auto 3rem; line-height: 1.6; }
+
+    /* How it works */
+    .how-it-works {
+      display: flex; justify-content: center; gap: 0; flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+    .hiw-step {
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      padding: 1.5rem 2rem; position: relative;
+    }
+    .hiw-step:not(:last-child)::after {
+      content: "→"; position: absolute; right: -12px; top: 1.5rem;
+      color: var(--muted); font-size: 1.2rem;
+    }
+    .hiw-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .hiw-title { font-size: 0.85rem; font-weight: 700; color: #fff; margin-bottom: 0.25rem; }
+    .hiw-desc { font-size: 0.75rem; color: var(--muted); max-width: 120px; line-height: 1.4; }
+
+    /* Main content */
+    .main { max-width: 900px; margin: 0 auto; padding: 0 2rem 3rem; }
+
+    /* Earnings stats */
+    .earnings-strip {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;
+    }
+    .earn-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.25rem 1.5rem;
+    }
+    .earn-box .el { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+    .earn-box .ev { font-size: 1.8rem; font-weight: 800; }
+    .earn-box.gold .ev { color: var(--gold); }
+    .earn-box.green .ev { color: var(--green); }
+
+    /* Referral link card */
+    .link-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.75rem; margin-bottom: 1.5rem;
+    }
+    .link-card-title { font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1.25rem; }
+    .link-display {
+      display: flex; align-items: center; gap: 0.75rem;
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 9px; padding: 0.75rem 1rem; margin-bottom: 1.25rem;
+    }
+    .link-url { flex: 1; font-family: monospace; font-size: 0.85rem; color: var(--accent-light); word-break: break-all; }
+    .btn-copy {
+      background: var(--accent); color: #fff; border: none;
+      padding: 8px 16px; border-radius: 7px; font-size: 0.8rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: background 0.2s;
+    }
+    .btn-copy:hover { background: #6d28d9; }
+    .btn-copy.copied { background: var(--green); color: #000; }
+
+    .share-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .share-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface2); border: 1px solid var(--border2);
+      color: var(--text); padding: 9px 16px; border-radius: 8px;
+      font-size: 0.82rem; font-weight: 600; cursor: pointer; text-decoration: none;
+      transition: border-color 0.2s;
+    }
+    .share-btn:hover { border-color: var(--border); }
+    .share-btn.ig { border-color: rgba(236,72,153,0.3); color: #ec4899; }
+    .share-btn.sms { border-color: rgba(34,197,94,0.3); color: var(--green); }
+
+    /* Referrals table */
+    .table-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+    }
+    .table-header {
+      padding: 1rem 1.5rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .table-header h3 { font-size: 0.8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .total-earned { font-size: 0.85rem; color: var(--gold); font-weight: 700; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 0.65rem 1.5rem; text-align: left; font-size: 0.68rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; background: #0e0e0e; border-bottom: 1px solid var(--border); }
+    td { padding: 0.85rem 1.5rem; border-bottom: 1px solid #141414; font-size: 0.85rem; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #141414; }
+
+    .ref-name { font-weight: 600; color: #fff; }
+    .ref-date { font-family: monospace; font-size: 0.78rem; color: var(--muted); }
+
+    .pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .pill-dot { width: 5px; height: 5px; border-radius: 50%; }
+    .pill-trial { background: rgba(96,165,250,0.12); color: var(--blue); }
+    .pill-trial .pill-dot { background: var(--blue); }
+    .pill-active { background: rgba(167,139,250,0.12); color: var(--accent-light); }
+    .pill-active .pill-dot { background: var(--accent-light); }
+    .pill-converted { background: rgba(34,197,94,0.12); color: var(--green); }
+    .pill-converted .pill-dot { background: var(--green); }
+
+    .payout-amount { color: var(--gold); font-weight: 700; font-family: monospace; }
+    .payout-pending { color: var(--muted); font-size: 0.78rem; }
+
+    .empty-state { text-align: center; padding: 3rem; color: var(--muted); font-size: 0.85rem; }
+    .empty-state .ei { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+    /* Terms */
+    .terms { font-size: 0.72rem; color: var(--muted2); text-align: center; margin-top: 2rem; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</div>
+
+<!-- Hero -->
+<div class="hero-section">
+  <div class="money-badge">💰 Referral Program</div>
+  <h1>Give <em>$20</em>.<br>Get <em>$20</em>.</h1>
+  <p>Refer a barbershop to RingDesk. They get $20 off their first month. You get $20 cash when they become a paying customer.</p>
+
+  <div class="how-it-works">
+    <div class="hiw-step">
+      <div class="hiw-icon">🔗</div>
+      <div class="hiw-title">Share your link</div>
+      <div class="hiw-desc">Send your unique link to other shop owners</div>
+    </div>
+    <div class="hiw-step">
+      <div class="hiw-icon">✍️</div>
+      <div class="hiw-title">They sign up</div>
+      <div class="hiw-desc">They get $20 off their first month automatically</div>
+    </div>
+    <div class="hiw-step">
+      <div class="hiw-icon">💳</div>
+      <div class="hiw-title">You get paid</div>
+      <div class="hiw-desc">$20 hits your account when they become paying</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Earnings -->
+  <div class="earnings-strip">
+    <div class="earn-box gold">
+      <div class="el">Total Earned</div>
+      <div class="ev" id="total-earned">$0</div>
+    </div>
+    <div class="earn-box green">
+      <div class="el">Pending Payout</div>
+      <div class="ev" id="pending-payout">$0</div>
+    </div>
+    <div class="earn-box">
+      <div class="el">Total Referrals</div>
+      <div class="ev" id="total-refs">0</div>
+    </div>
+  </div>
+
+  <!-- Referral link -->
+  <div class="link-card">
+    <div class="link-card-title">Your Referral Link</div>
+    <div class="link-display">
+      <div class="link-url" id="ref-link">ringdesk.ai/r/cuts-fades</div>
+      <button class="btn-copy" id="copy-btn" onclick="copyLink()">Copy Link</button>
+    </div>
+    <div class="share-row">
+      <button class="share-btn" onclick="copyLink()">📋 Copy Link</button>
+      <a class="share-btn sms" href="sms:?body=Hey! I use RingDesk to answer calls at my barbershop 24/7 — saves me 30+ bookings a month. Use my link and get $20 off: https://ringdesk.ai/r/cuts-fades">💬 Text a Friend</a>
+      <a class="share-btn ig" href="#" onclick="copyForIG()">📸 Copy for Instagram</a>
+    </div>
+  </div>
+
+  <!-- Referrals table -->
+  <div class="table-card">
+    <div class="table-header">
+      <h3>Your Referrals</h3>
+      <div class="total-earned" id="earned-display">$0 earned</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Business</th>
+          <th>Date Joined</th>
+          <th>Status</th>
+          <th>Your Payout</th>
+        </tr>
+      </thead>
+      <tbody id="referrals-tbody">
+        <tr><td colspan="4" class="empty-state">
+          <div class="ei">🤝</div>
+          <div>No referrals yet. Share your link to start earning!</div>
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="terms">
+    Payouts issued monthly via PayPal or Stripe. You must have an active RingDesk subscription to earn referral rewards. $20 payout triggered when referred business completes their 14-day trial and makes first payment.
+  </div>
+</div>
+
+<script>
+  const SLUG = 'cuts-fades'; // TODO: derive from business config
+
+  document.getElementById('ref-link').textContent = `ringdesk.ai/r/${SLUG}`;
+
+  async function loadReferrals() {
+    try {
+      const res = await fetch('/api/referrals');
+      const data = await res.json();
+      renderReferrals(data.referrals || []);
+    } catch { renderReferrals([]); }
+  }
+
+  function renderReferrals(refs) {
+    const tbody = document.getElementById('referrals-tbody');
+    const converted = refs.filter(r => r.status === 'converted');
+    const totalEarned = converted.length * 20;
+    const pending = refs.filter(r => r.status === 'active').length * 20;
+
+    document.getElementById('total-earned').textContent = `$${totalEarned}`;
+    document.getElementById('pending-payout').textContent = `$${pending}`;
+    document.getElementById('total-refs').textContent = refs.length;
+    document.getElementById('earned-display').textContent = `$${totalEarned} earned`;
+
+    if (refs.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="empty-state">
+        <div class="ei">🤝</div>
+        <div>No referrals yet. Share your link to start earning!</div>
+      </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = refs.map(r => `
+      <tr>
+        <td class="ref-name">${r.name}</td>
+        <td class="ref-date">${r.date_joined}</td>
+        <td><span class="pill pill-${r.status}"><span class="pill-dot"></span>${r.status}</span></td>
+        <td>${r.status === 'converted' ? '<span class="payout-amount">$20.00 ✓</span>' : r.status === 'active' ? '<span class="payout-pending">Pending trial end</span>' : '<span class="payout-pending">On trial</span>'}</td>
+      </tr>
+    `).join('');
+  }
+
+  function copyLink() {
+    const link = `https://ringdesk.ai/r/${SLUG}`;
+    navigator.clipboard.writeText(link);
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy Link'; btn.classList.remove('copied'); }, 2500);
+  }
+
+  function copyForIG() {
+    const text = `My barbershop never misses a call anymore 📞✂️ AI answers 24/7, books appointments automatically. Use my link and get $20 off: ringdesk.ai/r/${SLUG}`;
+    navigator.clipboard.writeText(text);
+    alert('Caption copied! Paste it into your Instagram post or story.');
+  }
+
+  loadReferrals();
+</script>
+</body>
+</html>

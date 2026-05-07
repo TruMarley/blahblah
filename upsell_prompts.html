@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Upsell Prompts — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .tog-row { display: flex; align-items: center; gap: .6rem; }
+    .tog-label { font-size: .78rem; color: var(--muted); font-weight: 700; }
+    .tog { width: 36px; height: 20px; background: var(--border); border-radius: 99px; position: relative; cursor: pointer; flex-shrink: 0; transition: background .2s; }
+    .tog.on { background: rgba(167,139,250,.6); }
+    .tog::after { content:''; position:absolute; top:3px; left:3px; width:14px; height:14px; background:#fff; border-radius:50%; transition:transform .2s; }
+    .tog.on::after { transform: translateX(16px); }
+    .add-btn { font-size: .8rem; font-weight: 800; padding: .45rem 1.1rem; border-radius: 8px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; }
+    .add-btn:hover { background: rgba(167,139,250,.2); }
+    .prompt-list { display: flex; flex-direction: column; gap: .75rem; }
+    .prompt-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+    .prompt-left { flex: 1; }
+    .prompt-trigger { font-size: .72rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .3rem; }
+    .prompt-trigger span { color: var(--accent); }
+    .prompt-offer { font-size: .88rem; font-weight: 700; margin-bottom: .25rem; }
+    .prompt-discount { display: inline-block; font-size: .68rem; font-weight: 800; background: rgba(251,191,36,.1); color: var(--yellow); border-radius: 4px; padding: .1rem .38rem; }
+    .del-btn { font-size: .62rem; font-weight: 800; padding: .18rem .48rem; border-radius: 5px; border: 1px solid rgba(248,113,113,.3); background: rgba(248,113,113,.07); color: var(--red); cursor: pointer; font-family: inherit; flex-shrink: 0; }
+    .del-btn:hover { background: rgba(248,113,113,.18); }
+    .save-row { display: flex; align-items: center; gap: 1rem; margin-top: 1.5rem; }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.5rem; border-radius: 9px; border: 1px solid rgba(52,211,153,.4); background: rgba(52,211,153,.1); color: var(--green); cursor: pointer; font-family: inherit; }
+    .save-btn:hover { background: rgba(52,211,153,.2); }
+    .saved-msg { font-size: .78rem; color: var(--green); font-weight: 700; opacity: 0; transition: opacity .3s; }
+    .empty { color: var(--muted); font-size: .84rem; text-align: center; padding: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Upsell Prompts</div>
+  <p class="page-sub">When a client books a specific service, the AI automatically suggests a complementary add-on with a discount — increasing average ticket value on every call.</p>
+  <div class="top-bar">
+    <div class="tog-row">
+      <div class="tog" id="tog-enabled" onclick="toggleEnabled()"></div>
+      <span class="tog-label">Upsell Prompts Enabled</span>
+    </div>
+    <button class="add-btn" onclick="addPrompt()">+ Add Prompt</button>
+  </div>
+  <div class="prompt-list" id="prompt-list"></div>
+  <div class="save-row">
+    <button class="save-btn" onclick="save()">Save Changes</button>
+    <span class="saved-msg" id="saved-msg">✓ Saved</span>
+  </div>
+</div>
+<script>
+  let config = {enabled: true, prompts: []};
+  async function load() {
+    const r = await fetch('/api/upsell-prompts');
+    config = await r.json();
+    setTog(config.enabled);
+    render();
+  }
+  function setTog(val) { document.getElementById('tog-enabled').classList.toggle('on', !!val); }
+  function toggleEnabled() { config.enabled = !config.enabled; setTog(config.enabled); }
+  function render() {
+    const list = document.getElementById('prompt-list');
+    if (!config.prompts?.length) { list.innerHTML = '<div class="empty">No upsell prompts — add one to boost average ticket value.</div>'; return; }
+    list.innerHTML = config.prompts.map(p =>
+      `<div class="prompt-card">
+        <div class="prompt-left">
+          <div class="prompt-trigger">When booking: <span>${esc(p.service_trigger)}</span></div>
+          <div class="prompt-offer">AI suggests: ${esc(p.upsell_offer)}</div>
+          <span class="prompt-discount">${p.discount_pct}% off add-on</span>
+        </div>
+        <button class="del-btn" onclick="del('${esc(p.id)}')">Remove</button>
+      </div>`
+    ).join('');
+  }
+  function del(id) {
+    config.prompts = config.prompts.filter(p => p.id !== id);
+    render();
+  }
+  function addPrompt() {
+    const trigger = prompt('Service trigger (e.g. "Haircut"):'); if (!trigger) return;
+    const offer = prompt('Upsell offer (e.g. "beard trim"):'); if (!offer) return;
+    const disc = parseInt(prompt('Discount % (e.g. 20):') || '0');
+    config.prompts.push({id: 'u' + Date.now(), service_trigger: trigger, upsell_offer: offer, discount_pct: disc});
+    render();
+  }
+  async function save() {
+    await fetch('/api/upsell-prompts', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(config)});
+    const msg = document.getElementById('saved-msg');
+    msg.style.opacity = '1';
+    setTimeout(() => { msg.style.opacity = '0'; }, 2000);
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  load();
+</script>
+</body>
+</html>

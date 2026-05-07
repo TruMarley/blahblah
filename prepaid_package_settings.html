@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prepaid Packages — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text], input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    input[type=text] { width: 100%; }
+    input[type=number] { width: 80px; }
+    input:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    .pkg-list { display: flex; flex-direction: column; gap: .75rem; margin-bottom: 1rem; }
+    .pkg-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.1rem; }
+    .pkg-top { display: flex; align-items: center; gap: .6rem; margin-bottom: .5rem; }
+    .pkg-name { font-size: .88rem; font-weight: 800; flex: 1; }
+    .savings-badge { font-size: .65rem; font-weight: 800; background: rgba(52,211,153,.15); color: var(--green); border-radius: 5px; padding: .1rem .38rem; }
+    .pkg-details { display: flex; gap: 1.5rem; font-size: .78rem; color: var(--muted); }
+    .pkg-detail strong { color: var(--text); font-weight: 700; }
+    .remove-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }
+    .remove-btn:hover { color: var(--red); }
+    .add-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem; margin-bottom: .5rem; }
+    .add-grid input { width: 100%; }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .22rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .add-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--accent); font-size: .78rem; font-weight: 700; padding: .38rem .7rem; cursor: pointer; }
+    .add-btn:hover { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Prepaid Packages</div>
+  <p class="page-sub">Offer multi-visit bundles that clients pay for upfront. Packages improve cash flow, lock in loyalty, and give the AI an easy upsell to offer after every booking.</p>
+  <div class="card">
+    <div class="card-title">Package Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Prepaid Packages</div><div class="row-sub">Make packages available for purchase</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Offers Packages</div><div class="row-sub">AI mentions packages at the configured timing</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-offers"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div class="row-label">Offer Timing</div>
+      <select id="offer-timing">
+        <option value="after_booking">After Booking Confirmed</option>
+        <option value="during_booking">During Booking</option>
+        <option value="end_of_call">End of Call</option>
+      </select>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Packages</div>
+    <div class="pkg-list" id="pkg-list"></div>
+    <div class="add-grid">
+      <div>
+        <div class="field-label">Package Name</div>
+        <input type="text" id="new-name" placeholder="e.g. 5-Visit Pack">
+      </div>
+      <div>
+        <div class="field-label">Number of Visits</div>
+        <input type="number" id="new-visits" min="1" placeholder="5">
+      </div>
+      <div>
+        <div class="field-label">Price ($)</div>
+        <input type="number" id="new-price" min="0" placeholder="175">
+      </div>
+      <div>
+        <div class="field-label">Savings (%)</div>
+        <input type="number" id="new-savings" min="0" max="100" placeholder="10">
+      </div>
+    </div>
+    <button class="add-btn" onclick="addPkg()">+ Add Package</button>
+    <button class="save-btn" onclick="save()">Save Packages</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let packages = [];
+  let nextId = 10;
+  function renderPkgs() {
+    const el = document.getElementById('pkg-list');
+    el.innerHTML = '';
+    packages.forEach((p, i) => {
+      const visitLabel = p.visits >= 999 ? 'Unlimited' : p.visits + ' visits';
+      el.innerHTML += `<div class="pkg-card">
+        <div class="pkg-top">
+          <div class="pkg-name">${esc(p.name)}</div>
+          ${p.savings_pct > 0 ? `<span class="savings-badge">Save ${p.savings_pct}%</span>` : ''}
+          <label class="toggle"><input type="checkbox" ${p.active ? 'checked' : ''} onchange="packages[${i}].active=this.checked"><span class="slider"></span></label>
+          <button class="remove-btn" onclick="removePkg(${i})">✕</button>
+        </div>
+        <div class="pkg-details">
+          <div><strong>${visitLabel}</strong></div>
+          <div><strong>$${p.price}</strong> total</div>
+          ${p.visits < 999 ? `<div style="color:var(--muted)">$${(p.price/p.visits).toFixed(0)}/visit</div>` : ''}
+        </div>
+      </div>`;
+    });
+  }
+  function addPkg() {
+    const name = document.getElementById('new-name').value.trim();
+    if (!name) return;
+    packages.push({ id: nextId++, name, visits: parseInt(document.getElementById('new-visits').value) || 5, price: parseFloat(document.getElementById('new-price').value) || 0, savings_pct: parseInt(document.getElementById('new-savings').value) || 0, active: true });
+    ['new-name','new-visits','new-price','new-savings'].forEach(id => document.getElementById(id).value = '');
+    renderPkgs();
+  }
+  function removePkg(i) { packages.splice(i, 1); renderPkgs(); }
+  async function load() {
+    const d = await fetch('/api/settings/prepaid-package-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('ai-offers').checked = d.ai_offers_packages;
+    document.getElementById('offer-timing').value = d.offer_timing || 'after_booking';
+    packages = d.packages || [];
+    if (packages.length) nextId = Math.max(...packages.map(p => p.id || 0)) + 1;
+    renderPkgs();
+  }
+  async function save() {
+    const data = { enabled: document.getElementById('enabled').checked, ai_offers_packages: document.getElementById('ai-offers').checked, offer_timing: document.getElementById('offer-timing').value, packages };
+    await fetch('/api/settings/prepaid-package-cfg', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  load();
+</script>
+</body>
+</html>

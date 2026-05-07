@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Source — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 920px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .top-row { display: grid; grid-template-columns: 240px 1fr; gap: 1.25rem; margin-bottom: 1.25rem; align-items: start; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .donut-wrap { display: flex; flex-direction: column; align-items: center; gap: .75rem; }
+    .donut-legend { display: flex; flex-direction: column; gap: .45rem; width: 100%; margin-top: .25rem; }
+    .leg-row { display: flex; align-items: center; gap: .5rem; font-size: .75rem; }
+    .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .leg-label { flex: 1; color: var(--muted); }
+    .leg-pct { font-weight: 800; }
+    .leg-cnt { font-size: .7rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Booking Source</div>
+  <p class="page-sub">Where your bookings originate — phone, online, walk-in, referral, and repeat AI-scheduled clients.</p>
+  <div class="top-row">
+    <div class="card">
+      <div class="card-title">Source Breakdown</div>
+      <div class="donut-wrap">
+        <svg id="donut" width="150" height="150" viewBox="0 0 150 150"></svg>
+        <div class="donut-legend" id="donut-legend"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">8-Week Trend — Stacked</div>
+      <svg id="trend-svg" width="100%" style="display:block;overflow:visible"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/booking-source');
+    const d = await r.json();
+    const sources = d.sources || [];
+
+    // Donut
+    const total = d.total || 1;
+    const cx=75, cy=75, R=54, sw=22, circ=2*Math.PI*R;
+    let offset = circ*0.25;
+    let arcs = '';
+    sources.forEach(s => {
+      const len = circ*(s.count/total);
+      arcs += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${s.color}" stroke-width="${sw}"
+        stroke-dasharray="${len} ${circ-len}" stroke-dashoffset="${-offset+circ}" opacity=".85"/>`;
+      offset -= len;
+    });
+    document.getElementById('donut').innerHTML = arcs;
+    document.getElementById('donut-legend').innerHTML = sources.map(s =>
+      `<div class="leg-row">
+        <div class="leg-dot" style="background:${s.color}"></div>
+        <div class="leg-label">${esc(s.source)}</div>
+        <div class="leg-pct" style="color:${s.color}">${s.pct}%</div>
+        <div class="leg-cnt">${s.count}</div>
+      </div>`).join('');
+
+    // Stacked bar trend
+    const trend = d.trend || [];
+    const W=620, H=130, PL=6, PR=6, PT=12, PB=28, cW=W-PL-PR, cH=H-PT-PB, n=trend.length;
+    const barW = Math.floor(cW/n*0.6);
+    const maxStack = Math.max(...trend.map(t => sources.reduce((a,s)=>a+(t[s.source]||0),0)),1);
+    const xOf = i => PL + i*cW/(n) + cW/(n)*0.2;
+
+    let bars = '';
+    trend.forEach((t, i) => {
+      let y = PT + cH;
+      sources.slice().reverse().forEach(s => {
+        const v = t[s.source] || 0;
+        const h = (v / maxStack) * cH;
+        y -= h;
+        bars += `<rect x="${xOf(i)}" y="${y}" width="${barW}" height="${h}" fill="${s.color}" opacity=".75" rx="2"/>`;
+      });
+      bars += `<text x="${xOf(i)+barW/2}" y="${H-4}" text-anchor="middle" font-size="9" fill="#444">${esc(t.week)}</text>`;
+    });
+
+    const svg = document.getElementById('trend-svg');
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+    svg.setAttribute('height', H);
+    svg.innerHTML = bars;
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

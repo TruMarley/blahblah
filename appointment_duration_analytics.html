@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Appointment Duration — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .svc-row { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; }
+    .svc-row:last-child { margin-bottom: 0; }
+    .svc-name { font-size: .82rem; font-weight: 700; min-width: 100px; }
+    .bar-group { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+    .bar-wrap { display: flex; align-items: center; gap: .4rem; }
+    .bar-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 8px; }
+    .bar-fill { height: 8px; border-radius: 8px; }
+    .bar-label { font-size: .68rem; color: var(--muted); min-width: 38px; }
+    .overrun-badge { font-size: .62rem; font-weight: 800; border-radius: 4px; padding: .1rem .38rem; min-width: 46px; text-align: center; }
+    .overrun-pos { background: rgba(248,113,113,.12); color: var(--red); border: 1px solid rgba(248,113,113,.25); }
+    .overrun-neg { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .insight-box { background: rgba(167,139,250,.07); border: 1px solid rgba(167,139,250,.18); border-radius: 10px; padding: .85rem 1rem; margin-top: 1rem; font-size: .78rem; color: var(--text); line-height: 1.6; }
+    .insight-box strong { color: var(--accent); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Appointment Duration</div>
+  <p class="page-sub">Compare scheduled vs. actual appointment times per service. Chronic overruns cause scheduling drift and frustrated clients — use this to recalibrate your booking windows.</p>
+
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg Duration</div>
+      <div class="hero-val" id="h-avg" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Overrun</div>
+      <div class="hero-val" id="h-overrun" style="color:var(--red)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">On-Time Rate</div>
+      <div class="hero-val" id="h-ontime" style="color:var(--green)">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Scheduled vs. Actual — By Service</div>
+    <div id="svc-list"></div>
+    <div class="insight-box" id="insight-box"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/appointment-duration-stats').then(r => r.json());
+    document.getElementById('h-avg').textContent = d.avg_duration_min != null ? d.avg_duration_min + ' min' : '—';
+    document.getElementById('h-overrun').textContent = d.avg_overrun_min != null ? '+' + d.avg_overrun_min + ' min' : '—';
+    document.getElementById('h-ontime').textContent = d.on_time_pct != null ? d.on_time_pct + '%' : '—';
+
+    const services = d.services || [];
+    const maxMin = Math.max(...services.map(s => Math.max(s.avg_min, s.scheduled_min)), 1);
+    const el = document.getElementById('svc-list');
+
+    services.forEach(s => {
+      const overrun = s.avg_min - s.scheduled_min;
+      const overrunClass = overrun > 0 ? 'overrun-pos' : 'overrun-neg';
+      const overrunText = overrun > 0 ? '+' + overrun + ' min' : overrun + ' min';
+      const schedW = (s.scheduled_min / maxMin * 100).toFixed(1);
+      const avgW = (s.avg_min / maxMin * 100).toFixed(1);
+      el.innerHTML += `<div class="svc-row">
+        <div class="svc-name" style="color:${s.color}">${esc(s.service)}</div>
+        <div class="bar-group">
+          <div class="bar-wrap">
+            <div class="bar-track"><div class="bar-fill" style="width:${schedW}%;background:${s.color};opacity:.4"></div></div>
+            <div class="bar-label" style="color:${s.color}">${s.scheduled_min}m sched</div>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar-track"><div class="bar-fill" style="width:${avgW}%;background:${s.color}"></div></div>
+            <div class="bar-label" style="color:${s.color}">${s.avg_min}m actual</div>
+          </div>
+        </div>
+        <div class="overrun-badge ${overrunClass}">${overrunText}</div>
+      </div>`;
+    });
+
+    const worstOverrun = services.reduce((b, s) => (s.avg_min - s.scheduled_min) > ((b ? b.avg_min - b.scheduled_min : 0)) ? s : b, null);
+    const biggest = worstOverrun ? (worstOverrun.avg_min - worstOverrun.scheduled_min) : 0;
+    document.getElementById('insight-box').innerHTML =
+      `<strong>${d.on_time_pct}%</strong> of appointments finish on time. ` +
+      (worstOverrun ? `<strong>${esc(worstOverrun.service)}</strong> has the worst overrun at <strong>+${biggest} min</strong> over its scheduled slot — consider adding ${Math.ceil(biggest/5)*5} minutes to its booking window. ` : '') +
+      `Average overrun of <strong>${d.avg_overrun_min} min</strong> across all services causes scheduling drift — reducing this would allow <strong>${Math.round(d.avg_overrun_min * 8)} minutes</strong> of recovered capacity per 8-appointment day.`;
+  }
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

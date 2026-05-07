@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Retail Product Sales — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .prod-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .prod-name { font-size: .84rem; font-weight: 700; flex: 1; }
+    .prod-stats { display: flex; gap: 1.2rem; align-items: center; }
+    .prod-stat { font-size: .7rem; color: var(--muted); text-align: right; }
+    .prod-stat span { display: block; font-size: .84rem; font-weight: 900; color: var(--text); }
+    .margin-badge { font-size: .62rem; font-weight: 700; border-radius: 4px; padding: .1rem .38rem; background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Retail Product Sales</div>
+  <p class="page-sub">Track which retail products the AI recommends and clients buy. High-margin retail sales add revenue without chair time — a pure profit layer on top of services.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-rev" style="color:var(--green)">—</div><div class="stat-lbl">Retail Revenue (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-units" style="color:var(--accent)">—</div><div class="stat-lbl">Units Sold (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-ai" style="color:var(--yellow)">—</div><div class="stat-lbl">AI Recommended</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Product Breakdown</div>
+    <div id="prod-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/retail-product-sales-stats').then(r => r.json());
+    document.getElementById('h-rev').textContent = '$' + d.total_retail_revenue_30d.toLocaleString();
+    document.getElementById('h-units').textContent = d.total_units_30d;
+    document.getElementById('h-ai').textContent = d.ai_recommended_pct.toFixed(1) + '%';
+    const pl = document.getElementById('prod-list');
+    d.products.forEach(p => {
+      pl.innerHTML += '<div class="prod-row"><div class="prod-name">' + p.name + '</div><div class="prod-stats"><div class="prod-stat"><span>' + p.units_30d + '</span>Units</div><div class="prod-stat"><span>$' + p.revenue_30d + '</span>Revenue</div><span class="margin-badge">' + p.margin_pct + '% margin</span></div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

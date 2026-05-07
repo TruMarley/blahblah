@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tax Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 600px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .form-group { margin-bottom: 1.1rem; }
+    label { display: block; font-size: .72rem; color: var(--muted); font-weight: 700; margin-bottom: .4rem; }
+    input[type="text"], input[type="number"] {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+      font-size: .88rem; font-family: inherit; padding: .65rem .9rem; border-radius: 8px; outline: none; transition: border-color .15s;
+    }
+    input:focus { border-color: rgba(167,139,250,.5); }
+    .rate-wrap { display: flex; align-items: center; gap: .5rem; }
+    .rate-suffix { font-size: .9rem; color: var(--muted); font-weight: 700; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: .5rem 0; }
+    .toggle-info { flex: 1; }
+    .toggle-info-title { font-size: .85rem; font-weight: 800; }
+    .toggle-info-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top:0; left:0; right:0; bottom:0; background: var(--surface2); border-radius: 22px; transition: .2s; border: 1px solid var(--border); }
+    .slider:before { position: absolute; content:""; height:16px; width:16px; left:2px; bottom:2px; background: var(--muted); border-radius:50%; transition:.2s; }
+    input:checked + .slider { background: rgba(52,211,153,.15); border-color: rgba(52,211,153,.35); }
+    input:checked + .slider:before { transform: translateX(18px); background: var(--green); }
+    .save-btn { background: var(--accent); border: none; color: #000; font-size: .88rem; font-weight: 900; padding: .65rem 1.75rem; border-radius: 9px; cursor: pointer; font-family: inherit; transition: opacity .15s; margin-top: .5rem; }
+    .save-btn:hover { opacity: .85; }
+    .save-msg { font-size: .78rem; color: var(--green); font-weight: 700; display: none; margin-left: .75rem; }
+    .save-msg.show { display: inline; }
+    .preview-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-top: 1.25rem; }
+    .preview-title { font-size: .7rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; margin-bottom: .6rem; }
+    .preview-row { display: flex; justify-content: space-between; font-size: .8rem; margin-bottom: .3rem; }
+    .preview-row.total { font-weight: 900; border-top: 1px solid var(--border); padding-top: .4rem; margin-top: .3rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Tax Settings</div>
+  <p class="page-sub">Configure how tax is applied to services and products at checkout.</p>
+  <div class="card">
+    <div class="card-title">Tax Configuration</div>
+    <div class="form-group">
+      <label>Tax Name</label>
+      <input type="text" id="f-name" placeholder="e.g. Sales Tax" oninput="updatePreview()">
+    </div>
+    <div class="form-group">
+      <label>Tax Rate</label>
+      <div class="rate-wrap">
+        <input type="number" id="f-rate" step="0.01" min="0" max="30" style="width:120px" oninput="updatePreview()">
+        <span class="rate-suffix">%</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Tax ID / Registration Number</label>
+      <input type="text" id="f-taxid" placeholder="e.g. TX-4821-XZ">
+    </div>
+    <hr class="divider">
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-info-title">Apply to Services</div>
+        <div class="toggle-info-sub">Haircuts, color, manicures, etc.</div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="f-services" onchange="updatePreview()"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-info-title">Apply to Products</div>
+        <div class="toggle-info-sub">Shampoo, styling products, merchandise.</div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="f-products" onchange="updatePreview()"><span class="slider"></span></label>
+    </div>
+    <div class="preview-box">
+      <div class="preview-title">Receipt Preview</div>
+      <div class="preview-row"><span>Fade Haircut</span><span>$35.00</span></div>
+      <div class="preview-row" id="prev-svc-tax" style="color:var(--muted)"></div>
+      <div class="preview-row"><span>Pomade (product)</span><span>$18.00</span></div>
+      <div class="preview-row" id="prev-prod-tax" style="color:var(--muted)"></div>
+      <div class="preview-row total" id="prev-total"><span>Total</span><span>—</span></div>
+    </div>
+    <div style="margin-top:1.25rem">
+      <button class="save-btn" onclick="save()">Save Tax Settings</button>
+      <span class="save-msg" id="save-msg">✓ Saved!</span>
+    </div>
+  </div>
+</div>
+<script>
+  function updatePreview() {
+    const rate     = parseFloat(document.getElementById('f-rate').value) || 0;
+    const name     = document.getElementById('f-name').value || 'Tax';
+    const svcs     = document.getElementById('f-services').checked;
+    const prods    = document.getElementById('f-products').checked;
+    const svcAmt   = 35, prodAmt = 18;
+    const svcTax   = svcs  ? +(svcAmt  * rate / 100).toFixed(2) : 0;
+    const prodTax  = prods ? +(prodAmt * rate / 100).toFixed(2) : 0;
+    const total    = svcAmt + prodAmt + svcTax + prodTax;
+    document.getElementById('prev-svc-tax').innerHTML  = svcs  ? `<span>${name} (${rate}%)</span><span>+$${svcTax.toFixed(2)}</span>`  : '';
+    document.getElementById('prev-prod-tax').innerHTML = prods ? `<span>${name} (${rate}%)</span><span>+$${prodTax.toFixed(2)}</span>` : '';
+    document.getElementById('prev-total').innerHTML    = `<span>Total</span><span>$${total.toFixed(2)}</span>`;
+  }
+
+  async function load() {
+    const r = await fetch('/api/tax-settings');
+    const d = await r.json();
+    document.getElementById('f-name').value      = d.tax_name || '';
+    document.getElementById('f-rate').value      = d.tax_rate ?? '';
+    document.getElementById('f-taxid').value     = d.tax_id || '';
+    document.getElementById('f-services').checked = d.apply_to_services;
+    document.getElementById('f-products').checked = d.apply_to_products;
+    updatePreview();
+  }
+
+  async function save() {
+    await fetch('/api/tax-settings', {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        tax_name:            document.getElementById('f-name').value,
+        tax_rate:            parseFloat(document.getElementById('f-rate').value) || 0,
+        tax_id:              document.getElementById('f-taxid').value,
+        apply_to_services:   document.getElementById('f-services').checked,
+        apply_to_products:   document.getElementById('f-products').checked,
+      })
+    });
+    const msg = document.getElementById('save-msg');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2000);
+  }
+
+  load();
+</script>
+</body>
+</html>

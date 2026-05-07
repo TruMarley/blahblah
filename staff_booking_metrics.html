@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Booking Metrics — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .staff-row { display: grid; grid-template-columns: 130px 1fr 80px 70px 55px; gap: .75rem; align-items: center; margin-bottom: .85rem; }
+    .staff-name { font-size: .84rem; font-weight: 700; }
+    .bar-wrap { background: var(--surface2); border-radius: 5px; height: 9px; overflow: hidden; }
+    .bar { height: 100%; border-radius: 5px; }
+    .staff-num { font-size: .78rem; font-weight: 700; text-align: right; }
+    .staff-rev { font-size: .72rem; color: var(--muted); text-align: right; }
+    .staff-star { font-size: .72rem; color: var(--yellow); text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Booking Metrics</div>
+  <p class="page-sub">See how each team member is performing — bookings handled, revenue generated, and client ratings. Recognize your top earners.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Bookings</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Top Performer</div>
+      <div class="hero-val" id="h-top" style="color:var(--green);font-size:1.2rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg / Staff</div>
+      <div class="hero-val" id="h-avg" style="color:var(--yellow);font-size:1.3rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Bookings by Staff Member</div>
+    <div id="staff-chart"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['var(--accent)','var(--green)','var(--yellow)','#60a5fa','#fb923c'];
+  async function load() {
+    const d = await fetch('/api/analytics/staff-booking-metrics').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_bookings || '—';
+    document.getElementById('h-top').textContent = d.top_performer || '—';
+    document.getElementById('h-avg').textContent = d.avg_bookings_per_staff || '—';
+    const staff = d.staff_metrics || [];
+    const maxB = Math.max(...staff.map(s => s.bookings), 1);
+    document.getElementById('staff-chart').innerHTML = staff.map((s,i) => `
+      <div class="staff-row">
+        <span class="staff-name">${esc(s.name)}</span>
+        <div class="bar-wrap"><div class="bar" style="width:${(s.bookings/maxB*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]}"></div></div>
+        <span class="staff-num" style="color:${COLORS[i%COLORS.length]}">${s.bookings}</span>
+        <span class="staff-rev">$${s.revenue.toLocaleString()}</span>
+        <span class="staff-star">★ ${s.rating}</span>
+      </div>
+    `).join('');
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

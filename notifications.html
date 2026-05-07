@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notifications — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .header-row { display: flex; align-items: center; gap: .75rem; margin-bottom: 2rem; }
+    .bell { font-size: 1.6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; flex: 1; }
+    .unread-badge { background: var(--red); color: #fff; font-size: .72rem; font-weight: 800; padding: .2rem .55rem; border-radius: 99px; }
+    .mark-all-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: .78rem; font-weight: 600; padding: .45rem .9rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: border-color .15s, color .15s; }
+    .mark-all-btn:hover { border-color: #3e3e3e; color: var(--text); }
+    .notif-list { display: flex; flex-direction: column; gap: .5rem; }
+    .notif-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; display: flex; gap: 1rem; align-items: flex-start; cursor: pointer; transition: background .1s, border-color .1s; }
+    .notif-item.unread { border-color: rgba(167,139,250,.2); background: rgba(167,139,250,.04); }
+    .notif-item:hover { background: var(--surface2); }
+    .notif-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: .05rem; }
+    .notif-body { flex: 1; }
+    .notif-msg { font-size: .85rem; line-height: 1.5; }
+    .notif-item.unread .notif-msg { font-weight: 600; color: var(--text); }
+    .notif-item:not(.unread) .notif-msg { color: var(--muted); }
+    .notif-time { font-size: .72rem; color: var(--muted); margin-top: .3rem; }
+    .unread-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: .45rem; }
+    .empty { text-align: center; color: var(--muted); padding: 3rem; font-size: .9rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="header-row">
+    <span class="bell">🔔</span>
+    <div class="page-title">Notifications</div>
+    <span class="unread-badge" id="unread-badge" style="display:none"></span>
+    <button class="mark-all-btn" onclick="markAllRead()">Mark all read</button>
+  </div>
+  <div class="notif-list" id="notif-list"><div class="empty">Loading…</div></div>
+</div>
+<script>
+  const ICONS = { booking: '📅', callback: '☎️', review: '⭐', alert: '⚠️' };
+  let notifs = [];
+
+  async function load() {
+    const r = await fetch('/api/notifications');
+    const d = await r.json();
+    notifs = d.notifications || [];
+    render();
+  }
+
+  function render() {
+    const unread = notifs.filter(n => !n.read).length;
+    const badge = document.getElementById('unread-badge');
+    if (unread > 0) { badge.style.display = ''; badge.textContent = unread + ' unread'; }
+    else { badge.style.display = 'none'; }
+
+    if (!notifs.length) { document.getElementById('notif-list').innerHTML = '<div class="empty">No notifications.</div>'; return; }
+    document.getElementById('notif-list').innerHTML = notifs.map(n => `
+      <div class="notif-item ${n.read ? '' : 'unread'}" onclick="markRead('${n.id}')">
+        <span class="notif-icon">${ICONS[n.type] || '🔔'}</span>
+        <div class="notif-body">
+          <div class="notif-msg">${esc(n.message)}</div>
+          <div class="notif-time">${relTime(n.created_at)}</div>
+        </div>
+        ${!n.read ? '<div class="unread-dot"></div>' : ''}
+      </div>`).join('');
+  }
+
+  async function markRead(id) {
+    await fetch('/api/notifications/' + id + '/read', {method:'POST'});
+    const n = notifs.find(x => x.id === id);
+    if (n) n.read = true;
+    render();
+  }
+
+  async function markAllRead() {
+    await fetch('/api/notifications/read-all', {method:'POST'});
+    notifs.forEach(n => n.read = true);
+    render();
+  }
+
+  function relTime(iso) {
+    const diff = Math.floor((new Date() - new Date(iso)) / 60000);
+    if (diff < 1) return 'just now';
+    if (diff < 60) return diff + 'm ago';
+    if (diff < 1440) return Math.floor(diff/60) + 'h ago';
+    return Math.floor(diff/1440) + 'd ago';
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  load();
+</script>
+</body>
+</html>

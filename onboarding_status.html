@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Setup Progress — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; height: 58px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.15rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { color: var(--muted); font-size: .82rem; text-decoration: none; }
+    .nav-links a:hover { color: var(--text); }
+
+    .shell { max-width: 700px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }
+    .page-title { font-size: 1.6rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .35rem; }
+    .page-sub { font-size: .85rem; color: var(--muted); margin-bottom: 2rem; }
+
+    /* Progress bar */
+    .progress-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 2rem; }
+    .progress-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; }
+    .progress-label { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .progress-pct { font-size: 1.5rem; font-weight: 900; letter-spacing: -.04em; color: #fff; }
+    .progress-track { background: var(--surface2); border-radius: 99px; height: 8px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 99px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+
+    /* Steps grid */
+    .steps { display: flex; flex-direction: column; gap: .75rem; }
+    .step { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; display: flex; align-items: center; gap: 1rem; transition: border-color .2s; }
+    .step.done { border-color: rgba(52,211,153,.25); }
+    .step.pending { opacity: .7; }
+    .step-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+    .step.done .step-icon { background: rgba(52,211,153,.12); }
+    .step.pending .step-icon { background: var(--surface2); }
+    .step-body { flex: 1; }
+    .step-title { font-size: .88rem; font-weight: 700; }
+    .step-desc { font-size: .75rem; color: var(--muted); margin-top: .15rem; line-height: 1.5; }
+    .step-badge { flex-shrink: 0; }
+    .check { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 800; }
+    .check.done { background: var(--green); color: #000; }
+    .check.pending { background: var(--surface2); border: 2px solid var(--border); color: transparent; }
+    .check.loading { background: var(--surface2); border: 2px solid var(--border); }
+    .loading-spin { width: 10px; height: 10px; border: 2px solid var(--muted); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .refresh-note { font-size: .72rem; color: var(--muted); text-align: center; margin-top: 1.5rem; }
+    .refresh-note span { color: var(--accent); }
+
+    .cta-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center; margin-top: 2rem; display: none; }
+    .cta-card.show { display: block; }
+    .cta-title { font-size: 1.1rem; font-weight: 800; margin-bottom: .5rem; }
+    .cta-sub { font-size: .82rem; color: var(--muted); margin-bottom: 1.25rem; }
+    .btn { display: inline-block; padding: .65rem 1.5rem; border-radius: 9px; font-size: .85rem; font-weight: 700; text-decoration: none; background: var(--accent); color: #fff; border: none; cursor: pointer; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <div class="nav-links">
+    <a href="/dashboard">Dashboard</a>
+    <a href="/appointments">Appointments</a>
+  </div>
+</nav>
+
+<div class="shell">
+  <div class="page-title">Setup Progress</div>
+  <div class="page-sub">Complete these steps to get your AI receptionist live.</div>
+
+  <div class="progress-wrap">
+    <div class="progress-header">
+      <div class="progress-label">Overall completion</div>
+      <div class="progress-pct" id="pct-label">—</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="steps" id="steps-list">
+    <!-- populated by JS -->
+  </div>
+
+  <div class="cta-card" id="cta-card">
+    <div class="cta-title">You're all set! 🎉</div>
+    <div class="cta-sub">Your AI receptionist is fully configured. Head to the live monitor to watch calls in real time.</div>
+    <a href="/live" class="btn">Open Live Monitor</a>
+  </div>
+
+  <div class="refresh-note" id="refresh-note">Auto-refreshing in <span id="countdown">30</span>s</div>
+</div>
+
+<script>
+  const STEPS_DEF = [
+    { id: 'account',  icon: '👤', title: 'Account created',       desc: 'Your RingDesk account is active.',             check: () => true },
+    { id: 'ai_name',  icon: '🤖', title: 'AI name configured',    desc: 'Your receptionist has a name and voice.',       check: (h) => !!(h.config?.ai_name) },
+    { id: 'call',     icon: '📞', title: 'First call received',   desc: 'At least one call has been handled by the AI.', check: (h, s) => s.total_booked > 0 || s.missed_today > 0 },
+    { id: 'booking',  icon: '📅', title: 'First booking made',    desc: 'A customer booked an appointment via the AI.',   check: (h, s) => s.total_booked > 0 },
+    { id: 'sms',      icon: '💬', title: 'SMS confirmed',         desc: 'At least one confirmation SMS was sent.',        check: (h) => !!(h.twilio_configured) },
+    { id: 'gcal',     icon: '📆', title: 'Google Calendar linked', desc: 'Appointments sync to your Google Calendar.',    check: (h) => !!(h.gcal_connected) },
+  ];
+
+  let health = {}, stats = {};
+  let countdown = 30;
+  let timer;
+
+  async function load() {
+    try {
+      const [hr, sr] = await Promise.all([
+        fetch('/api/health').then(r => r.json()),
+        fetch('/api/stats').then(r => r.json()),
+      ]);
+      health = hr;
+      stats  = sr;
+    } catch (e) {
+      console.error('Load error', e);
+    }
+    render();
+  }
+
+  function render() {
+    const list = document.getElementById('steps-list');
+    let done = 0;
+    list.innerHTML = '';
+
+    STEPS_DEF.forEach(step => {
+      const isDone = step.check(health, stats);
+      if (isDone) done++;
+      const div = document.createElement('div');
+      div.className = `step ${isDone ? 'done' : 'pending'}`;
+      div.innerHTML = `
+        <div class="step-icon">${step.icon}</div>
+        <div class="step-body">
+          <div class="step-title">${step.title}</div>
+          <div class="step-desc">${step.desc}</div>
+        </div>
+        <div class="step-badge">
+          <div class="check ${isDone ? 'done' : 'pending'}">${isDone ? '✓' : ''}</div>
+        </div>`;
+      list.appendChild(div);
+    });
+
+    const total = STEPS_DEF.length;
+    const pct = Math.round((done / total) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('pct-label').textContent = pct + '%';
+    document.getElementById('cta-card').classList.toggle('show', pct === 100);
+  }
+
+  function tick() {
+    countdown--;
+    document.getElementById('countdown').textContent = countdown;
+    if (countdown <= 0) {
+      countdown = 30;
+      load();
+    }
+  }
+
+  load();
+  timer = setInterval(tick, 1000);
+</script>
+</body>
+</html>

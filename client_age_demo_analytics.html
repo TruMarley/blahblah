@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Age Demographics — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .band-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .85rem; }
+    .band-label { font-size: .78rem; color: var(--text); width: 75px; flex-shrink: 0; }
+    .band-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+    .band-fill { height: 100%; border-radius: 4px; background: var(--accent); }
+    .band-pct { font-size: .75rem; font-weight: 700; color: var(--accent); width: 38px; text-align: right; }
+    .band-spend { font-size: .7rem; color: var(--green); width: 52px; text-align: right; flex-shrink: 0; }
+    .col-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; }
+    .col-lbl { font-size: .65rem; color: var(--muted); font-weight: 700; }
+    .col-lbl.w75 { width: 75px; flex-shrink: 0; }
+    .col-lbl.flex1 { flex: 1; }
+    .col-lbl.w38 { width: 38px; text-align: right; }
+    .col-lbl.w52 { width: 52px; text-align: right; flex-shrink: 0; }
+    .top-badge { display: inline-block; font-size: .6rem; font-weight: 700; background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.25); border-radius: 4px; padding: .1rem .35rem; margin-left: .4rem; vertical-align: middle; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Age Demographics</div>
+  <p class="page-sub">Understand the age distribution of your clientele and which segments drive the most revenue — useful for targeting promotions, service mix, and marketing spend.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Clients w/ Age Data</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-median" style="color:var(--yellow)">—</div><div class="stat-lbl">Median Age</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-top" style="color:var(--green)">—</div><div class="stat-lbl">Highest-Spend Band</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Age Band Distribution</div>
+    <div class="col-header">
+      <div class="col-lbl w75">Band</div>
+      <div class="col-lbl flex1">Share</div>
+      <div class="col-lbl w38">%</div>
+      <div class="col-lbl w52">Avg Spend</div>
+    </div>
+    <div id="band-list"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['#60a5fa','var(--accent)','var(--green)','var(--yellow)','var(--red)','#f472b6'];
+  async function load() {
+    const d = await fetch('/api/analytics/client-age-demo-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_clients_with_age.toLocaleString();
+    document.getElementById('h-median').textContent = d.median_age;
+    document.getElementById('h-top').textContent = d.highest_spend_band;
+    const bl = document.getElementById('band-list');
+    const maxP = Math.max(...d.bands.map(b => b.pct));
+    d.bands.forEach((b, i) => {
+      const w = (b.pct / maxP * 100).toFixed(1);
+      const badge = b.band === d.highest_spend_band ? '<span class="top-badge">Top spend</span>' : '';
+      const color = COLORS[i % COLORS.length];
+      bl.innerHTML += '<div class="band-row"><div class="band-label">' + b.band + badge + '</div><div class="band-track"><div class="band-fill" style="width:' + w + '%;background:' + color + '"></div></div><div class="band-pct" style="color:' + color + '">' + b.pct.toFixed(1) + '%</div><div class="band-spend">$' + b.avg_spend.toFixed(0) + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

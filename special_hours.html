@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Special Hours — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .5rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .65rem 1rem; font-size: .82rem; vertical-align: middle; }
+    .status-badge { font-size: .65rem; font-weight: 800; padding: .15rem .5rem; border-radius: 99px; }
+    .s-closed { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.25); }
+    .s-modified { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.25); }
+    .del-btn { background: none; border: none; cursor: pointer; font-size: .88rem; padding: .2rem .4rem; border-radius: 5px; color: var(--red); }
+    .del-btn:hover { background: rgba(248,113,113,.1); }
+    .add-form { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+    .add-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .45rem .75rem; font-family: inherit; }
+    .add-input.label { flex: 1; min-width: 160px; }
+    .add-input.date { width: 150px; }
+    .add-input.time { width: 110px; }
+    .closed-toggle { display: flex; align-items: center; gap: .4rem; font-size: .8rem; color: var(--muted); cursor: pointer; }
+    .tog { width: 30px; height: 17px; background: var(--border); border-radius: 99px; position: relative; transition: background .2s; flex-shrink: 0; }
+    .tog.on { background: rgba(248,113,113,.5); }
+    .tog::after { content:''; position:absolute; top:2.5px; left:2.5px; width:12px; height:12px; background:#fff; border-radius:50%; transition:transform .2s; }
+    .tog.on::after { transform: translateX(13px); }
+    .add-btn { font-size: .78rem; font-weight: 800; padding: .45rem 1rem; border-radius: 8px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .add-btn:hover { background: rgba(167,139,250,.2); }
+    .time-fields { display: flex; gap: .4rem; align-items: center; font-size: .8rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Special Hours</div>
+  <p class="page-sub">Holiday and event overrides — the AI tells callers about special closures and modified hours automatically.</p>
+
+  <div class="card">
+    <div class="card-title">Hour Overrides</div>
+    <table>
+      <thead><tr><th>Date</th><th>Label</th><th>Status</th><th>Hours</th><th>Remove</th></tr></thead>
+      <tbody id="sh-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Add Override</div>
+    <div class="add-form" style="margin-bottom:.75rem">
+      <input class="add-input date" id="sh-date" type="date">
+      <input class="add-input label" id="sh-label" type="text" placeholder="Holiday / event name…" maxlength="40">
+      <div class="closed-toggle" onclick="toggleClosedNew()">
+        <div class="tog on" id="sh-closed-tog"></div>
+        <span id="sh-closed-lbl">Closed all day</span>
+      </div>
+    </div>
+    <div class="time-fields" id="sh-time-fields" style="display:none;margin-bottom:.75rem">
+      Open: <input class="add-input time" id="sh-open" type="time" value="10:00">
+      Close: <input class="add-input time" id="sh-close" type="time" value="15:00">
+    </div>
+    <button class="add-btn" onclick="addOverride()">+ Add Override</button>
+  </div>
+</div>
+<script>
+  let overrides = [];
+  let newClosed = true;
+
+  async function load() {
+    const r = await fetch('/api/special-hours');
+    const d = await r.json();
+    overrides = d.overrides || [];
+    render();
+  }
+
+  function render() {
+    document.getElementById('sh-tbody').innerHTML = overrides.map(o => `
+      <tr>
+        <td style="font-weight:800">${esc(o.date)}</td>
+        <td>${esc(o.label)}</td>
+        <td><span class="status-badge ${o.closed ? 's-closed' : 's-modified'}">${o.closed ? 'Closed' : 'Modified'}</span></td>
+        <td style="color:var(--muted);font-size:.78rem">${o.closed ? '—' : esc(o.open_time) + ' – ' + esc(o.close_time)}</td>
+        <td><button class="del-btn" onclick="del('${o.id}')">✕</button></td>
+      </tr>`).join('');
+  }
+
+  function toggleClosedNew() {
+    newClosed = !newClosed;
+    document.getElementById('sh-closed-tog').classList.toggle('on', newClosed);
+    document.getElementById('sh-closed-lbl').textContent = newClosed ? 'Closed all day' : 'Modified hours';
+    document.getElementById('sh-time-fields').style.display = newClosed ? 'none' : 'flex';
+  }
+
+  async function del(id) {
+    await fetch(`/api/special-hours/${id}`, {method:'DELETE'});
+    overrides = overrides.filter(o => o.id !== id);
+    render();
+  }
+
+  async function addOverride() {
+    const date = document.getElementById('sh-date').value;
+    const label = document.getElementById('sh-label').value.trim();
+    if (!date || !label) return;
+    const body = {date, label, closed: newClosed, open_time: newClosed ? '' : document.getElementById('sh-open').value, close_time: newClosed ? '' : document.getElementById('sh-close').value};
+    const r = await fetch('/api/special-hours', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    const d = await r.json();
+    overrides.push(d.override);
+    overrides.sort((a,b) => a.date.localeCompare(b.date));
+    document.getElementById('sh-date').value = '';
+    document.getElementById('sh-label').value = '';
+    render();
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

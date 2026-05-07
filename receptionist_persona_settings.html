@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Persona — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 160px; }
+    input[type=text]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .8rem; padding: .6rem .75rem; outline: none; resize: vertical; min-height: 56px; margin-top: .4rem; }
+    textarea:focus { border-color: var(--accent); }
+    .preview-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; margin-top: 1rem; }
+    .preview-label { font-size: .62rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
+    .preview-text { font-size: .82rem; color: var(--text); font-style: italic; line-height: 1.5; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Receptionist Persona</div>
+  <p class="page-sub">Customize how your AI receptionist sounds and feels on every call — name, voice tone, speaking pace, formality, and sign-off phrase. Match the persona to your brand identity.</p>
+  <div class="card">
+    <div class="card-title">Persona Settings</div>
+    <div class="row">
+      <div><div class="row-label">AI Name</div></div>
+      <input type="text" id="ai-name">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Voice Gender</div></div>
+      <select id="voice-gender">
+        <option value="neutral">Neutral</option>
+        <option value="female">Female</option>
+        <option value="male">Male</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Speaking Pace</div></div>
+      <select id="pace">
+        <option value="slow">Slow</option>
+        <option value="moderate">Moderate</option>
+        <option value="fast">Fast</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Formality</div></div>
+      <select id="formality">
+        <option value="casual">Casual</option>
+        <option value="friendly-professional">Friendly-Professional</option>
+        <option value="formal">Formal</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Opening Energy</div></div>
+      <select id="energy">
+        <option value="warm">Warm</option>
+        <option value="upbeat">Upbeat</option>
+        <option value="calm">Calm</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Language Style</div></div>
+      <select id="lang-style">
+        <option value="conversational">Conversational</option>
+        <option value="concise">Concise</option>
+        <option value="detailed">Detailed</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use Client First Name</div><div class="row-sub">AI addresses callers by name when known</div></div>
+      <label class="toggle"><input type="checkbox" id="use-name"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Use Filler Words</div><div class="row-sub">e.g. "sure", "of course", "absolutely"</div></div>
+      <label class="toggle"><input type="checkbox" id="fillers"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Emoji in SMS</div><div class="row-sub">Include emoji in outbound SMS messages</div></div>
+      <label class="toggle"><input type="checkbox" id="emoji"><span class="slider"></span></label>
+    </div>
+    <div>
+      <div class="row-label" style="font-size:.82rem;margin-bottom:.25rem">Sign-Off Phrase</div>
+      <textarea id="signoff"></textarea>
+    </div>
+    <div class="preview-box">
+      <div class="preview-label">Sample Opening</div>
+      <div class="preview-text" id="preview-text">Loading preview...</div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Persona Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  function updatePreview() {
+    const name = document.getElementById('ai-name').value || 'Alex';
+    const energy = document.getElementById('energy').value;
+    const greet = energy === 'upbeat' ? 'Great to hear from you!' : energy === 'calm' ? 'How can I help you today?' : 'Thanks for calling!';
+    document.getElementById('preview-text').textContent = '"Hi there, this is ' + name + '. ' + greet + ' Are you looking to book an appointment or is there something else I can help with?"';
+  }
+  async function load() {
+    data = await fetch('/api/settings/receptionist-persona-cfg').then(r => r.json());
+    document.getElementById('ai-name').value = data.ai_name;
+    document.getElementById('voice-gender').value = data.voice_gender;
+    document.getElementById('pace').value = data.speaking_pace;
+    document.getElementById('formality').value = data.formality;
+    document.getElementById('energy').value = data.opening_energy;
+    document.getElementById('lang-style').value = data.language_style;
+    document.getElementById('use-name').checked = data.use_client_first_name;
+    document.getElementById('fillers').checked = data.use_filler_words;
+    document.getElementById('emoji').checked = data.emoji_in_sms;
+    document.getElementById('signoff').value = data.sign_off_phrase;
+    updatePreview();
+    document.getElementById('ai-name').addEventListener('input', updatePreview);
+    document.getElementById('energy').addEventListener('change', updatePreview);
+  }
+  async function save() {
+    const payload = { ...data,
+      ai_name: document.getElementById('ai-name').value,
+      voice_gender: document.getElementById('voice-gender').value,
+      speaking_pace: document.getElementById('pace').value,
+      formality: document.getElementById('formality').value,
+      opening_energy: document.getElementById('energy').value,
+      language_style: document.getElementById('lang-style').value,
+      use_client_first_name: document.getElementById('use-name').checked,
+      use_filler_words: document.getElementById('fillers').checked,
+      emoji_in_sms: document.getElementById('emoji').checked,
+      sign_off_phrase: document.getElementById('signoff').value,
+    };
+    await fetch('/api/settings/receptionist-persona-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

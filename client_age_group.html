@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Age Groups — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: 1.25rem; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+    .chart-wrap { height: 270px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Age Groups</div>
+  <p class="page-sub">How your client base breaks down by age — and which group spends the most per visit.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Largest Age Group</div>
+      <div class="hero-val" id="h-top" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Highest Avg Spend</div>
+      <div class="hero-val" id="h-spend" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Client Count &amp; Avg Spend by Age Group</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(167,139,250,.7)"></div>Client Count</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow);border-radius:50%"></div>Avg Spend ($)</div>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 700 270" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/client-age-group');
+    const d = await r.json();
+    const groups = d.groups || [];
+    const topGroup = groups.reduce((a,b)=>b.count>a.count?b:a, groups[0]||{});
+    const topSpend = groups.reduce((a,b)=>b.avg_spend>a.avg_spend?b:a, groups[0]||{});
+    document.getElementById('h-top').textContent = topGroup.label || '—';
+    document.getElementById('h-spend').textContent = topSpend.label ? `${topSpend.label} ($${topSpend.avg_spend})` : '—';
+
+    const svg = document.getElementById('chart');
+    const W=700, H=270, pL=48, pR=54, pT=14, pB=30;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n=groups.length;
+    const barW=cW/n*0.5;
+    const xStep=cW/n;
+    const maxCount=Math.max(...groups.map(g=>g.count))*1.2;
+    const maxSpend=Math.max(...groups.map(g=>g.avg_spend))*1.2;
+    const xOf=i=>pL+i*xStep+xStep/2;
+    const yOfC=v=>pT+cH-v/maxCount*cH;
+    const yOfS=v=>pT+cH-v/maxSpend*cH;
+
+    // left axis
+    [50,100,150,200].filter(v=>v<maxCount).forEach(v=>{
+      const y=yOfC(v);
+      svg.innerHTML+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML+=`<text x="${pL-4}" y="${y+3.5}" font-size="8" fill="#555" text-anchor="end">${v}</text>`;
+    });
+    // right axis
+    [30,50,70,90].filter(v=>v<maxSpend).forEach(v=>{
+      svg.innerHTML+=`<text x="${W-pR+4}" y="${yOfS(v)+3.5}" font-size="8" fill="#666">$${v}</text>`;
+    });
+
+    groups.forEach((g,i)=>{
+      const cx=xOf(i);
+      const bh=cH*g.count/maxCount;
+      svg.innerHTML+=`<rect x="${cx-barW/2}" y="${pT+cH-bh}" width="${barW}" height="${bh}" rx="4" fill="rgba(167,139,250,.6)"/>`;
+      svg.innerHTML+=`<text x="${cx}" y="${H-4}" font-size="9" fill="#666" text-anchor="middle">${esc(g.label)}</text>`;
+    });
+
+    // avg spend line
+    const pts=groups.map((g,i)=>`${xOf(i)},${yOfS(g.avg_spend)}`).join(' ');
+    svg.innerHTML+=`<polyline points="${pts}" fill="none" stroke="rgba(251,191,36,.85)" stroke-width="2.5"/>`;
+    groups.forEach((g,i)=>{
+      svg.innerHTML+=`<circle cx="${xOf(i)}" cy="${yOfS(g.avg_spend)}" r="3.5" fill="var(--yellow)"/>`;
+      svg.innerHTML+=`<text x="${xOf(i)}" y="${yOfS(g.avg_spend)-8}" font-size="8" fill="rgba(251,191,36,.85)" text-anchor="middle">$${g.avg_spend}</text>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

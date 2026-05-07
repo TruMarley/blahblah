@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMS Auto-Reply — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .8rem; padding: .55rem .75rem; outline: none; resize: vertical; min-height: 56px; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    input[type=text]:focus { border-color: var(--accent); }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .28rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .field-wrap { margin-bottom: .9rem; }
+    .keyword-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .75rem; }
+    .kw-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .65rem .9rem; }
+    .kw-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .35rem; }
+    .kw-trigger { font-size: .75rem; font-weight: 800; background: rgba(167,139,250,.12); color: var(--accent); border: 1px solid rgba(167,139,250,.25); border-radius: 5px; padding: .1rem .45rem; font-family: monospace; }
+    .kw-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }
+    .kw-remove:hover { color: var(--red); }
+    .kw-reply { font-size: .78rem; color: var(--muted); line-height: 1.4; }
+    .add-kw-row { display: flex; gap: .4rem; flex-wrap: wrap; }
+    .add-kw-row input[type=text] { flex: 1; min-width: 80px; }
+    .add-kw-row textarea { flex: 2; min-width: 160px; min-height: 36px; resize: none; }
+    .add-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--accent); font-size: .78rem; font-weight: 700; padding: .38rem .7rem; cursor: pointer; flex-shrink: 0; align-self: flex-start; margin-top: 2px; }
+    .add-btn:hover { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">SMS Auto-Reply</div>
+  <p class="page-sub">Automatically respond to inbound texts — after hours, for missed calls, and for common keyword triggers. No manual monitoring required.</p>
+
+  <div class="card">
+    <div class="card-title">General</div>
+    <div class="row">
+      <div><div class="row-label">Enable Auto-Reply</div><div class="row-sub">Send automated SMS responses</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Reply When Closed</div><div class="row-sub">Auto-reply outside business hours</div></div>
+      <label class="toggle"><input type="checkbox" id="reply-closed"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Reply to Missed Calls</div><div class="row-sub">Text client when AI can't answer</div></div>
+      <label class="toggle"><input type="checkbox" id="reply-missed"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Keyword Triggers</div><div class="row-sub">Respond to specific words in incoming texts</div></div>
+      <label class="toggle"><input type="checkbox" id="reply-keywords"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Keyword Replies</div>
+    <div class="keyword-list" id="keyword-list"></div>
+    <div class="add-kw-row">
+      <input type="text" id="new-kw" placeholder="keyword">
+      <textarea id="new-reply" placeholder="Reply message..." rows="1"></textarea>
+      <button class="add-btn" onclick="addKeyword()">+ Add</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Message Templates</div>
+    <div class="field-wrap">
+      <div class="field-label">Missed Call Message</div>
+      <textarea id="missed-msg" rows="2"></textarea>
+    </div>
+    <div class="field-wrap">
+      <div class="field-label">After-Hours / Closed Message</div>
+      <textarea id="closed-msg" rows="2"></textarea>
+    </div>
+    <div class="field-wrap" style="margin-bottom:0">
+      <div class="field-label">Opt-Out Footer</div>
+      <textarea id="opt-out" rows="1" style="min-height:36px"></textarea>
+    </div>
+    <button class="save-btn" onclick="save()">Save Auto-Reply Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let keywords = [];
+  function renderKeywords() {
+    const el = document.getElementById('keyword-list');
+    el.innerHTML = '';
+    keywords.forEach((k, i) => {
+      el.innerHTML += `<div class="kw-item">
+        <div class="kw-header">
+          <span class="kw-trigger">${esc(k.keyword)}</span>
+          <button class="kw-remove" onclick="removeKw(${i})">✕</button>
+        </div>
+        <div class="kw-reply">${esc(k.reply)}</div>
+      </div>`;
+    });
+  }
+  function addKeyword() {
+    const kw = document.getElementById('new-kw').value.trim().toLowerCase();
+    const reply = document.getElementById('new-reply').value.trim();
+    if (!kw || !reply) return;
+    keywords.push({ keyword: kw, reply });
+    document.getElementById('new-kw').value = '';
+    document.getElementById('new-reply').value = '';
+    renderKeywords();
+  }
+  function removeKw(i) { keywords.splice(i, 1); renderKeywords(); }
+  async function load() {
+    const d = await fetch('/api/settings/sms-auto-reply-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled ?? true;
+    document.getElementById('reply-closed').checked = d.reply_when_closed ?? true;
+    document.getElementById('reply-missed').checked = d.reply_to_missed_calls ?? true;
+    document.getElementById('reply-keywords').checked = d.reply_to_keywords ?? true;
+    keywords = d.keywords || [];
+    renderKeywords();
+    document.getElementById('missed-msg').value = d.missed_call_message || '';
+    document.getElementById('closed-msg').value = d.closed_message || '';
+    document.getElementById('opt-out').value = d.opt_out_footer || '';
+  }
+  async function save() {
+    const data = { enabled: document.getElementById('enabled').checked, reply_when_closed: document.getElementById('reply-closed').checked, reply_to_missed_calls: document.getElementById('reply-missed').checked, reply_to_keywords: document.getElementById('reply-keywords').checked, keywords, missed_call_message: document.getElementById('missed-msg').value, closed_message: document.getElementById('closed-msg').value, opt_out_footer: document.getElementById('opt-out').value };
+    await fetch('/api/settings/sms-auto-reply-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMS Volume — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .split-bar { height: 16px; border-radius: 6px; overflow: hidden; display: flex; margin-bottom: .75rem; }
+    .split-in { background: var(--green); }
+    .split-out { background: var(--accent); }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: 1.25rem; }
+    .leg-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; }
+    .leg-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .ob-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; }
+    .ob-label { font-size: .78rem; color: var(--text); width: 110px; flex-shrink: 0; }
+    .bar-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; background: var(--accent); }
+    .ob-count { font-size: .72rem; font-weight: 700; color: var(--accent); width: 36px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">SMS Volume</div>
+  <p class="page-sub">Inbound vs outbound SMS activity. A healthy ratio shows the AI is proactively communicating — confirmations, reminders, win-backs — and clients are responding.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Total SMS (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-in" style="color:var(--green)">—</div><div class="stat-lbl">Inbound</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-out" style="color:var(--accent)">—</div><div class="stat-lbl">Outbound</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-reply" style="color:var(--yellow)">—</div><div class="stat-lbl">Reply Rate</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Inbound / Outbound Split</div>
+    <div class="split-bar" id="split-bar"></div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div><span id="leg-in">Inbound</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--accent)"></div><span id="leg-out">Outbound</span></div>
+    </div>
+    <div style="font-size:.72rem;color:var(--muted)">Avg response time: <span id="resp-time" style="color:var(--text);font-weight:700"></span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Outbound Breakdown</div>
+    <div id="ob-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/inbound-vs-outbound-sms-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_30d;
+    document.getElementById('h-in').textContent = d.inbound_30d;
+    document.getElementById('h-out').textContent = d.outbound_30d;
+    document.getElementById('h-reply').textContent = d.reply_rate_pct.toFixed(1) + '%';
+    document.getElementById('split-bar').innerHTML = '<div class="split-in" style="width:' + d.inbound_pct + '%"></div><div class="split-out" style="flex:1"></div>';
+    document.getElementById('leg-in').textContent = 'Inbound — ' + d.inbound_pct.toFixed(1) + '%';
+    document.getElementById('leg-out').textContent = 'Outbound — ' + d.outbound_pct.toFixed(1) + '%';
+    document.getElementById('resp-time').textContent = d.avg_response_time_min.toFixed(1) + ' min';
+    const ob = d.outbound_breakdown;
+    const items = [['Confirmations', ob.confirmations], ['Reminders', ob.reminders], ['Win-back', ob.win_back], ['Marketing', ob.marketing]];
+    const maxV = Math.max(...items.map(i => i[1]));
+    const ol = document.getElementById('ob-list');
+    items.forEach(([label, val]) => {
+      const w = (val / maxV * 100).toFixed(1);
+      ol.innerHTML += '<div class="ob-row"><div class="ob-label">' + label + '</div><div class="bar-track"><div class="bar-fill" style="width:' + w + '%"></div></div><div class="ob-count">' + val + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

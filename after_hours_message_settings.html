@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>After-Hours Message — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 100%; }
+    input[type=text]:focus { border-color: var(--accent); }
+    textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .55rem .75rem; outline: none; width: 100%; resize: vertical; font-family: inherit; }
+    textarea:focus { border-color: var(--accent); }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .28rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .field-wrap { margin-bottom: .85rem; }
+    .char-count { font-size: .7rem; color: var(--muted); text-align: right; margin-top: .18rem; }
+    .hours-input-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .7rem .9rem; margin-top: .5rem; }
+    .callback-section { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem .9rem; margin-top: .6rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">After-Hours Message</div>
+  <p class="page-sub">When clients call outside your business hours, your AI plays a friendly message, states your hours, and offers a callback option. Keep it warm — after-hours callers are still potential bookings.</p>
+
+  <div class="card">
+    <div class="card-title">After-Hours Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable After-Hours Message</div><div class="row-sub">Plays when callers reach the AI outside business hours</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="field-wrap" style="margin-top:.5rem">
+      <div class="field-label">After-Hours Message</div>
+      <textarea id="message" rows="4" placeholder="Thank you for calling! We're currently closed. Please call back during business hours." oninput="countMsg()"></textarea>
+      <div class="char-count" id="msg-count">0 / 400</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Business Hours Announcement</div>
+    <div class="row">
+      <div><div class="row-label">State Business Hours in Message</div><div class="row-sub">AI reads your hours aloud to the caller</div></div>
+      <label class="toggle"><input type="checkbox" id="play-hours"><span class="slider"></span></label>
+    </div>
+    <div class="hours-input-row">
+      <div class="field-label">Hours Text</div>
+      <input type="text" id="hours-text" placeholder="Monday–Friday 9am–6pm, Saturday 9am–5pm">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Callback Option</div>
+    <div class="row">
+      <div><div class="row-label">Offer Callback</div><div class="row-sub">Caller can press a key to request a callback during hours</div></div>
+      <label class="toggle"><input type="checkbox" id="offer-callback"><span class="slider"></span></label>
+    </div>
+    <div class="callback-section">
+      <div class="field-label">Callback Prompt Message</div>
+      <textarea id="callback-msg" rows="3" placeholder="If you'd like a callback during business hours, press 1 and leave your name and number." oninput="countCb()"></textarea>
+      <div class="char-count" id="cb-count">0 / 250</div>
+    </div>
+    <button class="save-btn" onclick="save()">Save After-Hours Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  function countMsg() { const v = document.getElementById('message').value; document.getElementById('msg-count').textContent = v.length + ' / 400'; }
+  function countCb() { const v = document.getElementById('callback-msg').value; document.getElementById('cb-count').textContent = v.length + ' / 250'; }
+
+  async function load() {
+    const d = await fetch('/api/settings/after-hours-message-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled ?? true;
+    document.getElementById('message').value = d.message || '';
+    document.getElementById('play-hours').checked = d.play_business_hours ?? true;
+    document.getElementById('hours-text').value = d.business_hours_text || '';
+    document.getElementById('offer-callback').checked = d.offer_callback ?? true;
+    document.getElementById('callback-msg').value = d.callback_message || '';
+    countMsg(); countCb();
+  }
+
+  async function save() {
+    const data = { enabled: document.getElementById('enabled').checked, message: document.getElementById('message').value, play_business_hours: document.getElementById('play-hours').checked, business_hours_text: document.getElementById('hours-text').value, offer_callback: document.getElementById('offer-callback').checked, callback_message: document.getElementById('callback-msg').value };
+    await fetch('/api/settings/after-hours-message-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  load();
+</script>
+</body>
+</html>

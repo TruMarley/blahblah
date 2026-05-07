@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Widget — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    input[type=text], input[type=color] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    input[type=text]:focus { border-color: var(--accent); }
+    input[type=color] { width: 44px; height: 34px; padding: .1rem .2rem; cursor: pointer; }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .28rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .field-wrap { margin-bottom: .9rem; }
+    .code-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: .65rem .85rem; font-family: monospace; font-size: .73rem; color: var(--muted); word-break: break-all; line-height: 1.5; }
+    .copy-btn { font-size: .72rem; color: var(--accent); background: none; border: none; cursor: pointer; margin-top: .3rem; }
+    .preview-btn-wrap { display: flex; align-items: center; gap: .75rem; margin-top: .5rem; }
+    .preview-btn { border-radius: 8px; padding: .55rem 1.25rem; font-size: .82rem; font-weight: 700; border: none; cursor: pointer; color: #fff; }
+    .color-row { display: flex; align-items: center; gap: .75rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Booking Widget</div>
+  <p class="page-sub">Embed a booking button or inline form on your website. Clients can book directly without calling — and your AI still handles the follow-up.</p>
+
+  <div class="card">
+    <div class="card-title">Widget Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Booking Widget</div><div class="row-sub">Show widget on your website</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Widget Type</div></div>
+      <select id="widget-type">
+        <option value="button">Floating Button</option>
+        <option value="inline">Inline Form</option>
+        <option value="popup">Popup Modal</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Button Text</div></div>
+      <input type="text" id="button-text" style="width:160px" placeholder="Book Now">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Button Color</div></div>
+      <div class="color-row">
+        <input type="color" id="button-color">
+        <div class="preview-btn-wrap"><button class="preview-btn" id="preview-btn">Preview</button></div>
+      </div>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Button Position</div></div>
+      <select id="button-position">
+        <option value="bottom-right">Bottom Right</option>
+        <option value="bottom-left">Bottom Left</option>
+        <option value="top-right">Top Right</option>
+        <option value="top-left">Top Left</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Show on All Pages</div><div class="row-sub">Display widget site-wide</div></div>
+      <label class="toggle"><input type="checkbox" id="show-all"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Require Deposit</div><div class="row-sub">Collect deposit at booking</div></div>
+      <label class="toggle"><input type="checkbox" id="require-deposit"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Collect at Booking</div>
+    <div class="row">
+      <div><div class="row-label">Name</div></div>
+      <label class="toggle"><input type="checkbox" id="c-name"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Phone</div></div>
+      <label class="toggle"><input type="checkbox" id="c-phone"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Email</div></div>
+      <label class="toggle"><input type="checkbox" id="c-email"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Service Selection</div></div>
+      <label class="toggle"><input type="checkbox" id="c-service"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Staff Preference</div></div>
+      <label class="toggle"><input type="checkbox" id="c-staff"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Integration</div>
+    <div class="field-wrap">
+      <div class="field-label">Booking Link</div>
+      <div class="code-box" id="booking-link">—</div>
+      <button class="copy-btn" onclick="copyText('booking-link')">Copy link</button>
+    </div>
+    <div class="field-wrap">
+      <div class="field-label">Confirmation Redirect URL</div>
+      <input type="text" id="redirect-url" style="width:100%" placeholder="https://yoursite.com/thank-you">
+    </div>
+    <div class="field-wrap" style="margin-bottom:0">
+      <div class="field-label">Embed Code</div>
+      <div class="code-box" id="embed-code">—</div>
+      <button class="copy-btn" onclick="copyText('embed-code')">Copy embed code</button>
+    </div>
+    <button class="save-btn" onclick="save()">Save Widget Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  function updatePreview() {
+    const btn = document.getElementById('preview-btn');
+    const text = document.getElementById('button-text').value || 'Book Now';
+    const color = document.getElementById('button-color').value;
+    btn.textContent = text;
+    btn.style.background = color;
+  }
+  document.getElementById('button-text').addEventListener('input', updatePreview);
+  document.getElementById('button-color').addEventListener('input', updatePreview);
+
+  function copyText(id) {
+    const text = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+
+  async function load() {
+    const d = await fetch('/api/settings/booking-widget-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled ?? true;
+    document.getElementById('widget-type').value = d.widget_type || 'button';
+    document.getElementById('button-text').value = d.button_text || 'Book Now';
+    document.getElementById('button-color').value = d.button_color || '#a78bfa';
+    document.getElementById('button-position').value = d.button_position || 'bottom-right';
+    document.getElementById('show-all').checked = d.show_on_all_pages ?? true;
+    document.getElementById('require-deposit').checked = d.require_deposit ?? false;
+    document.getElementById('c-name').checked = d.collect_name ?? true;
+    document.getElementById('c-phone').checked = d.collect_phone ?? true;
+    document.getElementById('c-email').checked = d.collect_email ?? false;
+    document.getElementById('c-service').checked = d.collect_service ?? true;
+    document.getElementById('c-staff').checked = d.collect_staff_preference ?? true;
+    document.getElementById('booking-link').textContent = d.booking_link || '—';
+    document.getElementById('redirect-url').value = d.confirmation_redirect_url || '';
+    document.getElementById('embed-code').textContent = d.embed_code || '—';
+    updatePreview();
+  }
+
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      widget_type: document.getElementById('widget-type').value,
+      button_text: document.getElementById('button-text').value,
+      button_color: document.getElementById('button-color').value,
+      button_position: document.getElementById('button-position').value,
+      show_on_all_pages: document.getElementById('show-all').checked,
+      require_deposit: document.getElementById('require-deposit').checked,
+      collect_name: document.getElementById('c-name').checked,
+      collect_phone: document.getElementById('c-phone').checked,
+      collect_email: document.getElementById('c-email').checked,
+      collect_service: document.getElementById('c-service').checked,
+      collect_staff_preference: document.getElementById('c-staff').checked,
+      confirmation_redirect_url: document.getElementById('redirect-url').value,
+    };
+    await fetch('/api/settings/booking-widget-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

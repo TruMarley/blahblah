@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Online Booking Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .layout { display: grid; grid-template-columns: 1fr 280px; gap: 1.5rem; align-items: start; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.35rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .section-label { font-size: .7rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; margin: 1.1rem 0 .6rem; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: .45rem 0; }
+    .toggle-info-title { font-size: .85rem; font-weight: 800; }
+    .toggle-info-sub { font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+    .toggle { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top:0; left:0; right:0; bottom:0; background: var(--surface2); border-radius: 22px; transition: .2s; border: 1px solid var(--border); }
+    .slider:before { position: absolute; content:""; height:16px; width:16px; left:2px; bottom:2px; background: var(--muted); border-radius:50%; transition:.2s; }
+    input:checked + .slider { background: rgba(52,211,153,.15); border-color: rgba(52,211,153,.35); }
+    input:checked + .slider:before { transform: translateX(18px); background: var(--green); }
+    .num-row { display: flex; align-items: center; justify-content: space-between; padding: .45rem 0; }
+    .num-label { font-size: .85rem; font-weight: 800; }
+    .num-sub { font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+    .num-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: .85rem; font-family: inherit; padding: .4rem .65rem; border-radius: 7px; outline: none; width: 80px; text-align: right; transition: border-color .15s; }
+    .num-input:focus { border-color: rgba(167,139,250,.5); }
+    .mode-row { display: flex; gap: .6rem; margin-top: .4rem; }
+    .mode-btn { flex: 1; font-size: .78rem; font-weight: 800; padding: .45rem .6rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-family: inherit; text-align: center; transition: all .15s; }
+    .mode-btn.active { background: rgba(167,139,250,.12); border-color: rgba(167,139,250,.4); color: var(--accent); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: .85rem 0; }
+    .save-btn { background: var(--accent); border: none; color: #000; font-size: .85rem; font-weight: 900; padding: .6rem 1.5rem; border-radius: 9px; cursor: pointer; font-family: inherit; margin-top: 1rem; transition: opacity .15s; }
+    .save-btn:hover { opacity: .85; }
+    .save-msg { font-size: .78rem; color: var(--green); font-weight: 700; display: none; margin-left: .75rem; }
+    .save-msg.show { display: inline; }
+    /* Summary panel */
+    .summary-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .sum-row { display: flex; justify-content: space-between; align-items: center; padding: .5rem 0; border-bottom: 1px solid var(--border); font-size: .8rem; }
+    .sum-row:last-child { border-bottom: none; }
+    .sum-label { color: var(--muted); }
+    .sum-val { font-weight: 800; }
+    .badge-on  { font-size: .68rem; font-weight: 800; padding: .1rem .45rem; border-radius: 99px; background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .badge-off { font-size: .68rem; font-weight: 800; padding: .1rem .45rem; border-radius: 99px; background: rgba(102,102,102,.1); color: var(--muted); border: 1px solid rgba(102,102,102,.2); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Online Booking Settings</div>
+  <p class="page-sub">Control how clients book appointments through your online booking page.</p>
+  <div class="layout">
+    <div class="card">
+      <div class="card-title">Booking Configuration</div>
+      <div class="toggle-row">
+        <div><div class="toggle-info-title">Online Booking Enabled</div><div class="toggle-info-sub">Allow clients to book via your booking page</div></div>
+        <label class="toggle"><input type="checkbox" id="f-enabled" onchange="updateSummary()"><span class="slider"></span></label>
+      </div>
+      <hr class="divider">
+      <div class="section-label">Scheduling Rules</div>
+      <div class="num-row">
+        <div><div class="num-label">Buffer Between Appointments</div><div class="num-sub">Minutes of gap between bookings</div></div>
+        <input class="num-input" type="number" id="f-buffer" min="0" max="60" oninput="updateSummary()"> <span style="font-size:.75rem;color:var(--muted);margin-left:.3rem">min</span>
+      </div>
+      <div class="num-row">
+        <div><div class="num-label">Max Advance Booking</div><div class="num-sub">Furthest out a client can book</div></div>
+        <input class="num-input" type="number" id="f-advance" min="1" max="365" oninput="updateSummary()"> <span style="font-size:.75rem;color:var(--muted);margin-left:.3rem">days</span>
+      </div>
+      <hr class="divider">
+      <div class="section-label">Deposit &amp; Confirmation</div>
+      <div class="toggle-row">
+        <div><div class="toggle-info-title">Require Deposit</div><div class="toggle-info-sub">Charge a deposit to hold the booking</div></div>
+        <label class="toggle"><input type="checkbox" id="f-deposit" onchange="updateSummary()"><span class="slider"></span></label>
+      </div>
+      <div class="num-row">
+        <div><div class="num-label">Deposit Amount</div></div>
+        <div style="display:flex;align-items:center;gap:.3rem"><span style="font-size:.85rem;color:var(--muted)">$</span><input class="num-input" type="number" id="f-deposit-amt" min="0" oninput="updateSummary()"></div>
+      </div>
+      <div style="margin-top:.75rem">
+        <div class="section-label" style="margin-top:0">Confirmation Mode</div>
+        <div class="mode-row">
+          <button class="mode-btn" data-mode="auto"   onclick="selectMode('auto',this)">Auto-Confirm</button>
+          <button class="mode-btn" data-mode="manual" onclick="selectMode('manual',this)">Manual Approve</button>
+        </div>
+      </div>
+      <div><button class="save-btn" onclick="save()">Save Settings</button><span class="save-msg" id="save-msg">✓ Saved!</span></div>
+    </div>
+    <div>
+      <div class="summary-title">Current Policy</div>
+      <div id="summary-panel"></div>
+    </div>
+  </div>
+</div>
+<script>
+  let currentMode = 'auto';
+
+  function selectMode(mode, btn) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+    updateSummary();
+  }
+
+  function updateSummary() {
+    const enabled  = document.getElementById('f-enabled').checked;
+    const buffer   = document.getElementById('f-buffer').value || 0;
+    const advance  = document.getElementById('f-advance').value || 0;
+    const deposit  = document.getElementById('f-deposit').checked;
+    const depAmt   = document.getElementById('f-deposit-amt').value || 0;
+    document.getElementById('summary-panel').innerHTML = `
+      <div class="sum-row"><span class="sum-label">Online Booking</span><span class="sum-val">${enabled ? '<span class="badge-on">ON</span>' : '<span class="badge-off">OFF</span>'}</span></div>
+      <div class="sum-row"><span class="sum-label">Buffer</span><span class="sum-val">${buffer} min</span></div>
+      <div class="sum-row"><span class="sum-label">Advance Limit</span><span class="sum-val">${advance} days</span></div>
+      <div class="sum-row"><span class="sum-label">Deposit</span><span class="sum-val">${deposit ? '$'+depAmt : '<span class="badge-off">None</span>'}</span></div>
+      <div class="sum-row"><span class="sum-label">Confirm Mode</span><span class="sum-val" style="text-transform:capitalize">${currentMode}</span></div>`;
+  }
+
+  async function load() {
+    const r = await fetch('/api/settings/online-booking-cfg');
+    const d = await r.json();
+    document.getElementById('f-enabled').checked     = d.enabled;
+    document.getElementById('f-buffer').value        = d.buffer_minutes ?? 15;
+    document.getElementById('f-advance').value       = d.advance_booking_days ?? 60;
+    document.getElementById('f-deposit').checked     = d.require_card || false;
+    document.getElementById('f-deposit-amt').value   = 0;
+    currentMode = d.allow_same_day ? 'auto' : 'manual';
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === currentMode));
+    updateSummary();
+  }
+
+  async function save() {
+    await fetch('/api/settings/online-booking-cfg', {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        enabled:              document.getElementById('f-enabled').checked,
+        buffer_minutes:       parseInt(document.getElementById('f-buffer').value)||15,
+        advance_booking_days: parseInt(document.getElementById('f-advance').value)||60,
+        require_card:         document.getElementById('f-deposit').checked,
+        allow_same_day:       currentMode === 'auto',
+      })
+    });
+    const msg = document.getElementById('save-msg');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2000);
+  }
+
+  load();
+</script>
+</body>
+</html>

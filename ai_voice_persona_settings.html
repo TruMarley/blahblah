@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Voice Persona — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 180px; }
+    input[type=range] { -webkit-appearance: none; width: 160px; height: 4px; border-radius: 4px; background: var(--surface2); outline: none; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); cursor: pointer; }
+    input:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-size: .8rem; padding: .55rem .75rem; outline: none; resize: vertical; min-height: 60px; font-family: inherit; line-height: 1.5; margin-top: .45rem; }
+    textarea:focus { border-color: var(--accent); }
+    .msg-label { font-size: .78rem; font-weight: 600; color: var(--muted); margin-bottom: .1rem; }
+    .chip-wrap { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .45rem; }
+    .chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: .18rem .5rem; font-size: .74rem; display: flex; align-items: center; gap: .3rem; }
+    .chip-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .78rem; padding: 0; line-height: 1; }
+    .chip-del:hover { color: var(--red); }
+    .chip-add-row { display: flex; gap: .4rem; margin-top: .45rem; }
+    .chip-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .38rem .65rem; outline: none; width: 180px; }
+    .chip-input:focus { border-color: var(--accent); }
+    .add-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--accent); font-size: .78rem; font-weight: 700; padding: .35rem .65rem; cursor: pointer; }
+    .add-btn:hover { border-color: var(--accent); }
+    .rate-val { font-size: .8rem; color: var(--accent); font-weight: 700; width: 36px; text-align: right; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Voice Persona</div>
+  <p class="page-sub">Shape exactly how your AI receptionist sounds and what it talks about. A well-configured persona feels like a natural extension of your shop — not a robot. Give it your brand's name, voice, and conversational style.</p>
+  <div class="card">
+    <div class="card-title">Identity</div>
+    <div class="row">
+      <div><div class="row-label">Persona Name</div><div class="row-sub">Name your AI uses when answering</div></div>
+      <input type="text" id="persona-name" placeholder="Alex">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Voice Style</div></div>
+      <select id="voice-style">
+        <option value="friendly">Friendly</option>
+        <option value="professional">Professional</option>
+        <option value="casual">Casual</option>
+        <option value="energetic">Energetic</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Language</div></div>
+      <select id="language">
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="es-US">Spanish (US)</option>
+        <option value="fr-FR">French</option>
+        <option value="pt-BR">Portuguese (Brazil)</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Speaking Rate</div><div class="row-sub">0.8 = slower, 1.4 = faster</div></div>
+      <div style="display:flex;align-items:center;gap:.6rem">
+        <input type="range" id="speaking-rate" min="0.8" max="1.4" step="0.05" oninput="document.getElementById('rate-val').textContent=parseFloat(this.value).toFixed(2)">
+        <div class="rate-val" id="rate-val">1.00</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Custom Greeting</div>
+    <div class="msg-label">Opening line when AI answers the phone</div>
+    <textarea id="greeting" rows="3"></textarea>
+  </div>
+  <div class="card">
+    <div class="card-title">Topic Controls</div>
+    <div style="margin-bottom:1.1rem">
+      <div class="msg-label">Topics to Mention Proactively</div>
+      <div class="row-sub" style="margin-top:.15rem">AI will bring these up when relevant</div>
+      <div class="chip-wrap" id="proactive-list"></div>
+      <div class="chip-add-row">
+        <input type="text" class="chip-input" id="new-proactive" placeholder="e.g. loyalty points">
+        <button class="add-btn" onclick="addChip('proactive')">+ Add</button>
+      </div>
+    </div>
+    <div>
+      <div class="msg-label">Topics AI Should Never Discuss</div>
+      <div class="row-sub" style="margin-top:.15rem">AI will deflect if these come up</div>
+      <div class="chip-wrap" id="forbidden-list"></div>
+      <div class="chip-add-row">
+        <input type="text" class="chip-input" id="new-forbidden" placeholder="e.g. competitor pricing">
+        <button class="add-btn" onclick="addChip('forbidden')">+ Add</button>
+      </div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let proactive=[], forbidden=[];
+  function renderChips(arr, listId, type) {
+    const el=document.getElementById(listId);
+    el.innerHTML='';
+    arr.forEach((t,i)=>{
+      el.innerHTML+=`<div class="chip">${esc(t)}<button class="chip-del" onclick="removeChip('${type}',${i})">✕</button></div>`;
+    });
+  }
+  function addChip(type) {
+    const inp=document.getElementById('new-'+type);
+    const v=inp.value.trim(); if(!v) return;
+    if(type==='proactive') { if(!proactive.includes(v)) proactive.push(v); renderChips(proactive,'proactive-list','proactive'); }
+    else { if(!forbidden.includes(v)) forbidden.push(v); renderChips(forbidden,'forbidden-list','forbidden'); }
+    inp.value='';
+  }
+  function removeChip(type,i) {
+    if(type==='proactive') { proactive.splice(i,1); renderChips(proactive,'proactive-list','proactive'); }
+    else { forbidden.splice(i,1); renderChips(forbidden,'forbidden-list','forbidden'); }
+  }
+  ['new-proactive','new-forbidden'].forEach(id=>{
+    document.getElementById(id).addEventListener('keydown',e=>{ if(e.key==='Enter') addChip(id.replace('new-','')); });
+  });
+  async function load() {
+    const d=await fetch('/api/settings/ai-voice-persona-cfg').then(r=>r.json());
+    document.getElementById('persona-name').value=d.persona_name||'';
+    document.getElementById('voice-style').value=d.voice_style||'friendly';
+    document.getElementById('language').value=d.language||'en-US';
+    const rate=d.speaking_rate??1.0;
+    document.getElementById('speaking-rate').value=rate;
+    document.getElementById('rate-val').textContent=parseFloat(rate).toFixed(2);
+    document.getElementById('greeting').value=d.custom_greeting||'';
+    proactive=d.proactive_topics||[]; renderChips(proactive,'proactive-list','proactive');
+    forbidden=d.forbidden_topics||[]; renderChips(forbidden,'forbidden-list','forbidden');
+  }
+  async function save() {
+    const data={
+      persona_name:document.getElementById('persona-name').value,
+      voice_style:document.getElementById('voice-style').value,
+      language:document.getElementById('language').value,
+      speaking_rate:parseFloat(document.getElementById('speaking-rate').value),
+      custom_greeting:document.getElementById('greeting').value,
+      proactive_topics:proactive,
+      forbidden_topics:forbidden
+    };
+    await fetch('/api/settings/ai-voice-persona-cfg',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const t=document.getElementById('toast');
+    t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000);
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

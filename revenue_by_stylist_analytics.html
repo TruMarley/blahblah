@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue by Stylist — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; display: inline-block; margin-bottom: 1.25rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; color: var(--green); }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .sty-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .5rem; display: flex; align-items: center; justify-content: space-between; }
+    .sty-left { flex: 1; }
+    .sty-name { font-size: .88rem; font-weight: 800; }
+    .sty-meta { font-size: .7rem; color: var(--muted); margin-top: .15rem; }
+    .sty-rev { font-size: .95rem; font-weight: 900; color: var(--green); }
+    .sty-ticket { font-size: .68rem; color: var(--accent); margin-top: .1rem; text-align: right; }
+    .rev-bar { width: 100%; background: var(--surface); border-radius: 3px; height: 4px; margin-top: .5rem; overflow: hidden; }
+    .rev-fill { height: 100%; border-radius: 3px; background: var(--green); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue by Stylist</div>
+  <p class="page-sub">See each team member's revenue contribution, booking count, and average ticket. Identify top performers and spot opportunities to lift lower-revenue stylists through routing or training.</p>
+  <div class="stat-pill"><div class="stat-val" id="h-total">—</div><div class="stat-lbl">Total Revenue (30d)</div></div>
+  <div class="card">
+    <div class="card-title">Stylist Revenue Breakdown</div>
+    <div id="sty-list"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['var(--accent)','var(--green)','var(--yellow)','#60a5fa'];
+  async function load() {
+    const d = await fetch('/api/analytics/revenue-by-stylist-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = '$' + d.total_revenue_30d.toLocaleString(undefined,{maximumFractionDigits:0});
+    const sl = document.getElementById('sty-list');
+    const maxR = Math.max(...d.stylists.map(s => s.revenue));
+    d.stylists.forEach((s, i) => {
+      const w = (s.revenue / maxR * 100).toFixed(1);
+      sl.innerHTML += '<div class="sty-row"><div class="sty-left"><div class="sty-name" style="color:' + COLORS[i] + '">' + s.name + '</div><div class="sty-meta">' + s.bookings + ' bookings</div><div class="rev-bar"><div class="rev-fill" style="width:' + w + '%;background:' + COLORS[i] + '"></div></div></div><div style="text-align:right;margin-left:1rem"><div class="sty-rev">$' + s.revenue.toFixed(0) + '</div><div class="sty-ticket">$' + s.avg_ticket.toFixed(0) + ' avg ticket</div></div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

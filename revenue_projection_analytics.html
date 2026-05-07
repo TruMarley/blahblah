@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue Projection — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-area { position: relative; height: 200px; display: flex; align-items: flex-end; gap: 4px; }
+    .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .bar-actual { width: 40%; border-radius: 3px 3px 0 0; }
+    .bar-proj { width: 40%; border-radius: 3px 3px 0 0; opacity: .55; border: 1px dashed; }
+    .bars-pair { display: flex; gap: 2px; width: 100%; justify-content: center; align-items: flex-end; }
+    .bar-lbl { font-size: .55rem; color: var(--muted); margin-top: 3px; }
+    .range-band { position: absolute; left: 0; right: 0; opacity: .07; border-radius: 3px; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: 1rem; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+    .legend-dot.proj { opacity: .55; border: 1px dashed var(--accent); background: transparent; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue Projection</div>
+  <p class="page-sub">Compare actual revenue against AI-generated projections. View low/high confidence bands and track year-over-year growth momentum.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-ytd" style="color:var(--green)">—</div>
+      <div class="stat-lbl">YTD Revenue</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-avg" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Avg Monthly</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-annual" style="color:var(--text)">—</div>
+      <div class="stat-lbl">Projected Annual</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-yoy" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">YoY Growth</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-next" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Next Month Proj.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Actuals vs Projected</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Actual</div>
+      <div class="legend-item"><div class="legend-dot proj"></div>Projected</div>
+    </div>
+    <div class="chart-area" id="proj-chart"></div>
+  </div>
+</div>
+<script>
+  function fmt(v) { return v >= 1000 ? '$' + (v/1000).toFixed(1) + 'k' : '$' + v; }
+  async function load() {
+    const data = await fetch('/api/analytics/revenue-projection-stats').then(r => r.json());
+    document.getElementById('h-ytd').textContent = fmt(data.ytd_revenue);
+    document.getElementById('h-avg').textContent = fmt(data.avg_monthly_revenue);
+    document.getElementById('h-annual').textContent = fmt(data.projected_annual_revenue);
+    document.getElementById('h-yoy').textContent = (data.yoy_growth_pct >= 0 ? '+' : '') + data.yoy_growth_pct.toFixed(1) + '%';
+    document.getElementById('h-next').textContent = fmt(data.next_month_projection);
+
+    const all = [...(data.actuals || []), ...(data.projected || [])];
+    const maxVal = Math.max(...all.map(m => Math.max(m.revenue || 0, m.high || m.projected || 0)), 1);
+    const chart = document.getElementById('proj-chart');
+
+    const months = {};
+    (data.actuals || []).forEach(m => { months[m.month] = { ...months[m.month], actual: m.revenue, type: m.type }; });
+    (data.projected || []).forEach(m => { months[m.month] = { ...months[m.month], proj: m.projected, low: m.low, high: m.high, ptype: m.type }; });
+
+    Object.entries(months).forEach(([month, m]) => {
+      const ah = m.actual ? Math.max((m.actual / maxVal * 180), 3) : 0;
+      const ph = m.proj ? Math.max((m.proj / maxVal * 180), 3) : 0;
+      const div = document.createElement('div');
+      div.className = 'bar-group';
+      div.innerHTML = `
+        <div class="bars-pair">
+          ${m.actual ? `<div class="bar-actual" style="height:${ah}px;background:var(--green);" title="${month} actual: ${fmt(m.actual)}"></div>` : '<div style="width:40%"></div>'}
+          ${m.proj ? `<div class="bar-proj" style="height:${ph}px;border-color:var(--accent);background:var(--accent);border-style:dashed;" title="${month} projected: ${fmt(m.proj)} (${fmt(m.low)}–${fmt(m.high)})"></div>` : '<div style="width:40%"></div>'}
+        </div>
+        <div class="bar-lbl">${month.slice(0,3)}</div>
+      `;
+      chart.appendChild(div);
+    });
+  }
+  load();
+</script>
+</body>
+</html>

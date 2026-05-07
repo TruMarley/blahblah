@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Revenue Efficiency — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-bottom: .6rem; }
+    .stats-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .metric-row { display: flex; align-items: center; justify-content: space-between; padding: .85rem 0; border-bottom: 1px solid var(--border); }
+    .metric-row:last-child { border-bottom: none; }
+    .metric-label { font-size: .82rem; color: var(--muted); }
+    .metric-val { font-size: .96rem; font-weight: 900; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Revenue Efficiency</div>
+  <p class="page-sub">Measure how much revenue each call generates. Revenue per booked call shows the real value of successful AI interactions — and the cost of missed bookings.</p>
+  <div class="stats-grid">
+    <div class="stat-pill"><div class="stat-val" id="h-per-call" style="color:var(--accent)">—</div><div class="stat-lbl">Revenue per Call</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-per-booked" style="color:var(--green)">—</div><div class="stat-lbl">Revenue per Booked Call</div></div>
+  </div>
+  <div class="stats-grid-3">
+    <div class="stat-pill"><div class="stat-val" id="h-calls" style="color:var(--muted)">—</div><div class="stat-lbl">Total Calls (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-booked" style="color:var(--muted)">—</div><div class="stat-lbl">Booked Calls</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-book-rate" style="color:var(--yellow)">—</div><div class="stat-lbl">Booking Rate</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Efficiency Metrics</div>
+    <div class="metric-row">
+      <div class="metric-label">Total Call Revenue (30d)</div>
+      <div class="metric-val" id="m-total-rev" style="color:var(--green)">—</div>
+    </div>
+    <div class="metric-row">
+      <div class="metric-label">Avg Call Duration</div>
+      <div class="metric-val" id="m-duration" style="color:var(--accent)">—</div>
+    </div>
+    <div class="metric-row">
+      <div class="metric-label">Revenue per Call</div>
+      <div class="metric-val" id="m-per-call" style="color:var(--accent)">—</div>
+    </div>
+    <div class="metric-row">
+      <div class="metric-label">Revenue per Booked Call</div>
+      <div class="metric-val" id="m-per-booked" style="color:var(--green)">—</div>
+    </div>
+    <div class="metric-row">
+      <div class="metric-label">Booking Rate</div>
+      <div class="metric-val" id="m-book-rate" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/call-revenue-efficiency-stats').then(r => r.json());
+    document.getElementById('h-per-call').textContent = '$' + d.revenue_per_call.toFixed(2);
+    document.getElementById('h-per-booked').textContent = '$' + d.revenue_per_booked_call.toFixed(2);
+    document.getElementById('h-calls').textContent = d.calls_30d;
+    document.getElementById('h-booked').textContent = d.booked_calls_30d;
+    document.getElementById('h-book-rate').textContent = d.booking_rate_pct.toFixed(1) + '%';
+    document.getElementById('m-total-rev').textContent = '$' + d.total_call_revenue_30d.toLocaleString();
+    const mins = Math.floor(d.avg_call_duration_sec / 60);
+    const secs = d.avg_call_duration_sec % 60;
+    document.getElementById('m-duration').textContent = mins + 'm ' + secs + 's';
+    document.getElementById('m-per-call').textContent = '$' + d.revenue_per_call.toFixed(2);
+    document.getElementById('m-per-booked').textContent = '$' + d.revenue_per_booked_call.toFixed(2);
+    document.getElementById('m-book-rate').textContent = d.booking_rate_pct.toFixed(1) + '%';
+  }
+  load();
+</script>
+</body>
+</html>

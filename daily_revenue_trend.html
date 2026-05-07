@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Daily Revenue Trend — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { height: 220px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Daily Revenue Trend</div>
+  <p class="page-sub">Revenue and transaction count for each of the last 14 days.</p>
+
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg Daily Revenue</div>
+      <div class="hero-val" id="h-avg" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">14-Day Total</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Daily Revenue — Last 14 Days</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 800 220" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#34d399" stop-opacity=".35"/>
+            <stop offset="100%" stop-color="#34d399" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+    <div style="display:flex;gap:1.25rem;margin-top:.75rem">
+      <div style="display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--muted)"><div style="width:10px;height:10px;border-radius:2px;background:#34d399;opacity:.6"></div>Revenue (bars)</div>
+      <div style="display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--muted)"><div style="width:18px;height:2px;background:#a78bfa"></div>Transactions</div>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/daily-revenue-trend');
+    const d = await r.json();
+    document.getElementById('h-avg').textContent = '$' + d.avg_daily.toFixed(0);
+    document.getElementById('h-total').textContent = '$' + Number(d.total_14d).toLocaleString();
+
+    const days = d.days || [];
+    const svg = document.getElementById('chart');
+    const W=800,H=220,pL=48,pR=12,pT=14,pB=34;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const maxRev = Math.max(...days.map(d=>d.revenue),1);
+    const maxTxn = Math.max(...days.map(d=>d.transactions),1);
+    const n = days.length;
+    const bW = cW/n * 0.55;
+    const xOf = i => pL + i*(cW/n) + (cW/n)/2;
+
+    // y grid (revenue)
+    [0,.25,.5,.75,1].forEach(f=>{
+      const y=pT+cH*(1-f);
+      svg.innerHTML+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML+=`<text x="${pL-4}" y="${y+3}" font-size="9" fill="#666" text-anchor="end">$${Math.round(maxRev*f)}</text>`;
+    });
+
+    // bars + labels
+    days.forEach((day,i)=>{
+      const cx = xOf(i);
+      const bH = (day.revenue/maxRev)*cH;
+      svg.innerHTML+=`<rect x="${cx-bW/2}" y="${pT+cH-bH}" width="${bW}" height="${bH}" rx="3" fill="#34d399" opacity=".55"/>`;
+      svg.innerHTML+=`<text x="${cx}" y="${H-4}" font-size="8.5" fill="#666" text-anchor="middle">${day.label.split(' ')[1]}</text>`;
+    });
+
+    // transaction line (secondary axis)
+    const txnPts = days.map((day,i)=>[xOf(i), pT+cH-(day.transactions/maxTxn)*cH]);
+    const areaPath = `M ${txnPts[0][0]} ${pT+cH} L ${txnPts.map(p=>p.join(',')).join(' L ')} L ${txnPts[txnPts.length-1][0]} ${pT+cH} Z`;
+    svg.innerHTML+=`<polyline fill="none" stroke="#a78bfa" stroke-width="2" stroke-linejoin="round" stroke-dasharray="4 2" points="${txnPts.map(p=>p.join(',')).join(' ')}"/>`;
+    txnPts.forEach(p=>{ svg.innerHTML+=`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="#a78bfa"/>`; });
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Quality Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.4rem; }
+    .field-group { margin-bottom: 1.1rem; }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; display: block; }
+    .f-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .85rem; padding: .5rem .75rem; font-family: inherit; width: 100%; outline: none; cursor: pointer; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .85rem; padding: .5rem .75rem; font-family: inherit; width: 100%; outline: none; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .toggle-info .toggle-name { font-size: .85rem; font-weight: 700; }
+    .toggle-info .toggle-desc { font-size: .74rem; color: var(--muted); margin-top: .1rem; }
+    .tog { width: 36px; height: 20px; background: var(--border); border-radius: 99px; position: relative; cursor: pointer; flex-shrink: 0; transition: background .2s; }
+    .tog.on { background: rgba(167,139,250,.6); }
+    .tog::after { content:''; position:absolute; top:3px; left:3px; width:14px; height:14px; background:#fff; border-radius:50%; transition:transform .2s; }
+    .tog.on::after { transform: translateX(16px); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
+    .save-row { display: flex; align-items: center; gap: 1rem; margin-top: 1.4rem; }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.5rem; border-radius: 9px; border: 1px solid rgba(52,211,153,.4); background: rgba(52,211,153,.1); color: var(--green); cursor: pointer; font-family: inherit; }
+    .save-btn:hover { background: rgba(52,211,153,.2); }
+    .saved-msg { font-size: .78rem; color: var(--green); font-weight: 700; opacity: 0; transition: opacity .3s; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Quality Settings</div>
+  <p class="page-sub">Control audio quality, noise handling, and recording behavior for every AI call.</p>
+  <div class="card">
+    <div class="card-title">Audio Configuration</div>
+    <div class="field-group">
+      <label class="field-label" for="quality">Minimum Audio Quality</label>
+      <select class="f-select" id="quality">
+        <option value="standard">Standard</option>
+        <option value="high">High</option>
+        <option value="ultra">Ultra</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="silence">Silence Timeout (seconds)</label>
+      <input class="f-input" type="number" id="silence" min="3" max="30" step="1" style="max-width:160px">
+    </div>
+    <hr class="divider">
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Noise Suppression</div>
+        <div class="toggle-desc">Filter background noise from barbershop/salon environment</div>
+      </div>
+      <div class="tog" id="tog-noise_suppression" onclick="toggleKey('noise_suppression')"></div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Echo Cancellation</div>
+        <div class="toggle-desc">Prevent audio feedback loops on calls</div>
+      </div>
+      <div class="tog" id="tog-echo_cancellation" onclick="toggleKey('echo_cancellation')"></div>
+    </div>
+    <hr class="divider">
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Call Recording</div>
+        <div class="toggle-desc">Record all AI-handled calls for review</div>
+      </div>
+      <div class="tog" id="tog-recording_enabled" onclick="toggleKey('recording_enabled')"></div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Transcription</div>
+        <div class="toggle-desc">Generate text transcripts of every call</div>
+      </div>
+      <div class="tog" id="tog-transcription_enabled" onclick="toggleKey('transcription_enabled')"></div>
+    </div>
+    <div class="save-row">
+      <button class="save-btn" onclick="save()">Save Settings</button>
+      <span class="saved-msg" id="saved-msg">✓ Saved</span>
+    </div>
+  </div>
+</div>
+<script>
+  let config = {};
+  const boolKeys = ['noise_suppression','echo_cancellation','recording_enabled','transcription_enabled'];
+  async function load() {
+    const r = await fetch('/api/call-quality-settings');
+    config = await r.json();
+    document.getElementById('quality').value = config.min_audio_quality || 'high';
+    document.getElementById('silence').value = config.silence_timeout_seconds || 8;
+    boolKeys.forEach(k => setTog(k, config[k]));
+  }
+  function setTog(key, val) {
+    const el = document.getElementById('tog-' + key);
+    if (el) el.classList.toggle('on', !!val);
+  }
+  function toggleKey(key) {
+    config[key] = !config[key];
+    setTog(key, config[key]);
+  }
+  async function save() {
+    config.min_audio_quality = document.getElementById('quality').value;
+    config.silence_timeout_seconds = parseInt(document.getElementById('silence').value) || 8;
+    await fetch('/api/call-quality-settings', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(config)});
+    const msg = document.getElementById('saved-msg');
+    msg.style.opacity = '1';
+    setTimeout(() => { msg.style.opacity = '0'; }, 2000);
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Churn Prediction — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .45rem; }
+    .hero-val { font-size: 2.4rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .85rem; }
+    .sort-row { display: flex; gap: .5rem; margin-bottom: 1rem; }
+    .sort-btn { font-size: .72rem; font-weight: 700; padding: .25rem .75rem; border-radius: 99px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-family: inherit; transition: all .15s; }
+    .sort-btn.active { background: rgba(167,139,250,.12); border-color: rgba(167,139,250,.4); color: var(--accent); }
+    .client-row { display: flex; align-items: center; gap: .85rem; padding: .75rem 0; border-bottom: 1px solid var(--border); }
+    .client-row:last-child { border-bottom: none; }
+    .client-name { font-weight: 800; font-size: .85rem; width: 130px; flex-shrink: 0; }
+    .score-wrap { flex: 1; display: flex; align-items: center; gap: .6rem; }
+    .score-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+    .score-fill { height: 100%; border-radius: 4px; }
+    .score-val { font-size: .78rem; font-weight: 900; width: 36px; text-align: right; flex-shrink: 0; }
+    .client-meta { display: flex; gap: 1rem; flex-shrink: 0; }
+    .meta-item { font-size: .72rem; color: var(--muted); text-align: right; }
+    .meta-val { font-weight: 800; color: var(--text); display: block; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Churn Prediction</div>
+  <p class="page-sub">AI-scored clients most likely to stop booking — ranked by churn risk.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">At-Risk Clients</div>
+      <div class="hero-val" style="color:var(--red)" id="h-count">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Est. Monthly Revenue at Risk</div>
+      <div class="hero-val" style="color:var(--yellow)" id="h-rev">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">At-Risk Client List</div>
+    <div class="sort-row">
+      <button class="sort-btn active" onclick="sortBy('score',this)">Risk Score</button>
+      <button class="sort-btn" onclick="sortBy('days_since_visit',this)">Days Away</button>
+      <button class="sort-btn" onclick="sortBy('avg_spend',this)">Avg Spend</button>
+    </div>
+    <div id="client-list"></div>
+  </div>
+</div>
+<script>
+  let clients = [];
+  let sortKey = 'score';
+
+  function riskColor(score) {
+    if (score >= 80) return '#f87171';
+    if (score >= 65) return '#fbbf24';
+    return '#a78bfa';
+  }
+
+  async function load() {
+    const r = await fetch('/api/analytics/churn-prediction');
+    const d = await r.json();
+    clients = d.clients || [];
+    document.getElementById('h-count').textContent = d.total_at_risk ?? '—';
+    document.getElementById('h-rev').textContent = '$' + (d.est_monthly_revenue_at_risk||0).toLocaleString();
+    render();
+  }
+
+  function sortBy(key, btn) {
+    sortKey = key;
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  }
+
+  function render() {
+    const sorted = [...clients].sort((a,b) => b[sortKey] - a[sortKey]);
+    document.getElementById('client-list').innerHTML = sorted.map(c => {
+      const color = riskColor(c.score);
+      return `<div class="client-row">
+        <div class="client-name">${esc(c.name)}</div>
+        <div class="score-wrap">
+          <div class="score-track"><div class="score-fill" style="width:${c.score}%;background:${color}"></div></div>
+          <div class="score-val" style="color:${color}">${c.score}</div>
+        </div>
+        <div class="client-meta">
+          <div class="meta-item"><span class="meta-val">${c.days_since_visit}d</span>last visit</div>
+          <div class="meta-item"><span class="meta-val">${c.visit_count}</span>visits</div>
+          <div class="meta-item"><span class="meta-val" style="color:var(--accent)">$${c.avg_spend}</span>avg</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

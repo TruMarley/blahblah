@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Missed Revenue — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem .9rem; text-align: center; }
+    .hero-label { font-size: .6rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.2rem; font-weight: 900; }
+    .hero-sub { font-size: .68rem; color: var(--muted); margin-top: .25rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .monthly-table { width: 100%; border-collapse: collapse; }
+    .monthly-table th { font-size: .62rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: .3rem .5rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .monthly-table td { font-size: .82rem; padding: .55rem .5rem; border-bottom: 1px solid rgba(30,30,30,.6); }
+    .monthly-table tr:last-child td { border-bottom: none; }
+    .insight-box { background: rgba(248,113,113,.06); border: 1px solid rgba(248,113,113,.18); border-radius: 10px; padding: .85rem 1rem; margin-top: 1rem; font-size: .78rem; color: var(--text); line-height: 1.6; }
+    .insight-box strong { color: var(--red); }
+    .recovery-box { background: rgba(52,211,153,.06); border: 1px solid rgba(52,211,153,.18); border-radius: 10px; padding: .85rem 1rem; margin-top: .75rem; font-size: .78rem; color: var(--text); line-height: 1.6; }
+    .recovery-box strong { color: var(--green); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Missed Revenue</div>
+  <p class="page-sub">Every unanswered call is potential revenue that walked away. Track missed calls, estimate lost revenue, and see how much your AI has recovered through callbacks and SMS follow-up.</p>
+
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Missed Calls (30d)</div>
+      <div class="hero-val" id="h-missed" style="color:var(--red)">—</div>
+      <div class="hero-sub" id="h-peak">Peak: —</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Est. Lost Revenue</div>
+      <div class="hero-val" id="h-lost" style="color:var(--yellow)">—</div>
+      <div class="hero-sub" id="h-avg-val">avg $— / call</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Recovered via Callback</div>
+      <div class="hero-val" id="h-recovered" style="color:var(--green)">—</div>
+      <div class="hero-sub" id="h-recovery-rate">—% recovery rate</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Missed Revenue Trend</div>
+    <table class="monthly-table">
+      <thead><tr><th>Month</th><th>Missed Calls</th><th>Est. Lost</th><th>Recovery Rate</th></tr></thead>
+      <tbody id="monthly-body"></tbody>
+    </table>
+    <div class="insight-box" id="insight-box"></div>
+    <div class="recovery-box" id="recovery-box"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/missed-revenue-stats').then(r => r.json());
+    document.getElementById('h-missed').textContent = d.missed_calls_30d != null ? d.missed_calls_30d : '—';
+    document.getElementById('h-peak').textContent = d.peak_miss_hour ? 'Peak: ' + d.peak_miss_hour : '';
+    document.getElementById('h-lost').textContent = d.estimated_lost_30d != null ? '$' + d.estimated_lost_30d.toLocaleString() : '—';
+    document.getElementById('h-avg-val').textContent = d.avg_missed_call_value != null ? 'avg $' + Number(d.avg_missed_call_value).toFixed(0) + ' / call' : '';
+    document.getElementById('h-recovered').textContent = d.recovered_via_callback != null ? d.recovered_via_callback : '—';
+    document.getElementById('h-recovery-rate').textContent = d.recovery_rate_pct != null ? d.recovery_rate_pct + '% recovery rate' : '';
+
+    const monthly = d.monthly || [];
+    const tbody = document.getElementById('monthly-body');
+    monthly.forEach(m => {
+      const rateCol = m.recovery_rate_pct >= 40 ? 'var(--green)' : m.recovery_rate_pct >= 25 ? 'var(--yellow)' : 'var(--red)';
+      tbody.innerHTML += `<tr>
+        <td style="font-weight:700">${esc(m.month)}</td>
+        <td style="color:var(--red);font-weight:700">${m.missed_calls}</td>
+        <td style="color:var(--yellow);font-weight:700">$${(m.estimated_lost||0).toLocaleString()}</td>
+        <td style="color:${rateCol};font-weight:700">${m.recovery_rate_pct}%</td>
+      </tr>`;
+    });
+
+    const totalLost = monthly.reduce((s, m) => s + (m.estimated_lost || 0), 0);
+    document.getElementById('insight-box').innerHTML =
+      `Over the last 6 months, an estimated <strong>$${totalLost.toLocaleString()}</strong> in revenue was lost to unanswered calls. ` +
+      `Your busiest missed-call window is <strong>${esc(d.peak_miss_hour || '—')}</strong> — consider ensuring full AI coverage during this period. ` +
+      `Each missed call is worth approximately <strong>$${Number(d.avg_missed_call_value||0).toFixed(0)}</strong> in potential revenue.`;
+
+    const recoveredAmt = Math.round((d.recovered_via_callback || 0) * (d.avg_missed_call_value || 0));
+    document.getElementById('recovery-box').innerHTML =
+      `Your AI recovered <strong>${d.recovered_via_callback || 0} bookings</strong> via callback and SMS follow-up this month, recapturing an estimated <strong>$${recoveredAmt.toLocaleString()}</strong>. ` +
+      `Current recovery rate: <strong>${d.recovery_rate_pct}%</strong>. Enabling SMS auto-reply for all missed calls could push this above 50%.`;
+  }
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

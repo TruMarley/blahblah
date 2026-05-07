@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Follow-Up — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select, input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus, input:focus { border-color: var(--accent); }
+    input[type=number] { width: 80px; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .79rem; padding: .5rem .72rem; outline: none; resize: vertical; font-family: inherit; line-height: 1.5; margin-bottom: .3rem; }
+    textarea:focus { border-color: var(--accent); }
+    .tpl-label { font-size: .78rem; font-weight: 700; color: var(--muted); margin-bottom: .35rem; margin-top: .9rem; }
+    .tpl-label:first-of-type { margin-top: 0; }
+    .var-hint { font-size: .63rem; color: var(--muted); margin-bottom: .6rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Follow-Up</div>
+  <p class="page-sub">Automatically follow up with no-shows and missed callers. Recover lost bookings by reaching out at exactly the right moment with a personalized rebooking message.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-sent" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Follow-Ups Sent (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-rebookings" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Rebookings (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-rate" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Conversion Rate</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Trigger Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable AI Follow-Up</div><div class="row-sub">Send automated follow-ups on triggers</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Follow Up After No-Show</div></div>
+      <label class="toggle"><input type="checkbox" id="ns-followup"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">No-Show Delay (hours)</div><div class="row-sub">How long to wait before sending</div></div>
+      <input type="number" id="ns-hours" min="1" max="48">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Follow Up After Abandoned Call</div><div class="row-sub">Caller hung up before booking</div></div>
+      <label class="toggle"><input type="checkbox" id="aband-followup"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Abandoned Call Delay (min)</div></div>
+      <input type="number" id="aband-mins" min="5" max="120">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Follow Up After Booking</div><div class="row-sub">Send confirmation follow-up</div></div>
+      <label class="toggle"><input type="checkbox" id="book-followup"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Delivery Settings</div>
+    <div class="row">
+      <div><div class="row-label">Send Via</div></div>
+      <select id="followup-via">
+        <option value="sms">SMS</option>
+        <option value="email">Email</option>
+        <option value="both">Both</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Calls for Follow-Up</div><div class="row-sub">Place outbound call instead of message</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-calls"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Follow-Up Attempts</div></div>
+      <input type="number" id="max-attempts" min="1" max="5">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Retry Interval (hours)</div></div>
+      <input type="number" id="interval-hours" min="1" max="72">
+    </div>
+    <button class="save-btn" onclick="save()">Save Follow-Up Settings</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Message Templates</div>
+    <div class="tpl-label">No-Show Follow-Up</div>
+    <textarea id="ns-msg" rows="2"></textarea>
+    <div class="var-hint">Variables: {first_name}, {booking_link}, {date}, {service}</div>
+
+    <div class="tpl-label">Abandoned Call Follow-Up</div>
+    <textarea id="aband-msg" rows="2"></textarea>
+    <div class="var-hint">Variables: {first_name}, {booking_link}, {business_name}</div>
+
+    <div class="tpl-label">Post-Booking Confirmation</div>
+    <textarea id="book-msg" rows="2"></textarea>
+    <div class="var-hint">Variables: {first_name}, {date}, {time}, {service}</div>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/ai-followup-cfg').then(r => r.json());
+    document.getElementById('h-sent').textContent = data.followups_sent_30d;
+    document.getElementById('h-rebookings').textContent = data.rebookings_from_followup_30d;
+    document.getElementById('h-rate').textContent = data.followup_conversion_rate_pct.toFixed(1) + '%';
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('ns-followup').checked = data.followup_after_no_show;
+    document.getElementById('ns-hours').value = data.followup_after_no_show_hours;
+    document.getElementById('aband-followup').checked = data.followup_after_abandoned_call;
+    document.getElementById('aband-mins').value = data.followup_after_abandoned_minutes;
+    document.getElementById('book-followup').checked = data.followup_after_booking;
+    document.getElementById('followup-via').value = data.followup_via;
+    document.getElementById('ai-calls').checked = data.ai_calls_for_followup;
+    document.getElementById('max-attempts').value = data.max_followup_attempts;
+    document.getElementById('interval-hours').value = data.followup_interval_hours;
+    document.getElementById('ns-msg').value = data.no_show_followup_message || '';
+    document.getElementById('aband-msg').value = data.abandoned_followup_message || '';
+    document.getElementById('book-msg').value = data.booking_followup_message || '';
+  }
+  async function save() {
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      followup_after_no_show: document.getElementById('ns-followup').checked,
+      followup_after_no_show_hours: parseInt(document.getElementById('ns-hours').value) || 2,
+      followup_after_abandoned_call: document.getElementById('aband-followup').checked,
+      followup_after_abandoned_minutes: parseInt(document.getElementById('aband-mins').value) || 30,
+      followup_after_booking: document.getElementById('book-followup').checked,
+      followup_via: document.getElementById('followup-via').value,
+      ai_calls_for_followup: document.getElementById('ai-calls').checked,
+      max_followup_attempts: parseInt(document.getElementById('max-attempts').value) || 2,
+      followup_interval_hours: parseInt(document.getElementById('interval-hours').value) || 24,
+      no_show_followup_message: document.getElementById('ns-msg').value,
+      abandoned_followup_message: document.getElementById('aband-msg').value,
+      booking_followup_message: document.getElementById('book-msg').value,
+    };
+    await fetch('/api/settings/ai-followup-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

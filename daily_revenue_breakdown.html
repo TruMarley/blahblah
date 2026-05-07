@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Daily Revenue Breakdown — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: 1.25rem; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+    .chart-wrap { height: 260px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Daily Revenue Breakdown</div>
+  <p class="page-sub">Revenue by day of week — identify your strongest days and optimize staffing and promotions around your natural revenue pattern.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Weekly Total</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Best Day</div>
+      <div class="hero-val" id="h-best" style="color:var(--green);font-size:1.2rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Ticket</div>
+      <div class="hero-val" id="h-ticket" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Revenue &amp; Avg Ticket by Day</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(167,139,250,.6)"></div>Daily Revenue</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow);border-radius:50%"></div>Avg Ticket</div>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/weekly-day-revenue');
+    const d = await r.json();
+    const days = d.days || [];
+    const totalRev = days.reduce((s,d)=>s+d.revenue,0);
+    const bestDay = days.reduce((a,b)=>b.revenue>a.revenue?b:a, days[0]);
+    const avgTicket = Math.round(days.reduce((s,d)=>s+d.avg_ticket,0)/days.length);
+    document.getElementById('h-total').textContent = '$'+totalRev.toLocaleString();
+    document.getElementById('h-best').textContent = bestDay ? bestDay.day : '—';
+    document.getElementById('h-ticket').textContent = '$'+avgTicket;
+
+    const svg = document.getElementById('chart');
+    const W=700,H=260,pL=56,pR=50,pT=14,pB=28;
+    const cW=W-pL-pR,cH=H-pT-pB;
+    const n=days.length,xStep=cW/n,bW=xStep*0.52;
+    const maxRev=Math.max(...days.map(d=>d.revenue))*1.2||1;
+    const maxTkt=Math.max(...days.map(d=>d.avg_ticket))*1.3||1;
+    const xOf=i=>pL+i*xStep+xStep/2;
+    const yOfR=v=>pT+cH-v/maxRev*cH;
+    const yOfT=v=>pT+cH-v/maxTkt*cH;
+
+    [200,400,600,800,1000,1200,1400].filter(v=>v<maxRev).forEach(v=>{
+      const y=yOfR(v);
+      svg.innerHTML+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML+=`<text x="${pL-4}" y="${y+3.5}" font-size="8" fill="#555" text-anchor="end">$${v}</text>`;
+    });
+    [25,50,75].forEach(v=>{
+      svg.innerHTML+=`<text x="${W-pR+4}" y="${yOfT(v)+3.5}" font-size="8" fill="#666">$${v}</text>`;
+    });
+
+    days.forEach((day,i)=>{
+      const cx=xOf(i);
+      const bH=cH*day.revenue/maxRev;
+      const isBest = day.day === bestDay.day;
+      svg.innerHTML+=`<rect x="${cx-bW/2}" y="${pT+cH-bH}" width="${bW}" height="${bH}" rx="3" fill="${isBest?'rgba(167,139,250,.8)':'rgba(167,139,250,.45)'}"/>`;
+      svg.innerHTML+=`<text x="${cx}" y="${pT+cH-bH-5}" font-size="8" fill="var(--accent)" text-anchor="middle">$${day.revenue.toLocaleString()}</text>`;
+      svg.innerHTML+=`<text x="${cx}" y="${H-4}" font-size="8.5" fill="#555" text-anchor="middle">${esc(day.day)}</text>`;
+    });
+
+    const pts=days.map((day,i)=>`${xOf(i)},${yOfT(day.avg_ticket)}`).join(' ');
+    svg.innerHTML+=`<polyline points="${pts}" fill="none" stroke="rgba(251,191,36,.85)" stroke-width="2.5"/>`;
+    days.forEach((day,i)=>{
+      svg.innerHTML+=`<circle cx="${xOf(i)}" cy="${yOfT(day.avg_ticket)}" r="3.5" fill="var(--yellow)"/>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

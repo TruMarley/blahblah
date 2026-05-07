@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Confirmed — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #161616;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+
+    .container { max-width: 480px; width: 100%; text-align: center; }
+
+    /* Check animation */
+    .check-wrap { margin: 0 auto 1.75rem; width: 80px; height: 80px; position: relative; }
+    .check-circle {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: rgba(34,197,94,0.12); border: 2px solid rgba(34,197,94,0.3);
+      display: flex; align-items: center; justify-content: center;
+      animation: scale-in 0.4s cubic-bezier(0.175,0.885,0.32,1.275) both;
+    }
+    @keyframes scale-in { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .check-icon {
+      font-size: 2.2rem;
+      animation: check-pop 0.35s 0.3s cubic-bezier(0.175,0.885,0.32,1.275) both;
+    }
+    @keyframes check-pop { from { transform: scale(0); } to { transform: scale(1); } }
+
+    h1 { font-size: 2rem; font-weight: 900; color: #fff; letter-spacing: -0.04em; margin-bottom: 0.5rem; }
+    .subtitle { font-size: 0.9rem; color: var(--muted); margin-bottom: 2rem; line-height: 1.6; }
+
+    /* Details card */
+    .details-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden; margin-bottom: 1.5rem; text-align: left;
+    }
+    .details-header {
+      background: var(--accent); padding: 1rem 1.25rem;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .details-header .shop-name { font-weight: 800; color: #fff; font-size: 0.9rem; }
+    .details-header .shop-sub { font-size: 0.72rem; color: rgba(255,255,255,0.7); }
+    .details-body { padding: 1.25rem; display: flex; flex-direction: column; gap: 0.85rem; }
+    .detail-row { display: flex; align-items: flex-start; gap: 0.85rem; }
+    .detail-icon { font-size: 1rem; width: 20px; flex-shrink: 0; margin-top: 1px; }
+    .detail-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1px; }
+    .detail-val { font-size: 0.88rem; font-weight: 600; color: #fff; }
+
+    /* Buttons */
+    .btn-row { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem; }
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 13px 20px; border-radius: 10px; font-size: 0.9rem; font-weight: 700;
+      text-decoration: none; cursor: pointer; border: none; font-family: inherit;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn-gcal { background: #4285f4; color: #fff; }
+    .btn-copy { background: var(--surface); border: 1px solid var(--border2); color: var(--text); }
+    .btn-copy.copied { border-color: var(--green); color: var(--green); }
+
+    /* Share section */
+    .share-section {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.25rem; text-align: left;
+    }
+    .share-title { font-size: 0.82rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem; }
+    .share-sub { font-size: 0.72rem; color: var(--muted); margin-bottom: 0.85rem; }
+    .caption-box {
+      background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px;
+      padding: 0.85rem; font-size: 0.78rem; color: var(--muted); line-height: 1.7;
+      margin-bottom: 0.75rem; white-space: pre-wrap;
+    }
+    .copy-caption-btn {
+      background: none; border: 1px solid var(--border2); color: var(--muted);
+      padding: 6px 14px; border-radius: 6px; font-size: 0.72rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: all 0.15s;
+    }
+    .copy-caption-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+    .copy-caption-btn.copied { border-color: var(--green); color: var(--green); }
+
+    .powered-by { font-size: 0.68rem; color: var(--muted2); margin-top: 2rem; }
+    .powered-by a { color: var(--muted); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="check-wrap">
+    <div class="check-circle">
+      <div class="check-icon">✓</div>
+    </div>
+  </div>
+
+  <h1>You're booked!</h1>
+  <p class="subtitle" id="subtitle">Your appointment has been confirmed. We'll send you a reminder before your visit.</p>
+
+  <div class="details-card">
+    <div class="details-header">
+      <div>
+        <div class="shop-name" id="shop-name">Crown & Blade</div>
+        <div class="shop-sub">Appointment Confirmation</div>
+      </div>
+    </div>
+    <div class="details-body">
+      <div class="detail-row">
+        <div class="detail-icon">👤</div>
+        <div>
+          <div class="detail-label">Client</div>
+          <div class="detail-val" id="d-name">—</div>
+        </div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-icon">✂️</div>
+        <div>
+          <div class="detail-label">Service</div>
+          <div class="detail-val" id="d-service">—</div>
+        </div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-icon">📅</div>
+        <div>
+          <div class="detail-label">Date & Time</div>
+          <div class="detail-val" id="d-datetime">—</div>
+        </div>
+      </div>
+      <div class="detail-row" id="barber-row">
+        <div class="detail-icon">👨‍🎨</div>
+        <div>
+          <div class="detail-label">Barber / Stylist</div>
+          <div class="detail-val" id="d-barber">—</div>
+        </div>
+      </div>
+      <div class="detail-row" id="address-row" style="display:none">
+        <div class="detail-icon">📍</div>
+        <div>
+          <div class="detail-label">Address</div>
+          <div class="detail-val" id="d-address">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <a id="gcal-btn" href="#" class="btn btn-gcal" target="_blank">
+      📅 Add to Google Calendar
+    </a>
+    <button class="btn btn-copy" id="copy-details-btn" onclick="copyDetails()">
+      📋 Copy Appointment Details
+    </button>
+  </div>
+
+  <div class="share-section">
+    <div class="share-title">Love this shop? Share it 🙌</div>
+    <div class="share-sub">Copy this caption for your Instagram or text a friend.</div>
+    <div class="caption-box" id="ig-caption">Loading…</div>
+    <button class="copy-caption-btn" id="copy-caption-btn" onclick="copyCaption()">Copy Caption</button>
+  </div>
+
+  <div class="powered-by">Booking managed by <a href="/">RingDesk AI</a></div>
+
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const name    = params.get('name')    || 'Guest';
+  const service = params.get('service') || 'Appointment';
+  const date    = params.get('date')    || '';
+  const time    = params.get('time')    || '';
+  const barber  = params.get('barber')  || '';
+  const shop    = params.get('shop')    || 'Your Shop';
+  const address = params.get('address') || '';
+  const phone   = params.get('phone')   || '';
+
+  // Populate
+  document.getElementById('shop-name').textContent = shop;
+  document.getElementById('subtitle').textContent  = `Thanks, ${name}! We'll text you a reminder 24 hours before your visit.`;
+  document.getElementById('d-name').textContent    = name;
+  document.getElementById('d-service').textContent = service;
+  document.getElementById('d-datetime').textContent = [date, time].filter(Boolean).join(' at ') || '—';
+  document.getElementById('d-barber').textContent  = barber || '—';
+  if (!barber) document.getElementById('barber-row').style.display = 'none';
+  if (address) {
+    document.getElementById('d-address').textContent = address;
+    document.getElementById('address-row').style.display = 'flex';
+  }
+
+  // Google Calendar URL
+  function buildGCalUrl() {
+    const title = encodeURIComponent(`${service} at ${shop}`);
+    const details = encodeURIComponent(`Client: ${name}\nBarber: ${barber || 'Any'}\nBooked via RingDesk AI`);
+    const loc = encodeURIComponent(address || shop);
+    // Attempt to parse date — fallback to blank
+    let dates = '';
+    try {
+      const raw = new Date(`${date} ${time}`);
+      if (!isNaN(raw)) {
+        const pad = n => String(n).padStart(2, '0');
+        const fmt = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+        const end = new Date(raw.getTime() + 60 * 60000); // +1hr default
+        dates = `&dates=${fmt(raw)}/${fmt(end)}`;
+      }
+    } catch(e) {}
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${loc}${dates}`;
+  }
+  document.getElementById('gcal-btn').href = buildGCalUrl();
+
+  // Copy details
+  function copyDetails() {
+    const text = [
+      `✂️ Appointment Confirmed — ${shop}`,
+      `Name: ${name}`,
+      `Service: ${service}`,
+      `Date: ${date} at ${time}`,
+      barber ? `Barber: ${barber}` : '',
+      address ? `Address: ${address}` : '',
+    ].filter(Boolean).join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copy-details-btn');
+      btn.textContent = '✓ Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = '📋 Copy Appointment Details'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  // IG caption
+  const caption = `Just booked my ${service.toLowerCase()} at ${shop}! 🔥✂️\n\nIf you're looking for a great spot, these guys are the real deal. Book through their AI — it literally takes 60 seconds over the phone.\n\n#${shop.replace(/\s+/g, '')} #FreshCut #BarberLife #RingDesk`;
+  document.getElementById('ig-caption').textContent = caption;
+
+  function copyCaption() {
+    navigator.clipboard.writeText(caption).then(() => {
+      const btn = document.getElementById('copy-caption-btn');
+      btn.textContent = '✓ Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy Caption'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+</script>
+</body>
+</html>

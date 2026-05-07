@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rebooking Analytics — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .monthly-row { display: flex; align-items: flex-end; gap: 3px; height: 90px; }
+    .monthly-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+    .m-rebooked { width: 100%; background: var(--accent); opacity: .8; }
+    .m-lapsed { width: 100%; background: var(--red); opacity: .6; }
+    .m-lbl { font-size: .5rem; color: var(--muted); margin-top: 3px; }
+    .rate-bar-wrap { background: var(--surface2); border-radius: 8px; height: 24px; overflow: hidden; display: flex; margin-bottom: .6rem; }
+    .r-seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: .65rem; font-weight: 700; color: #000; }
+    .info-row { display: flex; gap: 1rem; }
+    .info-box { flex: 1; background: var(--surface2); border-radius: 10px; padding: .85rem 1rem; }
+    .info-lbl { font-size: .62rem; color: var(--muted); margin-bottom: .25rem; text-transform: uppercase; letter-spacing: .06em; }
+    .info-val { font-size: .95rem; font-weight: 800; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Rebooking Analytics</div>
+  <p class="page-sub">Track how often callers rebook after their appointment. Monitor lapsed clients and identify which services have the highest return rates.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-rate" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Rebooking Rate</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-rebooked" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Rebooked (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-days" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Avg Days to Rebook</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-lapsed" style="color:var(--red)">—</div>
+      <div class="stat-lbl">Lapsed Clients</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Rebooking vs Lapsed — Overall</div>
+    <div class="rate-bar-wrap" id="rate-bar"></div>
+    <div class="info-row">
+      <div class="info-box">
+        <div class="info-lbl">Top Rebooking Service</div>
+        <div class="info-val" id="top-svc" style="color:var(--accent)">—</div>
+      </div>
+      <div class="info-box">
+        <div class="info-lbl">Avg Days Between Visits</div>
+        <div class="info-val" id="avg-days" style="color:var(--green)">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Rebooking Trend</div>
+    <div class="monthly-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/rebooking-stats').then(r => r.json());
+    document.getElementById('h-rate').textContent = data.rebooking_rate_pct.toFixed(1) + '%';
+    document.getElementById('h-rebooked').textContent = data.rebooked_30d;
+    document.getElementById('h-days').textContent = data.avg_days_to_rebook + 'd';
+    document.getElementById('h-lapsed').textContent = data.lapsed_clients_pct.toFixed(1) + '%';
+    document.getElementById('top-svc').textContent = data.top_rebooking_service;
+    document.getElementById('avg-days').textContent = data.avg_days_to_rebook + ' days';
+
+    const lapsed = 100 - data.rebooking_rate_pct;
+    document.getElementById('rate-bar').innerHTML = `
+      <div class="r-seg" style="width:${data.rebooking_rate_pct}%;background:var(--accent)">${data.rebooking_rate_pct.toFixed(0)}% rebooked</div>
+      <div class="r-seg" style="width:${lapsed}%;background:var(--red);color:#000">${lapsed.toFixed(0)}% lapsed</div>`;
+
+    const monthly = data.monthly || [];
+    const maxRate = Math.max(...monthly.map(m => m.rate), 1);
+    const bars = document.getElementById('monthly-bars');
+    monthly.forEach(m => {
+      const rh = Math.max((m.rate / maxRate * 80).toFixed(0), 2);
+      const lh = Math.max(((100 - m.rate) / maxRate * 20).toFixed(0), 2);
+      bars.innerHTML += `
+        <div class="monthly-col">
+          <div class="m-rebooked" style="height:${rh}px" title="${m.month}: ${m.rate}% rebooking rate"></div>
+          <div class="m-lapsed" style="height:${lh}px"></div>
+          <div class="m-lbl">${m.month.slice(0,3)}</div>
+        </div>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

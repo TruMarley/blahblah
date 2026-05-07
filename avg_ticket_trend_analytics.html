@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Avg Ticket Trend — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { display: flex; align-items: flex-end; gap: 8px; height: 130px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .bar-body { width: 100%; border-radius: 4px 4px 0 0; min-height: 4px; }
+    .bar-val { font-size: .6rem; color: var(--muted); }
+    .bar-label { font-size: .62rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Avg Ticket Trend</div>
+  <p class="page-sub">Track how your average appointment value moves week over week. Rising average ticket signals successful upselling and service mix improvement; a falling trend warrants investigation.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-now" style="color:var(--green)">—</div><div class="stat-lbl">Avg Ticket (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-prev" style="color:var(--muted)">—</div><div class="stat-lbl">Prev 30d</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-trend" style="color:var(--accent)">—</div><div class="stat-lbl">Trend</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Weekly Avg Ticket (8 Weeks)</div>
+    <div class="chart-wrap" id="chart"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/avg-ticket-trend-stats').then(r => r.json());
+    document.getElementById('h-now').textContent = '$' + d.avg_ticket_30d.toFixed(2);
+    document.getElementById('h-prev').textContent = '$' + d.avg_ticket_prev_30d.toFixed(2);
+    const tSign = d.trend_pct >= 0 ? '+' : '';
+    const tColor = d.trend_pct >= 0 ? 'var(--green)' : 'var(--red)';
+    const tEl = document.getElementById('h-trend');
+    tEl.textContent = tSign + d.trend_pct.toFixed(1) + '%';
+    tEl.style.color = tColor;
+    const chart = document.getElementById('chart');
+    const maxT = Math.max(...d.weeks.map(w => w.avg_ticket));
+    d.weeks.forEach((w, i) => {
+      const h = (w.avg_ticket / maxT * 100).toFixed(1);
+      const isRecent = i >= 4;
+      const color = isRecent ? 'var(--accent)' : '#333';
+      chart.innerHTML += '<div class="bar-col"><div class="bar-val">$' + w.avg_ticket.toFixed(0) + '</div><div class="bar-body" style="height:' + h + '%;background:' + color + '"></div><div class="bar-label">' + w.week + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

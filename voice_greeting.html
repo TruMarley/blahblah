@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice Greeting — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.4rem; }
+    .field-group { margin-bottom: 1.2rem; }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; display: block; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .85rem; padding: .5rem .75rem; font-family: inherit; width: 100%; outline: none; }
+    .f-input:focus { border-color: rgba(167,139,250,.5); }
+    .f-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .85rem; padding: .5rem .75rem; font-family: inherit; width: 100%; outline: none; cursor: pointer; }
+    .f-textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .85rem; padding: .5rem .75rem; font-family: inherit; width: 100%; outline: none; resize: vertical; min-height: 80px; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .toggle-info .toggle-name { font-size: .85rem; font-weight: 700; }
+    .toggle-info .toggle-desc { font-size: .74rem; color: var(--muted); margin-top: .1rem; }
+    .tog { width: 36px; height: 20px; background: var(--border); border-radius: 99px; position: relative; cursor: pointer; flex-shrink: 0; transition: background .2s; }
+    .tog.on { background: rgba(167,139,250,.6); }
+    .tog::after { content:''; position:absolute; top:3px; left:3px; width:14px; height:14px; background:#fff; border-radius:50%; transition:transform .2s; }
+    .tog.on::after { transform: translateX(16px); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
+    .save-row { display: flex; align-items: center; gap: 1rem; }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.5rem; border-radius: 9px; border: 1px solid rgba(52,211,153,.4); background: rgba(52,211,153,.1); color: var(--green); cursor: pointer; font-family: inherit; }
+    .save-btn:hover { background: rgba(52,211,153,.2); }
+    .saved-msg { font-size: .78rem; color: var(--green); font-weight: 700; opacity: 0; transition: opacity .3s; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Voice Greeting</div>
+  <p class="page-sub">Customize what the AI says when callers are greeted, placed on hold, or reach after-hours.</p>
+  <div class="card">
+    <div class="card-title">Greeting Settings</div>
+
+    <div class="field-group">
+      <label class="field-label" for="greeting-text">Opening Greeting (spoken by AI)</label>
+      <textarea class="f-textarea" id="greeting-text" maxlength="320"></textarea>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="hold-music">Hold Music Style</label>
+      <select class="f-select" id="hold-music">
+        <option value="jazz">Jazz</option>
+        <option value="lofi">Lo-Fi Hip Hop</option>
+        <option value="classical">Classical</option>
+        <option value="acoustic">Acoustic Guitar</option>
+        <option value="silence">Silence</option>
+      </select>
+    </div>
+
+    <hr class="divider">
+
+    <div class="field-group">
+      <label class="field-label" for="after-hours">After-Hours Message</label>
+      <textarea class="f-textarea" id="after-hours" maxlength="400"></textarea>
+    </div>
+
+    <hr class="divider">
+
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Voicemail Enabled</div>
+        <div class="toggle-desc">Allow callers to leave a voicemail after hours</div>
+      </div>
+      <div class="tog" id="tog-vm" onclick="toggleVM()"></div>
+    </div>
+
+    <div id="vm-fields" class="field-group">
+      <label class="field-label" for="vm-msg">Voicemail Prompt (spoken before beep)</label>
+      <textarea class="f-textarea" id="vm-msg" maxlength="280"></textarea>
+    </div>
+
+    <div class="save-row">
+      <button class="save-btn" onclick="save()">Save Greeting</button>
+      <span class="saved-msg" id="saved-msg">✓ Saved</span>
+    </div>
+  </div>
+</div>
+<script>
+  let config = {};
+
+  async function load() {
+    const r = await fetch('/api/voice-greeting');
+    config = await r.json();
+    document.getElementById('greeting-text').value = config.greeting_text || '';
+    document.getElementById('hold-music').value = config.hold_music_style || 'jazz';
+    document.getElementById('after-hours').value = config.after_hours_message || '';
+    document.getElementById('vm-msg').value = config.voicemail_message || '';
+    setTog('tog-vm', config.voicemail_enabled);
+    document.getElementById('vm-fields').style.display = config.voicemail_enabled ? 'block' : 'none';
+  }
+
+  function setTog(id, val) { document.getElementById(id).classList.toggle('on', !!val); }
+
+  function toggleVM() {
+    config.voicemail_enabled = !config.voicemail_enabled;
+    setTog('tog-vm', config.voicemail_enabled);
+    document.getElementById('vm-fields').style.display = config.voicemail_enabled ? 'block' : 'none';
+  }
+
+  async function save() {
+    config.greeting_text = document.getElementById('greeting-text').value.trim();
+    config.hold_music_style = document.getElementById('hold-music').value;
+    config.after_hours_message = document.getElementById('after-hours').value.trim();
+    config.voicemail_message = document.getElementById('vm-msg').value.trim();
+    await fetch('/api/voice-greeting', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(config)});
+    const msg = document.getElementById('saved-msg');
+    msg.style.opacity = '1';
+    setTimeout(() => { msg.style.opacity = '0'; }, 2000);
+  }
+
+  load();
+</script>
+</body>
+</html>

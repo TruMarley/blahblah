@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Duration Accuracy — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; text-align: left; padding-bottom: .6rem; border-bottom: 1px solid var(--border); }
+    td { font-size: .8rem; padding: .55rem 0; border-bottom: 1px solid var(--border); }
+    td:not(:first-child), th:not(:first-child) { text-align: right; }
+    tr:last-child td { border-bottom: none; }
+    .over { color: var(--red); }
+    .under { color: var(--green); }
+    .exact { color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Duration Accuracy</div>
+  <p class="page-sub">Compare booked vs. actual service times. Chronic overruns cascade into scheduling chaos — identify which services need time buffer adjustments.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-ontime" style="color:var(--green)">—</div><div class="stat-lbl">On-Time Completion</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-overrun" style="color:var(--red)">—</div><div class="stat-lbl">Avg Overrun</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-tracked" style="color:var(--muted)">—</div><div class="stat-lbl">Services Tracked</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Booked vs. Actual by Service</div>
+    <table>
+      <thead><tr><th>Service</th><th>Booked</th><th>Actual</th><th>Variance</th></tr></thead>
+      <tbody id="tbl"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/service-duration-accuracy-stats').then(r => r.json());
+    document.getElementById('h-ontime').textContent = d.on_time_completion_pct.toFixed(1) + '%';
+    document.getElementById('h-overrun').textContent = '+' + d.avg_overrun_min.toFixed(1) + 'm';
+    document.getElementById('h-tracked').textContent = d.services_tracked;
+    const tb = document.getElementById('tbl');
+    d.services.forEach(s => {
+      const diff = s.actual_min - s.booked_min;
+      const cls = diff > 2 ? 'over' : diff < -2 ? 'under' : 'exact';
+      const sign = diff > 0 ? '+' : '';
+      tb.innerHTML += '<tr><td>' + s.service + '</td><td>' + s.booked_min + 'm</td><td>' + s.actual_min.toFixed(1) + 'm</td><td class="' + cls + '">' + sign + diff.toFixed(1) + 'm</td></tr>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

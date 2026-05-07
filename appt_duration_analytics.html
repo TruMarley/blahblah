@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Appointment Duration — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .svc-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .55rem; }
+    .svc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+    .svc-name { font-size: .88rem; font-weight: 700; }
+    .svc-times { font-size: .72rem; color: var(--muted); }
+    .svc-bar-wrap { background: var(--surface); border-radius: 6px; height: 10px; overflow: hidden; position: relative; }
+    .svc-bar-booked { height: 100%; border-radius: 6px; opacity: .4; }
+    .svc-bar-actual { height: 100%; border-radius: 6px; position: absolute; top: 0; left: 0; }
+    .overtime-badge { font-size: .65rem; font-weight: 700; padding: .1rem .42rem; border-radius: 5px; }
+    .chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px,1fr)); gap: .4rem; align-items: flex-end; }
+    .chart-col { display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+    .chart-bar-wrap { width: 100%; display: flex; flex-direction: column; justify-content: flex-end; height: 110px; }
+    .chart-bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 4px; }
+    .chart-label { font-size: .6rem; color: var(--muted); text-align: center; }
+    .chart-val { font-size: .62rem; color: var(--text); font-weight: 700; }
+    .insight { background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.2); border-radius: 10px; padding: .9rem 1rem; font-size: .8rem; color: var(--yellow); margin-top: .75rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Appointment Duration</div>
+  <p class="page-sub">Compare booked vs. actual service times. High overtime rates can cause scheduling backlog and client frustration — use this to calibrate slot lengths.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-overtime" style="color:var(--red)">—</div>
+      <div class="stat-lbl">Avg Overtime Rate</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-long-pct" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Services Running Long</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-buffer" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Avg Buffer Used (min)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-analyzed" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Appts Analyzed (30d)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Booked vs Actual Duration by Service</div>
+    <div id="service-list"></div>
+    <div class="insight" id="insight"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Overtime Rate</div>
+    <div class="chart-grid" id="monthly-chart"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/appt-duration-stats').then(r => r.json());
+    document.getElementById('h-overtime').textContent = data.avg_overtime_pct.toFixed(1) + '%';
+    document.getElementById('h-long-pct').textContent = data.services_running_long_pct.toFixed(1) + '%';
+    document.getElementById('h-buffer').textContent = data.avg_buffer_used_min.toFixed(1);
+    document.getElementById('h-analyzed').textContent = data.appointments_analyzed_30d;
+
+    const list = document.getElementById('service-list');
+    const maxMin = Math.max(...(data.services||[]).map(s => Math.max(s.booked_min, s.actual_avg_min)));
+    (data.services||[]).forEach(s => {
+      const diff = s.actual_avg_min - s.booked_min;
+      const diffStr = diff >= 0 ? '+' + diff.toFixed(0) + 'min' : diff.toFixed(0) + 'min';
+      const overtimeColor = s.overtime_pct > 20 ? 'var(--red)' : s.overtime_pct > 10 ? 'var(--yellow)' : 'var(--green)';
+      const row = document.createElement('div');
+      row.className = 'svc-row';
+      row.innerHTML = `
+        <div class="svc-top">
+          <div class="svc-name" style="color:${s.color}">${s.service}</div>
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <span class="svc-times">${s.booked_min}min booked · ${s.actual_avg_min.toFixed(0)}min actual</span>
+            <span class="overtime-badge" style="background:${overtimeColor}22;color:${overtimeColor};border:1px solid ${overtimeColor}44">${s.overtime_pct.toFixed(1)}% over</span>
+          </div>
+        </div>
+        <div class="svc-bar-wrap">
+          <div class="svc-bar-booked" style="width:${(s.booked_min/maxMin*100).toFixed(1)}%;background:${s.color}"></div>
+          <div class="svc-bar-actual" style="width:${(s.actual_avg_min/maxMin*100).toFixed(1)}%;background:${s.color};opacity:.9;height:10px;border-radius:6px"></div>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    const worst = (data.services||[]).reduce((a,b) => a.overtime_pct > b.overtime_pct ? a : b, {service:'—',overtime_pct:0});
+    document.getElementById('insight').textContent =
+      `"${worst.service}" has the highest overtime rate at ${worst.overtime_pct.toFixed(1)}%. Consider adding ${Math.ceil(worst.actual_avg_min - worst.booked_min + 5)} minutes to its booked slot length.`;
+
+    const monthly = data.monthly || [];
+    const maxOT = Math.max(...monthly.map(m => m.avg_overtime_pct), 1);
+    const chart = document.getElementById('monthly-chart');
+    monthly.forEach(m => {
+      const col = document.createElement('div');
+      col.className = 'chart-col';
+      const h = Math.round((m.avg_overtime_pct / maxOT) * 100) + 10;
+      const c = m.avg_overtime_pct > 20 ? 'var(--red)' : m.avg_overtime_pct > 13 ? 'var(--yellow)' : 'var(--green)';
+      col.innerHTML = `
+        <div class="chart-bar-wrap"><div class="chart-bar" style="height:${h}px;background:${c};opacity:.8"></div></div>
+        <div class="chart-val">${m.avg_overtime_pct.toFixed(1)}%</div>
+        <div class="chart-label">${m.month}</div>
+      `;
+      chart.appendChild(col);
+    });
+  }
+  load();
+</script>
+</body>
+</html>

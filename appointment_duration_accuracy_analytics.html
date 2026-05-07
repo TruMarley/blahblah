@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Appointment Duration Accuracy — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .svc-table { width: 100%; border-collapse: collapse; }
+    .svc-table th { font-size: .68rem; color: var(--muted); font-weight: 700; text-align: left; padding: .4rem .6rem; border-bottom: 1px solid var(--border); }
+    .svc-table td { font-size: .8rem; padding: .55rem .6rem; border-bottom: 1px solid #1a1a1a; }
+    .svc-table tr:last-child td { border-bottom: none; }
+    .variance { font-size: .78rem; font-weight: 700; }
+    .variance.over { color: var(--red); }
+    .variance.under { color: var(--green); }
+    .variance.exact { color: var(--muted); }
+    .acc-bar-wrap { width: 80px; background: #1e1e1e; border-radius: 4px; height: 6px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: .4rem; }
+    .acc-bar { height: 100%; border-radius: 4px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Appointment Duration Accuracy</div>
+  <p class="page-sub">Compare how long services were booked vs. how long they actually took. High overruns cascade into late starts and frustrated clients — fix slot lengths here.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Overall Accuracy</div>
+      <div class="hero-val" id="h-acc" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Overrun</div>
+      <div class="hero-val" id="h-overrun" style="color:var(--red)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Most Accurate</div>
+      <div class="hero-val" id="h-best" style="color:var(--accent);font-size:1rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Service Duration Breakdown</div>
+    <table class="svc-table">
+      <thead><tr><th>Service</th><th>Booked</th><th>Actual</th><th>Variance</th><th>Accuracy</th></tr></thead>
+      <tbody id="svc-body"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/appointment-duration-accuracy').then(r => r.json());
+    document.getElementById('h-acc').textContent = d.overall_accuracy_pct != null ? d.overall_accuracy_pct+'%' : '—';
+    document.getElementById('h-overrun').textContent = d.avg_overrun_min != null ? '+'+d.avg_overrun_min+' min' : '—';
+    document.getElementById('h-best').textContent = d.most_accurate_service || '—';
+    const tbody = document.getElementById('svc-body');
+    (d.breakdown || []).forEach(b => {
+      const vCls = b.variance_min > 5 ? 'over' : b.variance_min < -5 ? 'under' : 'exact';
+      const vStr = b.variance_min > 0 ? '+'+b.variance_min : b.variance_min;
+      const barColor = b.accuracy_pct >= 80 ? 'var(--green)' : b.accuracy_pct >= 60 ? 'var(--yellow)' : 'var(--red)';
+      tbody.innerHTML += `<tr>
+        <td style="font-weight:700">${esc(b.service)}</td>
+        <td>${b.booked_min}m</td>
+        <td>${b.actual_min}m</td>
+        <td><span class="variance ${vCls}">${vStr}m</span></td>
+        <td><div class="acc-bar-wrap"><div class="acc-bar" style="width:${b.accuracy_pct}%;background:${barColor}"></div></div>${b.accuracy_pct}%</td>
+      </tr>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

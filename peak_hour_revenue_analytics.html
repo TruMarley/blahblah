@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Peak Hour Revenue — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .hour-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; }
+    .hour-label { font-size: .75rem; color: var(--muted); width: 46px; flex-shrink: 0; }
+    .bar-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; background: var(--accent); }
+    .bar-fill.peak { background: var(--green); }
+    .bar-fill.slow { background: var(--red); }
+    .hour-rev { font-size: .72rem; font-weight: 700; color: var(--accent); width: 50px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Peak Hour Revenue</div>
+  <p class="page-sub">See which hours generate the most revenue. Staff your peak hours fully and consider AI-only coverage during slow hours to reduce labor cost without losing bookings.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--green)">—</div><div class="stat-lbl">Daily Avg Revenue</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-peak" style="color:var(--accent)">—</div><div class="stat-lbl">Peak Hour</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-peakrev" style="color:var(--green)">—</div><div class="stat-lbl">Peak Revenue</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-slow" style="color:var(--red)">—</div><div class="stat-lbl">Slowest Hour</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Revenue by Hour (Daily Avg)</div>
+    <div id="hour-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/peak-hour-revenue-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = '$' + d.total_daily_avg.toLocaleString();
+    document.getElementById('h-peak').textContent = d.peak_hour;
+    document.getElementById('h-peakrev').textContent = '$' + d.peak_revenue;
+    document.getElementById('h-slow').textContent = d.slowest_hour;
+    const maxR = Math.max(...d.hours.map(h => h.revenue));
+    const hl = document.getElementById('hour-list');
+    d.hours.forEach(h => {
+      const w = (h.revenue / maxR * 100).toFixed(1);
+      const cls = h.hour === d.peak_hour ? 'bar-fill peak' : (h.hour === d.slowest_hour ? 'bar-fill slow' : 'bar-fill');
+      const col = h.hour === d.peak_hour ? 'var(--green)' : (h.hour === d.slowest_hour ? 'var(--red)' : 'var(--accent)');
+      hl.innerHTML += '<div class="hour-row"><div class="hour-label">' + h.hour + '</div><div class="bar-track"><div class="' + cls + '" style="width:' + w + '%"></div></div><div class="hour-rev" style="color:' + col + '">$' + h.revenue + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

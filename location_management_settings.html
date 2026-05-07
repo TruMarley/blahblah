@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Multi-Location — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 100%; }
+    input[type=text]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .28rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .field-wrap { margin-bottom: .85rem; }
+    .loc-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .75rem; }
+    .loc-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .7rem .9rem; display: flex; align-items: center; gap: .75rem; }
+    .loc-icon { width: 32px; height: 32px; background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.25); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .85rem; flex-shrink: 0; }
+    .loc-info { flex: 1; min-width: 0; }
+    .loc-name { font-size: .82rem; font-weight: 700; }
+    .loc-addr { font-size: .7rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .loc-phone { font-size: .7rem; color: var(--muted); font-family: monospace; }
+    .loc-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }
+    .loc-remove:hover { color: var(--red); }
+    .primary-badge { font-size: .6rem; font-weight: 700; background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); border-radius: 5px; padding: .06rem .35rem; flex-shrink: 0; }
+    .add-loc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-bottom: .4rem; }
+    .add-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--accent); font-size: .78rem; font-weight: 700; padding: .38rem .7rem; cursor: pointer; }
+    .add-btn:hover { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Multi-Location</div>
+  <p class="page-sub">Manage multiple shop locations under one RingDesk account. Each location gets its own AI number while sharing a unified client database and reporting dashboard.</p>
+
+  <div class="card">
+    <div class="card-title">Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Multi-Location</div><div class="row-sub">Manage additional locations from this account</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Shared Client Database</div><div class="row-sub">Clients shared across all locations</div></div>
+      <label class="toggle"><input type="checkbox" id="shared-clients"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Shared Staff Roster</div><div class="row-sub">Staff can work across locations</div></div>
+      <label class="toggle"><input type="checkbox" id="shared-staff"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Consolidated Reporting</div><div class="row-sub">See all locations in one dashboard</div></div>
+      <label class="toggle"><input type="checkbox" id="consolidated-reporting"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Route Calls by Area Code</div><div class="row-sub">Automatically route to nearest location</div></div>
+      <label class="toggle"><input type="checkbox" id="route-by-area"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Mentions Location</div><div class="row-sub">AI states location name in greeting</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-mentions"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Locations</div>
+    <div class="loc-list" id="loc-list"></div>
+    <div class="add-loc-grid">
+      <input type="text" id="new-loc-name" placeholder="Location name">
+      <input type="text" id="new-loc-phone" placeholder="Phone number">
+      <input type="text" id="new-loc-addr" placeholder="Address" style="grid-column:span 2">
+    </div>
+    <div style="display:flex;gap:.4rem;margin-top:.4rem;align-items:center">
+      <select id="new-loc-tz" style="flex:1">
+        <option value="America/Los_Angeles">Pacific</option>
+        <option value="America/Denver">Mountain</option>
+        <option value="America/Chicago">Central</option>
+        <option value="America/New_York">Eastern</option>
+      </select>
+      <button class="add-btn" onclick="addLocation()">+ Add Location</button>
+    </div>
+    <button class="save-btn" onclick="save()">Save Location Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let primary = {};
+  let locations = [];
+  function renderLocations() {
+    const el = document.getElementById('loc-list');
+    el.innerHTML = '';
+    const all = [{ ...primary, _primary: true }, ...locations];
+    all.forEach((loc, i) => {
+      el.innerHTML += `<div class="loc-item">
+        <div class="loc-icon">📍</div>
+        <div class="loc-info">
+          <div class="loc-name">${esc(loc.name || 'Unnamed')}</div>
+          <div class="loc-addr">${esc(loc.address || '')}</div>
+          <div class="loc-phone">${esc(loc.phone || '')}</div>
+        </div>
+        ${loc._primary ? '<span class="primary-badge">Primary</span>' : `<button class="loc-remove" onclick="removeLocation(${i-1})">✕</button>`}
+      </div>`;
+    });
+  }
+  function addLocation() {
+    const name = document.getElementById('new-loc-name').value.trim();
+    const phone = document.getElementById('new-loc-phone').value.trim();
+    const address = document.getElementById('new-loc-addr').value.trim();
+    const timezone = document.getElementById('new-loc-tz').value;
+    if (!name) return;
+    locations.push({ name, phone, address, timezone });
+    document.getElementById('new-loc-name').value = '';
+    document.getElementById('new-loc-phone').value = '';
+    document.getElementById('new-loc-addr').value = '';
+    renderLocations();
+  }
+  function removeLocation(i) { locations.splice(i, 1); renderLocations(); }
+  async function load() {
+    const d = await fetch('/api/settings/location-management-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled ?? false;
+    document.getElementById('shared-clients').checked = d.shared_client_database ?? true;
+    document.getElementById('shared-staff').checked = d.shared_staff ?? false;
+    document.getElementById('consolidated-reporting').checked = d.consolidated_reporting ?? true;
+    document.getElementById('route-by-area').checked = d.route_calls_by_area_code ?? false;
+    document.getElementById('ai-mentions').checked = d.ai_mentions_location ?? true;
+    primary = d.primary_location || {};
+    locations = d.locations || [];
+    renderLocations();
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      primary_location: primary,
+      locations,
+      shared_client_database: document.getElementById('shared-clients').checked,
+      shared_staff: document.getElementById('shared-staff').checked,
+      consolidated_reporting: document.getElementById('consolidated-reporting').checked,
+      route_calls_by_area_code: document.getElementById('route-by-area').checked,
+      ai_mentions_location: document.getElementById('ai-mentions').checked,
+    };
+    await fetch('/api/settings/location-management-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

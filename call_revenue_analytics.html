@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Revenue — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .trend-wrap { display: flex; align-items: flex-end; gap: .5rem; height: 90px; }
+    .t-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+    .t-bar { width: 100%; border-radius: 3px 3px 0 0; background: var(--green); opacity: .65; }
+    .t-bar:hover { opacity: 1; }
+    .t-val { font-size: .6rem; font-weight: 700; color: var(--green); }
+    .t-lbl { font-size: .6rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Revenue</div>
+  <p class="page-sub">Every call the AI answers is a revenue opportunity. Track total revenue generated from inbound calls, revenue per call, and how it trends month over month.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-rev" style="color:var(--green)">—</div><div class="stat-lbl">Call Revenue (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-rpc" style="color:var(--accent)">—</div><div class="stat-lbl">Revenue / Call</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-rpbc" style="color:var(--yellow)">—</div><div class="stat-lbl">Revenue / Booked Call</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-ticket" style="color:var(--muted)">—</div><div class="stat-lbl">Avg Ticket</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Monthly Call Revenue</div>
+    <div class="trend-wrap" id="trend"></div>
+    <div style="display:flex;gap:.5rem;margin-top:.35rem" id="trend-labels"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/call-revenue-stats').then(r => r.json());
+    document.getElementById('h-rev').textContent = '$' + d.total_call_revenue_30d.toLocaleString();
+    document.getElementById('h-rpc').textContent = '$' + d.revenue_per_call.toFixed(2);
+    document.getElementById('h-rpbc').textContent = '$' + d.revenue_per_booked_call.toFixed(2);
+    document.getElementById('h-ticket').textContent = '$' + d.avg_ticket.toFixed(2);
+    const maxR = Math.max(...d.monthly.map(m => m.revenue));
+    const tw = document.getElementById('trend');
+    const tl = document.getElementById('trend-labels');
+    d.monthly.forEach(m => {
+      const h = Math.max(4, (m.revenue / maxR * 80)).toFixed(0);
+      tw.innerHTML += '<div class="t-col"><div class="t-val">$' + (m.revenue / 1000).toFixed(1) + 'k</div><div class="t-bar" style="height:' + h + 'px"></div></div>';
+      tl.innerHTML += '<div style="flex:1;text-align:center;font-size:.6rem;color:var(--muted)">' + m.month + '</div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

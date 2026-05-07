@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>No-Shows — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-top: .2rem; }
+    .filters { display: flex; gap: .4rem; margin-bottom: 1.5rem; }
+    .filter-btn { background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: .75rem; font-weight: 700; padding: .35rem .8rem; border-radius: 99px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .filter-btn.active { background: rgba(167,139,250,.12); color: var(--accent); border-color: rgba(167,139,250,.3); }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .7rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .85rem 1.25rem; font-size: .82rem; vertical-align: middle; }
+    .client-cell { }
+    .client-name { font-weight: 800; font-size: .88rem; }
+    .client-phone { font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+    .svc-cell { font-size: .8rem; }
+    .svc-staff { font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+    .time-cell { font-size: .75rem; color: var(--muted); white-space: nowrap; }
+    .count-badge { display: inline-block; font-size: .72rem; font-weight: 900; padding: .18rem .55rem; border-radius: 99px; }
+    .count-low  { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+    .count-high { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+    .sms-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-size: .75rem; font-weight: 700; padding: .35rem .8rem; border-radius: 7px; cursor: pointer; font-family: inherit; transition: all .15s; white-space: nowrap; }
+    .sms-btn:hover { color: var(--text); border-color: #3e3e3e; }
+    .sms-btn.sent { background: rgba(52,211,153,.08); color: var(--green); border-color: rgba(52,211,153,.2); cursor: default; }
+    .contacted-tag { font-size: .68rem; color: var(--green); }
+    .empty { text-align: center; color: var(--muted); padding: 3rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="header-row">
+    <div>
+      <div class="page-title">No-Shows</div>
+      <div class="page-sub">Recent missed appointments with contact management.</div>
+    </div>
+  </div>
+
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+    <button class="filter-btn" onclick="setFilter('never', this)">Never Contacted</button>
+    <button class="filter-btn" onclick="setFilter('high', this)">High Risk (3+ no-shows)</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Client</th>
+        <th>Service</th>
+        <th>Missed At</th>
+        <th>No-Show Count</th>
+        <th>Last Contacted</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  let allItems = [];
+  let currentFilter = 'all';
+
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  }
+
+  async function load() {
+    const r = await fetch('/api/appointments/no-shows');
+    const d = await r.json();
+    allItems = d.no_shows || [];
+    render();
+  }
+
+  function render() {
+    let items = allItems;
+    if (currentFilter === 'never') items = items.filter(i => !i.last_contacted);
+    if (currentFilter === 'high') items = items.filter(i => i.times_no_showed_total >= 3);
+
+    document.getElementById('tbody').innerHTML = items.length ? items.map(item => {
+      const cnt = item.times_no_showed_total || 1;
+      const cntCls = cnt >= 3 ? 'count-high' : 'count-low';
+      const timeStr = item.scheduled_time ? relTime(item.scheduled_time) : '—';
+      const contacted = item.last_contacted;
+      const contactedStr = contacted ? relTime(contacted) : null;
+      return `<tr>
+        <td class="client-cell">
+          <div class="client-name">${esc(item.client_name)}</div>
+          <div class="client-phone">${esc(item.client_phone || '')}</div>
+        </td>
+        <td class="svc-cell">
+          <div>${esc(item.service)}</div>
+          <div class="svc-staff">${esc(item.staff || '')}</div>
+        </td>
+        <td class="time-cell">${timeStr}</td>
+        <td><span class="count-badge ${cntCls}">${cnt}x</span></td>
+        <td>${contactedStr ? `<span class="contacted-tag">✓ ${contactedStr}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+        <td><button class="sms-btn${contacted ? ' sent' : ''}" id="btn-${item.id}" onclick="sendSMS('${esc(item.id)}')">${contacted ? '✓ Sent' : 'Send SMS'}</button></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="6" class="empty">No no-shows found for this filter.</td></tr>';
+  }
+
+  async function sendSMS(id) {
+    const btn = document.getElementById('btn-' + id);
+    if (btn) { btn.textContent = 'Sending...'; btn.disabled = true; }
+    await fetch(`/api/appointments/no-shows/${id}/contact`, { method: 'POST' });
+    const item = allItems.find(i => i.id === id);
+    if (item) item.last_contacted = new Date().toISOString();
+    render();
+  }
+
+  function relTime(iso) {
+    if (!iso) return '—';
+    const diff = Math.floor((new Date() - new Date(iso)) / 60000);
+    if (diff < 1) return 'just now';
+    if (diff < 60) return diff + 'm ago';
+    if (diff < 1440) return Math.floor(diff/60) + 'h ago';
+    return Math.floor(diff/1440) + 'd ago';
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

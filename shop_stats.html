@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shop Stats — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --gold: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .2rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1.25rem; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.4rem; }
+    .stat-label { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; }
+    .stat-value { font-size: 2.1rem; font-weight: 900; letter-spacing: -.05em; line-height: 1; }
+    .stat-value.green  { color: var(--green); }
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.gold   { color: var(--gold); }
+    .stat-sub { font-size: .7rem; color: var(--muted); margin-top: .25rem; }
+    /* Timeline bar */
+    .timeline-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+    .timeline-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .timeline-bar-wrap { background: var(--surface2); border-radius: 99px; height: 10px; overflow: hidden; margin-bottom: .5rem; }
+    .timeline-bar { height: 10px; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--green)); transition: width .8s ease; }
+    .timeline-labels { display: flex; justify-content: space-between; font-size: .68rem; color: var(--muted); }
+    /* Best month */
+    .best-month-card { background: linear-gradient(135deg, rgba(167,139,250,.08), rgba(52,211,153,.05)); border: 1px solid rgba(167,139,250,.2); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1.5rem; }
+    .bm-icon { font-size: 2.5rem; flex-shrink: 0; }
+    .bm-label { font-size: .68rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .25rem; }
+    .bm-month { font-size: 1rem; font-weight: 800; margin-bottom: .2rem; }
+    .bm-rev { font-size: 1.8rem; font-weight: 900; color: var(--green); letter-spacing: -.04em; }
+    /* Calls counter */
+    .calls-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1.5rem; }
+    .calls-icon { font-size: 2rem; flex-shrink: 0; }
+    .calls-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .25rem; }
+    .calls-value { font-size: 2.5rem; font-weight: 900; letter-spacing: -.06em; color: var(--accent); line-height: 1; }
+    .calls-sub { font-size: .72rem; color: var(--muted); margin-top: .2rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Shop Stats</div>
+  <p class="page-sub">Your shop by the numbers — lifetime performance.</p>
+
+  <div class="hero-label">Lifetime Metrics</div>
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card"><div class="stat-label">Loading...</div><div class="stat-value">—</div></div>
+  </div>
+
+  <div class="timeline-card" id="timeline-card">
+    <div class="timeline-title">Time on RingDesk</div>
+    <div class="timeline-bar-wrap"><div class="timeline-bar" id="timeline-bar" style="width:0%"></div></div>
+    <div class="timeline-labels"><span>Month 1</span><span id="tl-end">—</span></div>
+  </div>
+
+  <div class="best-month-card" id="best-month-card">
+    <div class="bm-icon">🏆</div>
+    <div>
+      <div class="bm-label">Best Month Ever</div>
+      <div class="bm-month" id="bm-month">—</div>
+      <div class="bm-rev" id="bm-rev">—</div>
+    </div>
+  </div>
+
+  <div class="calls-card" id="calls-card">
+    <div class="calls-icon">📞</div>
+    <div>
+      <div class="calls-label">Total Calls Handled by AI</div>
+      <div class="calls-value" id="calls-value">—</div>
+      <div class="calls-sub" id="calls-sub">—</div>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/shop/stats');
+    const d = await r.json();
+
+    document.getElementById('stats-grid').innerHTML = [
+      {label:'Total Clients', value:(d.total_clients||0).toLocaleString(), cls:'accent', sub:'lifetime unique clients'},
+      {label:'Total Appointments', value:(d.total_appointments||0).toLocaleString(), cls:'', sub:'completed visits'},
+      {label:'Total Revenue', value:'$'+(d.total_revenue||0).toLocaleString(), cls:'green', sub:'lifetime earnings'},
+      {label:'Avg Monthly Revenue', value:'$'+(d.avg_monthly_revenue||0).toLocaleString(), cls:'', sub:'per month'},
+      {label:'Avg Rating', value:(d.avg_rating||0).toFixed(1)+'★', cls:'gold', sub:`from ${d.review_count||0} reviews`},
+      {label:'No-Shows Prevented', value:(d.no_shows_prevented||0).toLocaleString(), cls:'green', sub:'by AI reminders'},
+    ].map(s => `<div class="stat-card">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-value ${s.cls}">${s.value}</div>
+      <div class="stat-sub">${s.sub}</div>
+    </div>`).join('');
+
+    // Timeline
+    const months = d.months_active || 12;
+    const pct = Math.min((months / 36) * 100, 100);
+    setTimeout(() => { document.getElementById('timeline-bar').style.width = pct + '%'; }, 100);
+    document.getElementById('tl-end').textContent = `Month ${months} (now)`;
+
+    // Best month
+    if (d.best_month) {
+      document.getElementById('bm-month').textContent = d.best_month.month || '—';
+      document.getElementById('bm-rev').textContent = '$' + (d.best_month.revenue || 0).toLocaleString();
+    }
+
+    // Calls
+    document.getElementById('calls-value').textContent = (d.calls_handled_total || 0).toLocaleString();
+    document.getElementById('calls-sub').textContent = `That's ${Math.round((d.calls_handled_total||0) / Math.max(d.months_active||1, 1)).toLocaleString()} calls per month on average`;
+  }
+
+  load();
+</script>
+</body>
+</html>

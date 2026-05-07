@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Booking Analytics — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .staff-card { border-radius: 12px; border: 1px solid var(--border); background: var(--surface2); padding: 1rem 1.1rem; margin-bottom: .6rem; border-left: 4px solid transparent; }
+    .staff-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .7rem; }
+    .staff-name { font-size: .93rem; font-weight: 800; }
+    .staff-bookings { font-size: .78rem; color: var(--muted); }
+    .staff-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin-bottom: .65rem; }
+    .sm-val { font-size: .88rem; font-weight: 800; }
+    .sm-lbl { font-size: .62rem; color: var(--muted); margin-top: .08rem; }
+    .kpi-bar-wrap { height: 5px; background: #222; border-radius: 3px; overflow: hidden; margin-top: .55rem; }
+    .kpi-bar-fill { height: 100%; border-radius: 3px; }
+    .monthly-bar-row { display: flex; align-items: flex-end; gap: 3px; height: 72px; }
+    .monthly-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .monthly-bar { width: 100%; border-radius: 3px 3px 0 0; min-height: 2px; }
+    .monthly-lbl { font-size: .56rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Booking Analytics</div>
+  <p class="page-sub">Track individual staff performance across bookings, revenue, no-shows, and rebook rates. Identify top performers and coach underperformers with data-backed conversations.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-total" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Total Bookings (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-top-staff" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Top by Bookings</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-top-ticket" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Highest Avg Ticket</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-utilization" style="color:var(--muted)">—</div>
+      <div class="stat-lbl">Team Utilization</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Staff Performance</div>
+    <div id="staff-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Team Bookings</div>
+    <div class="monthly-bar-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/staff-booking-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = data.total_bookings_30d;
+    document.getElementById('h-top-staff').textContent = data.top_staff_by_bookings;
+    document.getElementById('h-top-ticket').textContent = data.highest_avg_ticket;
+    document.getElementById('h-utilization').textContent = data.avg_team_utilization_pct.toFixed(1) + '%';
+
+    const list = document.getElementById('staff-list');
+    (data.staff || []).forEach(s => {
+      const noShowClass = s.no_show_rate_pct > 10 ? 'var(--red)' : 'var(--green)';
+      const card = document.createElement('div');
+      card.className = 'staff-card';
+      card.style.borderLeftColor = s.color;
+      card.innerHTML = `
+        <div class="staff-top">
+          <div class="staff-name" style="color:${s.color}">${s.name}</div>
+          <div class="staff-bookings">${s.bookings_30d} bookings · $${s.revenue_30d.toFixed(0)} revenue</div>
+        </div>
+        <div class="staff-metrics">
+          <div>
+            <div class="sm-val">${s.utilization_pct.toFixed(1)}%</div>
+            <div class="sm-lbl">Utilization</div>
+          </div>
+          <div>
+            <div class="sm-val">$${s.avg_ticket.toFixed(0)}</div>
+            <div class="sm-lbl">Avg Ticket</div>
+          </div>
+          <div>
+            <div class="sm-val" style="color:${noShowClass}">${s.no_show_rate_pct.toFixed(1)}%</div>
+            <div class="sm-lbl">No-Show Rate</div>
+          </div>
+          <div>
+            <div class="sm-val">${s.rebook_rate_pct.toFixed(1)}%</div>
+            <div class="sm-lbl">Rebook Rate</div>
+          </div>
+        </div>
+        <div class="kpi-bar-wrap">
+          <div class="kpi-bar-fill" style="width:${s.utilization_pct.toFixed(1)}%;background:${s.color}"></div>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+
+    const monthly = data.monthly || [];
+    const maxB = Math.max(...monthly.map(m => m.total_bookings), 1);
+    const barsEl = document.getElementById('monthly-bars');
+    monthly.forEach(m => {
+      const h = Math.max((m.total_bookings / maxB * 64).toFixed(0), 2);
+      barsEl.innerHTML += `
+        <div class="monthly-col">
+          <div class="monthly-bar" style="height:${h}px;background:var(--accent);opacity:.7" title="${m.month}: ${m.total_bookings} bookings"></div>
+          <div class="monthly-lbl">${m.month.slice(0,3)}</div>
+        </div>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

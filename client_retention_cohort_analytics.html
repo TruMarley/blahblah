@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Retention Cohorts — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .cohort-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; margin-bottom: .5rem; display: grid; grid-template-columns: 40px 80px 1fr 1fr; gap: .75rem; align-items: center; }
+    .cohort-period { font-size: .82rem; font-weight: 800; }
+    .cohort-new { font-size: .75rem; color: var(--muted); }
+    .ret-bar { display: flex; flex-direction: column; gap: .25rem; }
+    .ret-label { font-size: .6rem; color: var(--muted); }
+    .ret-track { background: #1a1a1a; border-radius: 3px; height: 6px; overflow: hidden; }
+    .ret-fill-m1 { height: 100%; border-radius: 3px; background: var(--accent); }
+    .ret-fill-m3 { height: 100%; border-radius: 3px; background: var(--green); }
+    .ret-pct { font-size: .72rem; font-weight: 700; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Retention Cohorts</div>
+  <p class="page-sub">Track what percentage of new clients from each month return at 1 month and 3 months. Improving retention is the highest-leverage growth lever for service businesses.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-m1" style="color:var(--accent)">—</div><div class="stat-lbl">Avg 1-Month Retention</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-m3" style="color:var(--green)">—</div><div class="stat-lbl">Avg 3-Month Retention</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-tracked" style="color:var(--muted)">—</div><div class="stat-lbl">Clients Tracked</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Cohort Breakdown</div>
+    <div id="cohort-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/client-retention-cohort-stats').then(r => r.json());
+    document.getElementById('h-m1').textContent = d.avg_m1_retention_pct.toFixed(1) + '%';
+    document.getElementById('h-m3').textContent = d.avg_m3_retention_pct.toFixed(1) + '%';
+    document.getElementById('h-tracked').textContent = d.total_new_clients_tracked;
+    const cl = document.getElementById('cohort-list');
+    d.cohorts.forEach(c => {
+      cl.innerHTML += '<div class="cohort-row"><div class="cohort-period">' + c.period + '</div><div class="cohort-new">' + c.new_clients + ' new</div><div class="ret-bar"><div class="ret-label">1-month <span style="color:var(--accent);font-weight:700">' + c.retained_m1.toFixed(1) + '%</span></div><div class="ret-track"><div class="ret-fill-m1" style="width:' + c.retained_m1 + '%"></div></div></div><div class="ret-bar"><div class="ret-label">3-month <span style="color:var(--green);font-weight:700">' + c.retained_m3.toFixed(1) + '%</span></div><div class="ret-track"><div class="ret-fill-m3" style="width:' + c.retained_m3 + '%"></div></div></div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

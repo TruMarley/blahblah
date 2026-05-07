@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Branch Locations — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text], input[type=tel] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    input[type=text]:focus, input[type=tel]:focus { border-color: var(--accent); }
+    .loc-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: .65rem; }
+    .loc-header { display: flex; align-items: center; gap: .65rem; margin-bottom: .75rem; }
+    .loc-badge { font-size: .6rem; font-weight: 800; padding: .12rem .4rem; border-radius: 4px; }
+    .badge-primary { background: rgba(167,139,250,.15); color: var(--accent); border: 1px solid rgba(167,139,250,.3); }
+    .badge-branch { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .loc-name { font-size: .88rem; font-weight: 700; flex: 1; }
+    .loc-fields { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+    .loc-field-label { font-size: .65rem; color: var(--muted); margin-bottom: .2rem; }
+    .loc-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }
+    .add-btn { width: 100%; background: var(--surface2); border: 1px dashed var(--border); border-radius: 10px; padding: .7rem; font-size: .82rem; color: var(--muted); cursor: pointer; margin-top: .5rem; }
+    .add-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Branch Locations</div>
+  <p class="page-sub">Manage multiple business locations under one RingDesk account. Each location can have its own phone number, staff, and AI configuration.</p>
+
+  <div class="card">
+    <div class="card-title">Multi-Location Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Multi-Location</div><div class="row-sub">Manage more than one location</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Route Calls by Area Code</div><div class="row-sub">Auto-route to nearest location</div></div>
+      <label class="toggle"><input type="checkbox" id="route-area"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Shared Client Database</div><div class="row-sub">Clients visible across locations</div></div>
+      <label class="toggle"><input type="checkbox" id="shared-clients"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Shared Staff</div><div class="row-sub">Staff can work at multiple locations</div></div>
+      <label class="toggle"><input type="checkbox" id="shared-staff"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Consolidated Reporting</div><div class="row-sub">Roll-up analytics across all locations</div></div>
+      <label class="toggle"><input type="checkbox" id="consolidated"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Mentions Location</div><div class="row-sub">AI says location name during calls</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-mentions"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Allow Cross-Location Booking</div><div class="row-sub">Clients can book any location</div></div>
+      <label class="toggle"><input type="checkbox" id="cross-booking"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Locations</div>
+    <div id="loc-list"></div>
+    <button class="add-btn" onclick="addLocation()">+ Add Location</button>
+    <button class="save-btn" onclick="save()">Save Branch Locations</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let locsData = [];
+
+  async function load() {
+    const d = await fetch('/api/settings/branch-locations-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled ?? false;
+    document.getElementById('route-area').checked = d.route_calls_by_area_code ?? false;
+    document.getElementById('shared-clients').checked = d.shared_client_database ?? true;
+    document.getElementById('shared-staff').checked = d.shared_staff ?? false;
+    document.getElementById('consolidated').checked = d.consolidated_reporting ?? true;
+    document.getElementById('ai-mentions').checked = d.ai_mentions_location_name ?? true;
+    document.getElementById('cross-booking').checked = d.allow_cross_location_booking ?? false;
+    locsData = d.locations || [];
+    renderLocs();
+  }
+
+  function renderLocs() {
+    const list = document.getElementById('loc-list');
+    list.innerHTML = '';
+    locsData.forEach((l, i) => {
+      const block = document.createElement('div');
+      block.className = 'loc-block';
+      const badgeClass = l.is_primary ? 'badge-primary' : 'badge-branch';
+      const badgeText = l.is_primary ? 'Primary' : 'Branch';
+      block.innerHTML = `
+        <div class="loc-header">
+          <span class="loc-badge ${badgeClass}">${badgeText}</span>
+          <span class="loc-name">${l.name || 'New Location'}</span>
+          ${!l.is_primary ? `<button class="loc-remove" onclick="removeLoc(${i})">✕ Remove</button>` : ''}
+        </div>
+        <div class="loc-fields">
+          <div><div class="loc-field-label">Name</div><input type="text" data-i="${i}" data-f="name" value="${l.name || ''}" style="width:100%"></div>
+          <div><div class="loc-field-label">Phone</div><input type="tel" data-i="${i}" data-f="phone" value="${l.phone || ''}" style="width:100%" placeholder="+1 (555) 000-0000"></div>
+          <div><div class="loc-field-label">Address</div><input type="text" data-i="${i}" data-f="address" value="${l.address || ''}" style="width:100%"></div>
+          <div><div class="loc-field-label">Timezone</div><input type="text" data-i="${i}" data-f="timezone" value="${l.timezone || ''}" style="width:100%" placeholder="America/New_York"></div>
+        </div>
+      `;
+      list.appendChild(block);
+    });
+    list.querySelectorAll('input[data-i]').forEach(inp => {
+      inp.addEventListener('change', e => {
+        locsData[+e.target.dataset.i][e.target.dataset.f] = e.target.value;
+        if (e.target.dataset.f === 'name') renderLocs();
+      });
+      inp.addEventListener('input', e => {
+        locsData[+e.target.dataset.i][e.target.dataset.f] = e.target.value;
+      });
+    });
+  }
+
+  function addLocation() {
+    locsData.push({ id: 'loc_' + Date.now(), name: 'New Location', address: '', phone: '', timezone: 'America/New_York', is_primary: false, active: true, ai_enabled: true, staff_count: 0 });
+    renderLocs();
+  }
+
+  function removeLoc(i) {
+    locsData.splice(i, 1);
+    renderLocs();
+  }
+
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      route_calls_by_area_code: document.getElementById('route-area').checked,
+      shared_client_database: document.getElementById('shared-clients').checked,
+      shared_staff: document.getElementById('shared-staff').checked,
+      consolidated_reporting: document.getElementById('consolidated').checked,
+      ai_mentions_location_name: document.getElementById('ai-mentions').checked,
+      allow_cross_location_booking: document.getElementById('cross-booking').checked,
+      locations: locsData,
+    };
+    await fetch('/api/settings/branch-locations-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

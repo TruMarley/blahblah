@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk — Changelog</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #161616;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --blue: #60a5fa; --orange: #f97316; --yellow: #fbbf24;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    nav {
+      background: rgba(8,8,8,0.95); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 60px;
+    }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent-light); }
+    nav a.back { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
+
+    .hero {
+      padding: 4rem 2rem 3rem; text-align: center;
+      background: radial-gradient(ellipse 60% 35% at 50% -5%, rgba(124,58,237,0.1) 0%, transparent 65%);
+    }
+    .hero h1 { font-size: 2.2rem; font-weight: 900; color: #fff; letter-spacing: -0.04em; margin-bottom: 0.5rem; }
+    .hero p { color: var(--muted); font-size: 0.9rem; }
+
+    .main { max-width: 740px; margin: 0 auto; padding: 0 2rem 5rem; }
+
+    /* Timeline line */
+    .timeline { position: relative; }
+    .timeline::before {
+      content: ''; position: absolute; left: 68px; top: 0; bottom: 0;
+      width: 1px; background: var(--border2);
+    }
+
+    .release { display: flex; gap: 2rem; margin-bottom: 3rem; position: relative; }
+    .release-version-col { width: 52px; flex-shrink: 0; text-align: right; padding-top: 2px; }
+    .version-badge {
+      display: inline-block; background: var(--accent); color: #fff;
+      font-size: 0.65rem; font-weight: 800; padding: 3px 8px; border-radius: 6px;
+      letter-spacing: 0.02em; white-space: nowrap;
+    }
+    .version-badge.latest { background: var(--green); color: #000; }
+
+    /* Dot on timeline */
+    .timeline-dot {
+      position: absolute; left: 60px; top: 6px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--surface2); border: 2px solid var(--border2);
+      z-index: 1;
+    }
+    .timeline-dot.latest { background: var(--green); border-color: var(--green); box-shadow: 0 0 10px rgba(34,197,94,0.4); }
+
+    .release-content { flex: 1; }
+    .release-header { margin-bottom: 0.75rem; }
+    .release-date { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.3rem; }
+    .release-title { font-size: 1.05rem; font-weight: 800; color: #fff; }
+    .release-desc { font-size: 0.82rem; color: var(--muted); margin-top: 0.2rem; line-height: 1.5; }
+
+    .change-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+    .change-item { display: flex; align-items: flex-start; gap: 10px; font-size: 0.85rem; color: var(--text); line-height: 1.5; }
+    .change-tag {
+      font-size: 0.62rem; font-weight: 800; padding: 2px 7px; border-radius: 4px;
+      text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0; margin-top: 2px;
+    }
+    .tag-new { background: rgba(34,197,94,0.15); color: var(--green); }
+    .tag-fix { background: rgba(239,68,68,0.12); color: #f87171; }
+    .tag-improved { background: rgba(96,165,250,0.12); color: var(--blue); }
+
+    .release-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.5rem;
+    }
+    .release-card.latest-card { border-color: rgba(34,197,94,0.25); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/" class="back">← Back to RingDesk</a>
+</nav>
+
+<div class="hero">
+  <h1>Changelog</h1>
+  <p>Every update, fix, and improvement — in reverse chronological order.</p>
+</div>
+
+<div class="main">
+<div class="timeline">
+
+  <!-- v1.6.0 -->
+  <div class="release">
+    <div class="release-version-col">
+      <span class="version-badge latest">v1.6.0</span>
+    </div>
+    <div class="timeline-dot latest"></div>
+    <div class="release-content">
+      <div class="release-card latest-card">
+        <div class="release-header">
+          <div class="release-date">April 17, 2026</div>
+          <div class="release-title">Booking API + Customer Portal + Live Monitor</div>
+          <div class="release-desc">Full appointment lifecycle management, real-time call visibility, and customer self-service.</div>
+        </div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>POST /api/book-appointment — REST endpoint to book directly into SQLite with SMS confirmation and opt-out check</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Appointments page (/appointments) — full list with search, date/status filters, pagination, CSV export, cancel, and inline "New Appointment" modal</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>SMS opt-out system — POST /api/sms-optout + GET /api/sms-optouts; all SMS sends check optouts.json before sending</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>CSV export — GET /api/export/appointments.csv with optional status/date filters</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Live call monitor (/live) — real-time SSE event stream showing active calls, bookings, and SMS events; auto-reconnect</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>GET /api/live-events — Server-Sent Events endpoint; emit_live_event() helper wired into call start/end and booking</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Onboarding status page (/onboarding-status) — 6-step checklist with progress bar, auto-refreshes every 30s</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Forgot password page (/forgot-password) — email form + POST /api/forgot-password stub</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Review request marketing page (/review-request) — phone mockup, 3-step flow, waitlist CTA</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Dedicated pricing page (/pricing) — annual/monthly toggle, 3-plan cards, feature comparison table, FAQ accordion</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>GET /api/pricing — returns plan config as JSON</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Cancel account flow (/cancel-account) — 3-step retention: exit survey → targeted offer → CANCEL confirmation</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Powered-by badge (/badge.js) — embeddable IIFE script, data-position attribute, fixed-position pill</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Customer portal (/portal) — phone number lookup shows upcoming confirmed appointments</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Waitlist system (/waitlist + POST /api/waitlist/add) — collects name/phone/service/day, returns queue position</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>POST /api/appointments/{id}/reschedule — updates date+time, emits live event</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Referral page (/refer) — slug-based link generator, copy-to-clipboard, $50 credit program terms</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Email digest preview (/email-digest) — rendered HTML preview of daily summary email with send-test button</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Testimonials page (/testimonials) — 6 shop owner quotes, 2-col grid, stats strip</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Custom 404 handler — dark HTML page ("Looks like this call went to voicemail.") instead of JSON</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Multi-location dashboard (/locations-dashboard) — location cards, add modal, links to /shop/:slug</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Public shop profile (/shop/:slug) — dynamic page generated from locations.json by slugified name</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>GET /health-detailed — 6-component health check: DB latency, Deepgram/Twilio config, optouts count, server uptime/PID</li>
+          <li class="change-item"><span class="change-tag tag-improved">IMPROVED</span>POST /api/signup now rate-limited to 10 requests/hour per IP (returns 429 on breach)</li>
+          <li class="change-item"><span class="change-tag tag-improved">IMPROVED</span>Twilio webhook signature verification on /incoming-call via RequestValidator (skips in dev mode)</li>
+          <li class="change-item"><span class="change-tag tag-improved">IMPROVED</span>emit_live_event() wired into call start/end, booking confirmed, and SMS sent events</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- v1.5.0 -->
+  <div class="release">
+    <div class="release-version-col">
+      <span class="version-badge">v1.5.0</span>
+    </div>
+    <div class="timeline-dot"></div>
+    <div class="release-content">
+      <div class="release-card">
+        <div class="release-header">
+          <div class="release-date">April 10, 2026</div>
+          <div class="release-title">Partner Program + Affiliate Dashboard</div>
+          <div class="release-desc">Opens RingDesk to distribution through barber supply companies and content creators.</div>
+        </div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Partner portal — barber supply brands can apply to earn 30% recurring commission</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Affiliate dashboard with real-time earnings, click/conversion funnel, and SVG earnings chart</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Success stories page featuring 3 real-format barbershop case studies with before/after metrics</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Product tour page — animated walkthrough of every major feature with live UI mockups</li>
+          <li class="change-item"><span class="change-tag tag-improved">IMPROVED</span>Partner applications auto-saved to partners.json with status tracking</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- v1.4.0 -->
+  <div class="release">
+    <div class="release-version-col">
+      <span class="version-badge">v1.4.0</span>
+    </div>
+    <div class="timeline-dot"></div>
+    <div class="release-content">
+      <div class="release-card">
+        <div class="release-header">
+          <div class="release-date">March 28, 2026</div>
+          <div class="release-title">Voice Customization + Referral Program</div>
+          <div class="release-desc">Shop owners can now choose their AI receptionist's voice, name, and greeting.</div>
+        </div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Voice settings page — 10 Deepgram Aura voices with in-browser preview playback</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Custom AI name and greeting message per shop</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Referral program — shop owners earn $20/mo per referred shop</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Weekly digest email — automated Monday morning performance summary sent to owner</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Twilio setup guide — step-by-step walkthrough for connecting a phone number</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Instagram growth playbook — 7-day posting schedule + caption templates</li>
+          <li class="change-item"><span class="change-tag tag-improved">IMPROVED</span>Voice preview now uses WAV encoding (browser-compatible) instead of mulaw</li>
+          <li class="change-item"><span class="change-tag tag-fix">FIX</span>Voice settings saved correctly when AI name contained special characters</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- v1.3.0 -->
+  <div class="release">
+    <div class="release-version-col">
+      <span class="version-badge">v1.3.0</span>
+    </div>
+    <div class="timeline-dot"></div>
+    <div class="release-content">
+      <div class="release-card">
+        <div class="release-header">
+          <div class="release-date">March 12, 2026</div>
+          <div class="release-title">Multi-Location + Google Calendar</div>
+          <div class="release-desc">Expand your operation — manage multiple shops from one dashboard.</div>
+        </div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Multi-location manager — add unlimited shop locations, each with its own AI name and phone number</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Google Calendar integration — upload credentials JSON to sync bookings in real-time</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>DM outreach tracker — pipeline-view CRM for Instagram and Facebook lead management</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Post-call email — summary of each call sent to owner immediately after hang-up</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>AI name auto-assigned by shop type (barbershop → Alex, spa → Serena, etc.)</li>
+          <li class="change-item"><span class="change-tag tag-improved">IMPROVED</span>python-multipart added to requirements for file upload support</li>
+          <li class="change-item"><span class="change-tag tag-fix">FIX</span>Location add form now clears after submission</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- v1.2.0 -->
+  <div class="release">
+    <div class="release-version-col">
+      <span class="version-badge">v1.2.0</span>
+    </div>
+    <div class="timeline-dot"></div>
+    <div class="release-content">
+      <div class="release-card">
+        <div class="release-header">
+          <div class="release-date">February 24, 2026</div>
+          <div class="release-title">Analytics + Pricing + Follow-Up SMS</div>
+          <div class="release-desc">Data-driven decisions for shop owners plus automated client re-engagement.</div>
+        </div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Analytics dashboard — bookings over time, peak hours, service breakdown, answered vs missed donut chart</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Pricing page — 3-plan card layout with monthly/annual toggle and Stripe checkout</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Follow-up SMS — automated "How was your visit?" at day 3 and "Pre-book next visit?" at day 7</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Charts auto-refresh every 60 seconds via Chart.js</li>
+          <li class="change-item"><span class="change-tag tag-improved">IMPROVED</span>Analytics endpoint returns 7-day hourly breakdown for peak hours chart</li>
+          <li class="change-item"><span class="change-tag tag-fix">FIX</span>Annual pricing discount correctly applied (17% off) when billing toggle switched</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- v1.1.0 -->
+  <div class="release">
+    <div class="release-version-col">
+      <span class="version-badge">v1.1.0</span>
+    </div>
+    <div class="timeline-dot"></div>
+    <div class="release-content">
+      <div class="release-card">
+        <div class="release-header">
+          <div class="release-date">February 8, 2026</div>
+          <div class="release-title">Onboarding + Outreach + Bilingual Support</div>
+          <div class="release-desc">Dramatically reduced time-to-live and first major growth tooling.</div>
+        </div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>5-step onboarding wizard — shop setup in under 3 minutes from signup</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Outreach campaign builder — automated SMS/email sequences for missed calls</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Bilingual AI — auto-detects Spanish on first utterance, switches language seamlessly</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>24-hour and 2-hour appointment reminder SMS</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Callback queue — owner dashboard shows all requested callbacks with one-click resolve</li>
+          <li class="change-item"><span class="change-tag tag-improved">IMPROVED</span>Landing page — social proof bar, FAQ section, dual CTA buttons</li>
+          <li class="change-item"><span class="change-tag tag-fix">FIX</span>DEEPGRAM_API_KEY crash when env variable not set — now defaults to empty string gracefully</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- v1.0.0 -->
+  <div class="release">
+    <div class="release-version-col">
+      <span class="version-badge">v1.0.0</span>
+    </div>
+    <div class="timeline-dot"></div>
+    <div class="release-content">
+      <div class="release-card">
+        <div class="release-header">
+          <div class="release-date">January 27, 2026</div>
+          <div class="release-title">Initial Launch — Core Voice AI</div>
+          <div class="release-desc">RingDesk goes live. The first AI receptionist built specifically for barbershops and salons.</div>
+        </div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Inbound call answering via Twilio Media Streams + Deepgram Nova-2 STT</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Appointment booking — Claude Haiku agent handles service, date, time, barber selection</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>SMS confirmation sent to client after booking with address and details</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Live transfer — AI transfers caller to owner when requested</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Missed call logging — every missed call recorded in SQLite with callback option</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Owner dashboard — real-time view of today's appointments, missed calls, callbacks</li>
+          <li class="change-item"><span class="change-tag tag-new">NEW</span>Deepgram Aura TTS — human-sounding AI voice responses under 400ms</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Lifetime Value — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .hist-wrap { display: flex; gap: .5rem; align-items: flex-end; height: 100px; }
+    .hist-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .35rem; }
+    .hist-bar { width: 100%; border-radius: 5px 5px 0 0; min-height: 4px; }
+    .hist-label { font-size: .65rem; color: var(--muted); text-align: center; }
+    .hist-count { font-size: .68rem; font-weight: 700; color: var(--text); }
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; text-align: left; padding: .4rem .6rem; border-bottom: 1px solid var(--border); }
+    td { font-size: .8rem; padding: .55rem .6rem; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    .rank { font-size: .68rem; font-weight: 800; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Lifetime Value</div>
+  <p class="page-sub">See how much revenue your average client generates over their relationship with your shop. Knowing your LTV helps you decide how much to spend on marketing, referrals, and loyalty rewards to profitably grow your client base.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Average CLV</div>
+      <div class="hero-val" id="h-avg" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Median CLV</div>
+      <div class="hero-val" id="h-med" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Projected 12-Mo CLV</div>
+      <div class="hero-val" id="h-top" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">LTV by Client Segment</div>
+    <div class="hist-wrap" id="histogram"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Segment Breakdown</div>
+    <table>
+      <thead><tr><th>Segment</th><th>Clients</th><th>Avg LTV</th><th>Avg Visits</th></tr></thead>
+      <tbody id="top-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load(){
+    const d=await fetch('/api/analytics/client-lifetime-value-stats').then(r=>r.json());
+    document.getElementById('h-avg').textContent=d.avg_clv!=null?'$'+Number(d.avg_clv).toFixed(0):'—';
+    document.getElementById('h-med').textContent=d.median_clv!=null?'$'+Number(d.median_clv).toFixed(0):'—';
+    document.getElementById('h-top').textContent=d.projected_12mo_clv!=null?'$'+Number(d.projected_12mo_clv).toFixed(0):'—';
+    const segs=d.segments||[];
+
+    const maxClv=Math.max(...segs.map(s=>s.avg_clv||0))||1;
+    const hist=document.getElementById('histogram');
+    segs.forEach(s=>{
+      const pct=((s.avg_clv||0)/maxClv*100).toFixed(0);
+      hist.innerHTML+=`<div class="hist-bar-wrap">
+        <div class="hist-count">${s.clients||0}</div>
+        <div class="hist-bar" style="height:${pct}%;background:${s.color||'var(--accent)'}"></div>
+        <div class="hist-label">${esc(s.segment)}</div>
+      </div>`;
+    });
+
+    const tbody=document.getElementById('top-tbody');
+    segs.forEach(s=>{
+      tbody.innerHTML+=`<tr>
+        <td style="font-weight:600;color:${esc(s.color||'var(--text)')}">${esc(s.segment)}</td>
+        <td style="color:var(--muted)">${s.clients||0}</td>
+        <td style="font-weight:700">$${Number(s.avg_clv||0).toFixed(0)}</td>
+        <td style="color:var(--muted)">${Number(s.avg_visits||0).toFixed(1)}</td>
+      </tr>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

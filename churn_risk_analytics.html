@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Churn Risk — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .bucket-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .5rem; display: flex; align-items: center; gap: .75rem; }
+    .bucket-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .bucket-label { font-size: .82rem; font-weight: 600; flex: 1; }
+    .bucket-bar-wrap { width: 120px; background: #1e1e1e; border-radius: 4px; height: 8px; overflow: hidden; flex-shrink: 0; }
+    .bucket-bar { height: 100%; border-radius: 4px; }
+    .bucket-count { font-size: .82rem; font-weight: 800; width: 38px; text-align: right; flex-shrink: 0; }
+    .bucket-pct { font-size: .68rem; color: var(--muted); width: 36px; text-align: right; flex-shrink: 0; }
+    .monthly-row { display: flex; align-items: flex-end; gap: 3px; height: 90px; }
+    .monthly-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+    .m-risk { width: 100%; background: var(--red); opacity: .7; }
+    .m-rec { width: 100%; background: var(--green); opacity: .65; }
+    .m-lbl { font-size: .5rem; color: var(--muted); margin-top: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Churn Risk</div>
+  <p class="page-sub">Identify clients at risk of not returning based on days since their last visit. Track high-risk clients and measure win-back campaign effectiveness.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-high" style="color:var(--red)">—</div><div class="stat-lbl">High Risk Clients</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-pct" style="color:var(--red)">—</div><div class="stat-lbl">High Risk %</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-recovered" style="color:var(--green)">—</div><div class="stat-lbl">Recovered (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-days" style="color:var(--muted)">—</div><div class="stat-lbl">Avg Days Since Visit</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Client Risk Breakdown</div>
+    <div id="bucket-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Monthly High-Risk vs Recovered</div>
+    <div class="monthly-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  const COLOR_MAP = { red: 'var(--red)', yellow: 'var(--yellow)', accent: 'var(--accent)', green: 'var(--green)', muted: 'var(--muted)' };
+  async function load() {
+    const data = await fetch('/api/analytics/churn-risk-stats').then(r => r.json());
+    document.getElementById('h-high').textContent = data.high_risk_count;
+    document.getElementById('h-pct').textContent = data.high_risk_pct.toFixed(1) + '%';
+    document.getElementById('h-recovered').textContent = data.recovered_last_30d;
+    document.getElementById('h-days').textContent = data.avg_days_since_visit + 'd';
+    const buckets = data.risk_buckets || [];
+    const maxCount = Math.max(...buckets.map(b => b.count), 1);
+    const list = document.getElementById('bucket-list');
+    buckets.forEach(b => {
+      const color = COLOR_MAP[b.color] || 'var(--accent)';
+      list.innerHTML += '<div class="bucket-card"><div class="bucket-dot" style="background:' + color + '"></div><div class="bucket-label">' + b.label + '</div><div class="bucket-bar-wrap"><div class="bucket-bar" style="width:' + (b.count/maxCount*100).toFixed(1) + '%;background:' + color + '"></div></div><div class="bucket-count" style="color:' + color + '">' + b.count + '</div><div class="bucket-pct">' + b.pct + '%</div></div>';
+    });
+    const monthly = data.monthly || [];
+    const maxM = Math.max(...monthly.map(m => m.high_risk), 1);
+    const bars = document.getElementById('monthly-bars');
+    monthly.forEach(m => {
+      const rh = Math.max((m.high_risk / maxM * 75).toFixed(0), 2);
+      const gh = Math.max((m.recovered / maxM * 75).toFixed(0), 2);
+      bars.innerHTML += '<div class="monthly-col"><div class="m-risk" style="height:' + rh + 'px" title="' + m.month + ': ' + m.high_risk + ' high-risk"></div><div class="m-rec" style="height:' + gh + 'px"></div><div class="m-lbl">' + m.month.slice(0,3) + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Avg Wait Time — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .45rem; }
+    .hero-val { font-size: 2.4rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .wait-row { display: flex; align-items: center; gap: .85rem; margin-bottom: .65rem; }
+    .wait-row:last-child { margin-bottom: 0; }
+    .hour-label { font-size: .78rem; font-weight: 700; width: 50px; flex-shrink: 0; text-align: right; }
+    .bar-track { flex: 1; background: var(--surface2); border-radius: 5px; height: 18px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 5px; transition: width .4s ease; }
+    .wait-val { font-size: .75rem; font-weight: 800; width: 44px; text-align: left; flex-shrink: 0; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: .85rem; font-size: .72rem; }
+    .leg-item { display: flex; align-items: center; gap: .35rem; }
+    .leg-box { width: 14px; height: 8px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Avg Wait Time</div>
+  <p class="page-sub">How long walk-in clients typically wait by hour of day.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Overall Avg Wait</div>
+      <div class="hero-val" style="color:var(--accent)" id="h-avg">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Peak Wait Hour</div>
+      <div class="hero-val" style="color:var(--red)" id="h-peak">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Wait Time by Hour</div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-box" style="background:#34d399"></div><span style="color:#34d399">&lt;10 min</span></div>
+      <div class="leg-item"><div class="leg-box" style="background:#fbbf24"></div><span style="color:#fbbf24">10–20 min</span></div>
+      <div class="leg-item"><div class="leg-box" style="background:#f87171"></div><span style="color:#f87171">&gt;20 min</span></div>
+    </div>
+    <div id="wait-bars"></div>
+  </div>
+</div>
+<script>
+  function waitColor(min) {
+    if (min < 10) return '#34d399';
+    if (min < 20) return '#fbbf24';
+    return '#f87171';
+  }
+  function fmtHour(h) {
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    return (h % 12 || 12) + ampm;
+  }
+
+  async function load() {
+    const r = await fetch('/api/analytics/avg-wait-time');
+    const d = await r.json();
+    document.getElementById('h-avg').textContent  = d.overall_avg_min + ' min';
+    document.getElementById('h-peak').textContent = fmtHour(d.peak_hour);
+
+    const hours  = d.hours || [];
+    const maxWait = Math.max(...hours.map(h=>h.wait_min), 1);
+    document.getElementById('wait-bars').innerHTML = hours.map(h => {
+      const color = waitColor(h.wait_min);
+      return `<div class="wait-row">
+        <div class="hour-label">${fmtHour(h.hour)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(h.wait_min/maxWait*100).toFixed(1)}%;background:${color}"></div></div>
+        <div class="wait-val" style="color:${color}">${h.wait_min}m</div>
+      </div>`;
+    }).join('');
+  }
+  load();
+</script>
+</body>
+</html>

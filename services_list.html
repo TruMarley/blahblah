@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Services — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .category-section { margin-bottom: 2rem; }
+    .cat-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .75rem; }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .65rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .8rem 1.25rem; font-size: .82rem; vertical-align: middle; }
+    .svc-name { font-weight: 800; font-size: .88rem; }
+    .dur-cell { font-size: .75rem; color: var(--muted); }
+    /* Inline price edit */
+    .price-cell { font-weight: 700; }
+    .price-display { cursor: pointer; display: inline-flex; align-items: center; gap: .4rem; }
+    .price-display:hover .edit-hint { opacity: 1; }
+    .edit-hint { font-size: .65rem; color: var(--muted); opacity: 0; transition: opacity .15s; }
+    .price-input { background: var(--surface2); border: 1px solid rgba(167,139,250,.5); color: var(--text); font-size: .82rem; font-family: inherit; font-weight: 700; padding: .2rem .5rem; border-radius: 6px; width: 80px; outline: none; }
+    /* Toggle switch */
+    .toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: var(--surface2); border-radius: 20px; transition: .2s; border: 1px solid var(--border); }
+    .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 2px; bottom: 2px; background: var(--muted); border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: rgba(52,211,153,.15); border-color: rgba(52,211,153,.3); }
+    input:checked + .slider:before { transform: translateX(16px); background: var(--green); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Services</div>
+  <p class="page-sub">Click a price to edit inline. Toggle active/inactive per service.</p>
+  <div id="content"></div>
+</div>
+<script>
+  let services = [];
+
+  async function load() {
+    const r = await fetch('/api/services');
+    const d = await r.json();
+    services = d.services || [];
+    render();
+  }
+
+  function render() {
+    const byCat = {};
+    services.forEach(s => { (byCat[s.category] = byCat[s.category]||[]).push(s); });
+    document.getElementById('content').innerHTML = Object.entries(byCat).map(([cat, svcs]) => `
+      <div class="category-section">
+        <div class="cat-label">${esc(cat)}</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Service</th><th>Duration</th><th>Price</th><th>Active</th></tr></thead>
+            <tbody>${svcs.map(s => `
+              <tr>
+                <td class="svc-name">${esc(s.name)}</td>
+                <td class="dur-cell">${s.duration_min} min</td>
+                <td class="price-cell" id="pc-${esc(s.id)}">
+                  <span class="price-display" onclick="startEdit('${esc(s.id)}',${s.price})">
+                    $${s.price} <span class="edit-hint">✎</span>
+                  </span>
+                </td>
+                <td>
+                  <label class="toggle">
+                    <input type="checkbox" ${s.active?'checked':''} onchange="toggleActive('${esc(s.id)}',this.checked)">
+                    <span class="slider"></span>
+                  </label>
+                </td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`).join('');
+  }
+
+  function startEdit(id, currentPrice) {
+    const cell = document.getElementById('pc-' + id);
+    cell.innerHTML = `<input class="price-input" id="pi-${id}" value="${currentPrice}" type="number" min="0" step="1" onblur="savePrice('${id}')" onkeydown="if(event.key==='Enter')savePrice('${id}');if(event.key==='Escape')render();" />`;
+    document.getElementById('pi-' + id).focus();
+  }
+
+  async function savePrice(id) {
+    const input = document.getElementById('pi-' + id);
+    if (!input) return;
+    const price = parseFloat(input.value);
+    if (isNaN(price) || price < 0) { render(); return; }
+    const svc = services.find(s => s.id === id);
+    if (!svc) return;
+    await fetch(`/api/services/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({price, active: svc.active, duration_min: svc.duration_min}) });
+    svc.price = price;
+    render();
+  }
+
+  async function toggleActive(id, active) {
+    const svc = services.find(s => s.id === id);
+    if (!svc) return;
+    await fetch(`/api/services/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({price: svc.price, active, duration_min: svc.duration_min}) });
+    svc.active = active;
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

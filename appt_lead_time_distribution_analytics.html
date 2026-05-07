@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Lead Time — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .bucket-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .7rem; }
+    .bucket-label { font-size: .78rem; color: var(--text); width: 90px; flex-shrink: 0; }
+    .bucket-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 12px; overflow: hidden; }
+    .bucket-fill { height: 100%; border-radius: 4px; }
+    .bucket-pct { font-size: .75rem; font-weight: 700; width: 42px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Booking Lead Time</div>
+  <p class="page-sub">See how far in advance clients book their appointments. High same-day booking volume signals demand for last-minute slots; high advance booking signals a need for longer scheduling windows.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-avg" style="color:var(--accent)">—</div><div class="stat-lbl">Avg Lead Time</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-sameday" style="color:var(--yellow)">—</div><div class="stat-lbl">Same-Day Bookings</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-advance" style="color:var(--green)">—</div><div class="stat-lbl">7+ Days Advance</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Lead Time Distribution</div>
+    <div id="bucket-list"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['var(--red)','var(--yellow)','var(--accent)','var(--green)','#60a5fa','var(--muted)'];
+  async function load() {
+    const d = await fetch('/api/analytics/appointment-lead-time-distribution-stats').then(r => r.json());
+    document.getElementById('h-avg').textContent = d.avg_lead_days.toFixed(1) + 'd';
+    document.getElementById('h-sameday').textContent = d.same_day_pct.toFixed(1) + '%';
+    document.getElementById('h-advance').textContent = d.advance_7plus_pct.toFixed(1) + '%';
+    const bl = document.getElementById('bucket-list');
+    const maxP = Math.max(...d.buckets.map(b => b.pct));
+    d.buckets.forEach((b, i) => {
+      const w = (b.pct / maxP * 100).toFixed(1);
+      bl.innerHTML += '<div class="bucket-row"><div class="bucket-label">' + b.label + '</div><div class="bucket-track"><div class="bucket-fill" style="width:' + w + '%;background:' + COLORS[i] + '"></div></div><div class="bucket-pct" style="color:' + COLORS[i] + '">' + b.pct.toFixed(1) + '%</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

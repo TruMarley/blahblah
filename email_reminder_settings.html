@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email Reminders — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 100%; }
+    input[type=text]:focus { border-color: var(--accent); }
+    .var-bar { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .4rem; }
+    .var-chip { background: #1e1e1e; border-radius: 4px; padding: .12rem .35rem; font-size: .64rem; color: var(--accent); font-family: monospace; cursor: pointer; border: 1px solid #2a2a2a; }
+    .var-chip:hover { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Email Reminders</div>
+  <p class="page-sub">Send branded email reminders to reduce no-shows. Personalized with appointment details, directions, and easy rebook/cancel links.</p>
+  <div class="card">
+    <div class="card-title">Reminder Schedule</div>
+    <div class="row">
+      <div><div class="row-label">Enable Email Reminders</div><div class="row-sub">Send automated appointment emails</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">24-Hour Reminder</div><div class="row-sub">Sent the day before the appointment</div></div>
+      <label class="toggle"><input type="checkbox" id="send-24hr"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">2-Hour Reminder</div><div class="row-sub">Final nudge the morning of</div></div>
+      <label class="toggle"><input type="checkbox" id="send-2hr"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">1-Week Reminder</div><div class="row-sub">Early heads-up for long appointments</div></div>
+      <label class="toggle"><input type="checkbox" id="send-1week"><span class="slider"></span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Email Content</div>
+    <div class="row">
+      <div><div class="row-label">Include Directions Link</div><div class="row-sub">Google Maps link to your location</div></div>
+      <label class="toggle"><input type="checkbox" id="directions"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Include Cancel Link</div><div class="row-sub">One-click cancellation from email</div></div>
+      <label class="toggle"><input type="checkbox" id="cancel-link"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Include Rebook Link</div><div class="row-sub">Book again directly from email</div></div>
+      <label class="toggle"><input type="checkbox" id="rebook-link"><span class="slider"></span></label>
+    </div>
+    <div style="margin-top:.75rem">
+      <div class="row-label" style="font-size:.78rem;color:var(--muted);margin-bottom:.35rem">From Name</div>
+      <input type="text" id="from-name" placeholder="Your Business Name">
+    </div>
+    <div style="margin-top:.75rem">
+      <div class="row-label" style="font-size:.78rem;color:var(--muted);margin-bottom:.35rem">Subject Line Template</div>
+      <input type="text" id="subject" placeholder="Your appointment is tomorrow — {service} at {time}">
+      <div class="var-bar">
+        <span class="var-chip" onclick="ins('{name}')">{name}</span>
+        <span class="var-chip" onclick="ins('{service}')">{service}</span>
+        <span class="var-chip" onclick="ins('{time}')">{time}</span>
+        <span class="var-chip" onclick="ins('{date}')">{date}</span>
+        <span class="var-chip" onclick="ins('{business}')">{business}</span>
+      </div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  function ins(v) {
+    const el = document.getElementById('subject');
+    const s = el.selectionStart, e = el.selectionEnd;
+    el.value = el.value.slice(0,s)+v+el.value.slice(e);
+    el.selectionStart = el.selectionEnd = s+v.length;
+    el.focus();
+  }
+  async function load() {
+    const d = await fetch('/api/settings/email-reminders').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('send-24hr').checked = d.send_24hr;
+    document.getElementById('send-2hr').checked = d.send_2hr;
+    document.getElementById('send-1week').checked = d.send_1week;
+    document.getElementById('directions').checked = d.include_directions;
+    document.getElementById('cancel-link').checked = d.include_cancellation_link;
+    document.getElementById('rebook-link').checked = d.include_rebook_link;
+    document.getElementById('from-name').value = d.from_name || '';
+    document.getElementById('subject').value = d.subject_template || '';
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      send_24hr: document.getElementById('send-24hr').checked,
+      send_2hr: document.getElementById('send-2hr').checked,
+      send_1week: document.getElementById('send-1week').checked,
+      include_directions: document.getElementById('directions').checked,
+      include_cancellation_link: document.getElementById('cancel-link').checked,
+      include_rebook_link: document.getElementById('rebook-link').checked,
+      from_name: document.getElementById('from-name').value,
+      subject_template: document.getElementById('subject').value
+    };
+    await fetch('/api/settings/email-reminders', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

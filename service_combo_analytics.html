@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Combos — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .combo-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: .9rem 1.1rem; margin-bottom: .55rem; border-left: 4px solid transparent; }
+    .combo-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .55rem; }
+    .combo-services { font-size: .9rem; font-weight: 800; }
+    .combo-plus { color: var(--muted); font-weight: 400; margin: 0 .35rem; }
+    .combo-count { font-size: .85rem; font-weight: 900; }
+    .combo-metrics { display: flex; gap: 1.2rem; }
+    .combo-metric { font-size: .7rem; color: var(--muted); }
+    .combo-metric span { color: var(--text); font-weight: 700; }
+    .bar-row { display: flex; align-items: center; gap: .75rem; margin-top: .5rem; }
+    .bar-wrap { flex: 1; background: #1a1a1a; border-radius: 4px; height: 5px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; }
+    .bar-pct { font-size: .68rem; color: var(--muted); width: 36px; text-align: right; }
+    .monthly-bar-row { display: flex; align-items: flex-end; gap: 3px; height: 72px; }
+    .monthly-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .monthly-bar { width: 100%; border-radius: 3px 3px 0 0; min-height: 2px; background: var(--accent); opacity: .7; }
+    .monthly-lbl { font-size: .56rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Service Combination Analytics</div>
+  <p class="page-sub">Discover which services clients most commonly book together. Use these patterns to design combo packages, train AI upsell suggestions, and price bundled offerings.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-combos" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Combo Bookings (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-top" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Top Combo</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-lift" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Ticket Lift vs Single</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-avg-ticket" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Avg Combo Ticket</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Top Service Combinations</div>
+    <div id="combo-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Combo Booking Trend</div>
+    <div class="monthly-bar-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/service-combo-stats').then(r => r.json());
+    document.getElementById('h-combos').textContent = data.total_combo_bookings_30d;
+    document.getElementById('h-top').textContent = data.top_combo;
+    document.getElementById('h-lift').textContent = '+' + data.combo_revenue_lift_pct.toFixed(1) + '%';
+    document.getElementById('h-avg-ticket').textContent = '$' + data.avg_ticket_with_combo.toFixed(0);
+
+    const maxCount = Math.max(...(data.combos || []).map(c => c.co_book_count), 1);
+    const list = document.getElementById('combo-list');
+    (data.combos || []).forEach(c => {
+      const pctKey = Object.keys(c).find(k => k.startsWith('pct_'));
+      const pctVal = pctKey ? c[pctKey] : 0;
+      const card = document.createElement('div');
+      card.className = 'combo-card';
+      card.style.borderLeftColor = c.color;
+      card.innerHTML = `
+        <div class="combo-top">
+          <div class="combo-services">
+            <span>${c.service_a}</span><span class="combo-plus">+</span><span>${c.service_b}</span>
+          </div>
+          <div class="combo-count" style="color:${c.color}">${c.co_book_count} bookings</div>
+        </div>
+        <div class="combo-metrics">
+          <div class="combo-metric">Co-book rate: <span>${pctVal.toFixed(1)}%</span></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-wrap"><div class="bar-fill" style="width:${(c.co_book_count/maxCount*100).toFixed(1)}%;background:${c.color};opacity:.8"></div></div>
+          <div class="bar-pct">${((c.co_book_count/maxCount)*100).toFixed(0)}%</div>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+
+    const monthly = data.monthly || [];
+    const maxB = Math.max(...monthly.map(m => m.combo_bookings), 1);
+    const barsEl = document.getElementById('monthly-bars');
+    monthly.forEach(m => {
+      const h = Math.max((m.combo_bookings / maxB * 64).toFixed(0), 2);
+      barsEl.innerHTML += `
+        <div class="monthly-col">
+          <div class="monthly-bar" style="height:${h}px" title="${m.month}: ${m.combo_bookings} combos · $${m.combo_revenue.toFixed(0)}"></div>
+          <div class="monthly-lbl">${m.month.slice(0,3)}</div>
+        </div>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

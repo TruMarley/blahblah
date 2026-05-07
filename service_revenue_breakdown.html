@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Revenue Breakdown — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .svc-row { display: flex; align-items: center; gap: .85rem; margin-bottom: 1rem; }
+    .svc-row:last-child { margin-bottom: 0; }
+    .svc-name { font-size: .8rem; font-weight: 800; width: 170px; flex-shrink: 0; }
+    .bar-wrap { flex: 1; }
+    .bar-track { background: var(--surface2); border-radius: 5px; height: 12px; overflow: hidden; margin-bottom: .2rem; }
+    .bar-fill { height: 100%; border-radius: 5px; }
+    .bar-meta { display: flex; justify-content: space-between; font-size: .7rem; color: var(--muted); }
+    .rev-label { font-size: .8rem; font-weight: 900; color: var(--green); width: 88px; text-align: right; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Service Revenue Breakdown</div>
+  <p class="page-sub">Revenue contribution by service — helps identify your highest-value offerings.</p>
+
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Revenue</div>
+      <div class="hero-val" id="h-total" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Top Service</div>
+      <div class="hero-val" id="h-top" style="font-size:.95rem;padding-top:.4rem;color:var(--yellow)">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Revenue by Service — Sorted by Revenue</div>
+    <div id="svc-list"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['#a78bfa','#34d399','#60a5fa','#fbbf24','#f87171','#fb923c'];
+
+  async function load() {
+    const r = await fetch('/api/analytics/service-revenue-breakdown');
+    const d = await r.json();
+    document.getElementById('h-total').textContent = '$' + Number(d.total_revenue).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0});
+    document.getElementById('h-top').textContent = d.top_service;
+
+    const svcs = d.services || [];
+    const maxRev = Math.max(...svcs.map(s => s.revenue));
+    document.getElementById('svc-list').innerHTML = svcs.map((s, i) => `
+      <div class="svc-row">
+        <div class="svc-name">${esc(s.service)}</div>
+        <div class="bar-wrap">
+          <div class="bar-track"><div class="bar-fill" style="width:${(s.revenue/maxRev*100).toFixed(1)}%;background:${COLORS[i]};opacity:.8"></div></div>
+          <div class="bar-meta"><span>${s.bookings} bookings</span><span>avg $${s.avg_ticket}</span><span>${s.pct}%</span></div>
+        </div>
+        <div class="rev-label">$${s.revenue.toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+      </div>`).join('');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

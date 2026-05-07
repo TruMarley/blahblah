@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Ratings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --gold: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.1rem; }
+    .staff-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; }
+    .card-top { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.1rem; }
+    .avatar { width: 52px; height: 52px; border-radius: 50%; background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.25); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 900; color: var(--accent); flex-shrink: 0; }
+    .card-meta { flex: 1; }
+    .staff-name { font-size: .95rem; font-weight: 900; }
+    .review-count { font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+    .rating-num { font-size: 2rem; font-weight: 900; color: var(--gold); }
+    .stars { font-size: .85rem; color: var(--gold); letter-spacing: .06em; margin-top: .1rem; }
+    /* Distribution */
+    .dist { display: flex; flex-direction: column; gap: .3rem; margin-bottom: 1rem; }
+    .dist-row { display: flex; align-items: center; gap: .5rem; }
+    .dist-label { font-size: .65rem; color: var(--muted); width: 20px; text-align: right; flex-shrink: 0; }
+    .dist-track { flex: 1; background: var(--surface2); border-radius: 3px; height: 7px; overflow: hidden; }
+    .dist-fill { height: 100%; border-radius: 3px; background: var(--gold); }
+    .dist-count { font-size: .62rem; color: var(--muted); width: 20px; flex-shrink: 0; }
+    /* Quote */
+    .top-comment { background: var(--surface2); border-left: 2px solid var(--accent); border-radius: 0 8px 8px 0; padding: .6rem .85rem; font-size: .75rem; color: var(--muted); line-height: 1.5; font-style: italic; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Ratings</div>
+  <p class="page-sub">Client review ratings per team member — based on post-visit feedback.</p>
+  <div class="cards-grid" id="grid"></div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/staff-ratings');
+    const d = await r.json();
+    const staff = d.staff || [];
+
+    document.getElementById('grid').innerHTML = staff.map(s => {
+      const init = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      const fullStars = Math.round(s.avg_rating);
+      const starStr = '★'.repeat(fullStars) + '☆'.repeat(5-fullStars);
+      const maxDist = Math.max(...Object.values(s.rating_dist), 1);
+      const distHtml = [5,4,3,2,1].map(n => `
+        <div class="dist-row">
+          <div class="dist-label">${n}★</div>
+          <div class="dist-track"><div class="dist-fill" style="width:${Math.round((s.rating_dist[n]||0)/maxDist*100)}%"></div></div>
+          <div class="dist-count">${s.rating_dist[n]||0}</div>
+        </div>`).join('');
+      return `<div class="staff-card">
+        <div class="card-top">
+          <div class="avatar">${init}</div>
+          <div class="card-meta">
+            <div class="staff-name">${esc(s.name)}</div>
+            <div class="review-count">${s.total_reviews} reviews</div>
+          </div>
+          <div>
+            <div class="rating-num">${s.avg_rating}</div>
+            <div class="stars">${starStr}</div>
+          </div>
+        </div>
+        <div class="dist">${distHtml}</div>
+        <div class="top-comment">"${esc(s.top_comment)}"</div>
+      </div>`;
+    }).join('');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

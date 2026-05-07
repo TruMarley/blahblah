@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancellation Policy — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.4rem; }
+    .field-group { margin-bottom: 1.2rem; }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; display: block; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .85rem; padding: .5rem .75rem; font-family: inherit; width: 100%; outline: none; }
+    .f-input:focus { border-color: rgba(167,139,250,.5); }
+    .f-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .85rem; padding: .5rem .75rem; font-family: inherit; width: 100%; outline: none; cursor: pointer; }
+    .f-textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .85rem; padding: .5rem .75rem; font-family: inherit; width: 100%; outline: none; resize: vertical; min-height: 80px; }
+    .inline-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .toggle-info .toggle-name { font-size: .85rem; font-weight: 700; }
+    .toggle-info .toggle-desc { font-size: .74rem; color: var(--muted); margin-top: .1rem; }
+    .tog { width: 36px; height: 20px; background: var(--border); border-radius: 99px; position: relative; cursor: pointer; flex-shrink: 0; transition: background .2s; }
+    .tog.on { background: rgba(167,139,250,.6); }
+    .tog::after { content:''; position:absolute; top:3px; left:3px; width:14px; height:14px; background:#fff; border-radius:50%; transition:transform .2s; }
+    .tog.on::after { transform: translateX(16px); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
+    .save-row { display: flex; align-items: center; gap: 1rem; }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.5rem; border-radius: 9px; border: 1px solid rgba(52,211,153,.4); background: rgba(52,211,153,.1); color: var(--green); cursor: pointer; font-family: inherit; }
+    .save-btn:hover { background: rgba(52,211,153,.2); }
+    .saved-msg { font-size: .78rem; color: var(--green); font-weight: 700; opacity: 0; transition: opacity .3s; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Cancellation Policy</div>
+  <p class="page-sub">Configure how the AI handles cancellations — rules, fees, and what it tells callers.</p>
+
+  <div class="card">
+    <div class="card-title">Policy Settings</div>
+
+    <div class="inline-row field-group">
+      <div>
+        <label class="field-label" for="notice-hours">Notice Required (hours)</label>
+        <input class="f-input" id="notice-hours" type="number" min="0" max="72">
+      </div>
+      <div>
+        <label class="field-label" for="max-free">Free Cancellations / Month</label>
+        <input class="f-input" id="max-free" type="number" min="0" max="10">
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Cancellation Fee</div>
+        <div class="toggle-desc">Charge a fee for late cancellations</div>
+      </div>
+      <div class="tog" id="tog-fee" onclick="toggleField('fee_enabled')"></div>
+    </div>
+
+    <div id="fee-fields" style="display:none" class="field-group">
+      <div class="inline-row">
+        <div>
+          <label class="field-label" for="fee-amount">Fee Amount ($)</label>
+          <input class="f-input" id="fee-amount" type="number" min="0" step="0.01">
+        </div>
+        <div>
+          <label class="field-label" for="fee-type">Fee Type</label>
+          <select class="f-select" id="fee-type">
+            <option value="flat">Flat amount</option>
+            <option value="pct">% of service price</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">AI Reads Policy on Booking</div>
+        <div class="toggle-desc">AI mentions cancellation terms during every booking call</div>
+      </div>
+      <div class="tog" id="tog-reads" onclick="toggleField('ai_reads_policy_on_booking')"></div>
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Include Policy in SMS Reminders</div>
+        <div class="toggle-desc">Policy text added to appointment reminder texts</div>
+      </div>
+      <div class="tog" id="tog-sms" onclick="toggleField('sms_reminder_includes_policy')"></div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="field-group">
+      <label class="field-label" for="policy-msg">Policy Message (read by AI)</label>
+      <textarea class="f-textarea" id="policy-msg" maxlength="280"></textarea>
+    </div>
+
+    <div class="save-row">
+      <button class="save-btn" onclick="save()">Save Policy</button>
+      <span class="saved-msg" id="saved-msg">✓ Policy saved</span>
+    </div>
+  </div>
+</div>
+<script>
+  let config = {};
+
+  async function load() {
+    const r = await fetch('/api/cancellation-policy');
+    config = await r.json();
+    document.getElementById('notice-hours').value = config.notice_hours ?? 24;
+    document.getElementById('max-free').value = config.max_free_cancellations_per_month ?? 2;
+    document.getElementById('fee-amount').value = config.fee_amount ?? 25;
+    document.getElementById('fee-type').value = config.fee_type ?? 'flat';
+    document.getElementById('policy-msg').value = config.policy_message ?? '';
+    setTog('tog-fee', config.fee_enabled);
+    setTog('tog-reads', config.ai_reads_policy_on_booking);
+    setTog('tog-sms', config.sms_reminder_includes_policy);
+    document.getElementById('fee-fields').style.display = config.fee_enabled ? 'block' : 'none';
+  }
+
+  function setTog(id, val) { document.getElementById(id).classList.toggle('on', !!val); }
+
+  function toggleField(key) {
+    config[key] = !config[key];
+    const togMap = {fee_enabled:'tog-fee', ai_reads_policy_on_booking:'tog-reads', sms_reminder_includes_policy:'tog-sms'};
+    setTog(togMap[key], config[key]);
+    if (key === 'fee_enabled') document.getElementById('fee-fields').style.display = config.fee_enabled ? 'block' : 'none';
+  }
+
+  async function save() {
+    config.notice_hours = parseInt(document.getElementById('notice-hours').value) || 24;
+    config.max_free_cancellations_per_month = parseInt(document.getElementById('max-free').value) || 2;
+    config.fee_amount = parseFloat(document.getElementById('fee-amount').value) || 25;
+    config.fee_type = document.getElementById('fee-type').value;
+    config.policy_message = document.getElementById('policy-msg').value.trim();
+    await fetch('/api/cancellation-policy', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(config)});
+    const msg = document.getElementById('saved-msg');
+    msg.style.opacity = '1';
+    setTimeout(() => { msg.style.opacity = '0'; }, 2000);
+  }
+
+  load();
+</script>
+</body>
+</html>

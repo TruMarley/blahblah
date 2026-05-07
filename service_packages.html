@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Packages — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .pkg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+    .pkg-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.2rem; display: flex; flex-direction: column; gap: .55rem; }
+    .pkg-card.inactive { opacity: .5; }
+    .pkg-top { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
+    .pkg-name { font-size: .92rem; font-weight: 900; }
+    .status-badge { font-size: .62rem; font-weight: 800; padding: .15rem .45rem; border-radius: 99px; flex-shrink: 0; }
+    .s-active   { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .s-inactive { background: rgba(255,255,255,.05); color: var(--muted); border: 1px solid var(--border); }
+    .pkg-services { display: flex; flex-wrap: wrap; gap: .3rem; }
+    .svc-chip { font-size: .66rem; background: rgba(167,139,250,.08); color: var(--accent); border: 1px solid rgba(167,139,250,.2); padding: .12rem .4rem; border-radius: 5px; }
+    .pkg-price { display: flex; align-items: baseline; gap: .45rem; }
+    .price-val { font-size: 1.25rem; font-weight: 900; color: var(--green); }
+    .savings { font-size: .72rem; color: var(--yellow); font-weight: 700; }
+    .pkg-foot { display: flex; align-items: center; justify-content: space-between; }
+    .bookings-lbl { font-size: .72rem; color: var(--muted); }
+    .pkg-actions { display: flex; gap: .4rem; }
+    .icon-btn { background: none; border: none; cursor: pointer; font-size: .85rem; padding: .2rem .35rem; border-radius: 5px; }
+    .icon-btn:hover { background: rgba(255,255,255,.06); }
+    .add-form { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+    .add-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .45rem .75rem; font-family: inherit; }
+    .add-input.name { flex: 1; min-width: 150px; }
+    .add-input.svcs { flex: 1.5; min-width: 200px; }
+    .add-input.price { width: 90px; }
+    .add-input.savings { width: 90px; }
+    .add-btn { font-size: .78rem; font-weight: 800; padding: .45rem 1rem; border-radius: 8px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .add-btn:hover { background: rgba(167,139,250,.2); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Service Packages</div>
+  <p class="page-sub">Bundled service deals — the AI mentions active packages to callers when they book.</p>
+
+  <div class="card">
+    <div class="card-title">Packages</div>
+    <div class="pkg-grid" id="pkg-grid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Add Package</div>
+    <div class="add-form">
+      <input class="add-input name" id="p-name" type="text" placeholder="Package name…" maxlength="36">
+      <input class="add-input svcs" id="p-svcs" type="text" placeholder="Services (comma-separated)…">
+      <input class="add-input price" id="p-price" type="number" placeholder="Price $" min="0" step="0.01">
+      <input class="add-input savings" id="p-savings" type="number" placeholder="Saves $" min="0" step="0.01">
+      <button class="add-btn" onclick="addPkg()">+ Add</button>
+    </div>
+  </div>
+</div>
+<script>
+  let pkgs = [];
+
+  async function load() {
+    const r = await fetch('/api/service-packages');
+    const d = await r.json();
+    pkgs = d.packages || [];
+    render();
+  }
+
+  function render() {
+    document.getElementById('pkg-grid').innerHTML = pkgs.map(p => `
+      <div class="pkg-card ${p.active ? '' : 'inactive'}" id="pc-${p.id}">
+        <div class="pkg-top">
+          <div class="pkg-name">${esc(p.name)}</div>
+          <span class="status-badge ${p.active ? 's-active' : 's-inactive'}">${p.active ? 'Active' : 'Off'}</span>
+        </div>
+        <div class="pkg-services">${(p.services||[]).map(s => `<span class="svc-chip">${esc(s)}</span>`).join('')}</div>
+        <div class="pkg-price">
+          <span class="price-val">$${Number(p.price).toFixed(2)}</span>
+          ${p.savings > 0 ? `<span class="savings">save $${Number(p.savings).toFixed(0)}</span>` : ''}
+        </div>
+        <div class="pkg-foot">
+          <span class="bookings-lbl">${p.bookings} bookings</span>
+          <div class="pkg-actions">
+            <button class="icon-btn" onclick="toggle('${p.id}')" title="Toggle">${p.active ? '⏸' : '▶'}</button>
+            <button class="icon-btn" onclick="del('${p.id}')" style="color:var(--red)" title="Delete">✕</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  async function toggle(id) {
+    const r = await fetch(`/api/service-packages/${id}/toggle`, {method:'POST'});
+    const d = await r.json();
+    const idx = pkgs.findIndex(p => p.id === id);
+    if (idx >= 0) pkgs[idx] = d.package;
+    render();
+  }
+
+  async function del(id) {
+    await fetch(`/api/service-packages/${id}`, {method:'DELETE'});
+    pkgs = pkgs.filter(p => p.id !== id);
+    render();
+  }
+
+  async function addPkg() {
+    const name = document.getElementById('p-name').value.trim();
+    const svcs = document.getElementById('p-svcs').value.split(',').map(s=>s.trim()).filter(Boolean);
+    const price = parseFloat(document.getElementById('p-price').value) || 0;
+    const savings = parseFloat(document.getElementById('p-savings').value) || 0;
+    if (!name) return;
+    const r = await fetch('/api/service-packages', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, services: svcs, price, savings})});
+    const d = await r.json();
+    pkgs.push(d.package);
+    document.getElementById('p-name').value = '';
+    document.getElementById('p-svcs').value = '';
+    document.getElementById('p-price').value = '';
+    document.getElementById('p-savings').value = '';
+    render();
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Tip Analytics — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { height: 220px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Tip Analytics</div>
+  <p class="page-sub">Compare tipping rates across your team — high tip percentages signal exceptional client relationships.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Top Tipper's Staff</div>
+      <div class="hero-val" id="h-top" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Team Avg Tip %</div>
+      <div class="hero-val" id="h-avg" style="color:var(--green)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Avg Tip % by Staff (Ranked)</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 680 220" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  const COLORS = ['rgba(251,191,36,.9)','rgba(52,211,153,.8)','rgba(167,139,250,.8)','rgba(96,165,250,.75)'];
+  async function load() {
+    const r = await fetch('/api/analytics/staff-tip-analytics');
+    const d = await r.json();
+    const staff = d.staff_tips || [];
+    document.getElementById('h-top').textContent = staff[0]?.staff || '—';
+    const avgTip = staff.length ? (staff.reduce((s,x)=>s+x.avg_tip_pct,0)/staff.length).toFixed(1) : 0;
+    document.getElementById('h-avg').textContent = avgTip + '%';
+
+    const svg = document.getElementById('chart');
+    const W=680, H=220, pL=90, pR=150, pT=14, pB=10;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n=staff.length;
+    const rowH=cH/n;
+    const barH=Math.min(rowH*0.52, 32);
+    const maxV=Math.max(...staff.map(s=>s.avg_tip_pct))*1.12;
+
+    staff.forEach((s,i)=>{
+      const y=pT+i*rowH+rowH/2;
+      const bw=cW*s.avg_tip_pct/maxV;
+      const rank=i===0?'👑 ':'';
+      svg.innerHTML+=`<text x="${pL-8}" y="${y+4}" font-size="11" fill="${i===0?'#fbbf24':'#bbb'}" text-anchor="end" font-weight="800">${rank}${esc(s.staff)}</text>`;
+      svg.innerHTML+=`<rect x="${pL}" y="${y-barH/2}" width="${bw}" height="${barH}" rx="5" fill="${COLORS[i%COLORS.length]}"/>`;
+      svg.innerHTML+=`<text x="${pL+bw+8}" y="${y}" font-size="11" fill="#ccc" font-weight="800">${s.avg_tip_pct}%</text>`;
+      svg.innerHTML+=`<text x="${pL+bw+8}" y="${y+13}" font-size="8.5" fill="#555">$${s.total_tips} total · ${s.tip_frequency_pct}% of visits</text>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

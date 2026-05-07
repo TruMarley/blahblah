@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blocked Numbers — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    .block-list { display: flex; flex-direction: column; gap: .45rem; max-height: 200px; overflow-y: auto; margin-top: .5rem; }
+    .block-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: .35rem .75rem; display: flex; align-items: center; justify-content: space-between; font-size: .8rem; }
+    .block-chip button { background: none; border: none; color: var(--red); cursor: pointer; font-size: .8rem; padding: 0; }
+    .add-row { display: flex; gap: .5rem; margin-top: .6rem; }
+    .add-row input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    .add-row input:focus { border-color: var(--accent); }
+    .add-btn { background: var(--accent); border: none; border-radius: 8px; color: #fff; font-size: .78rem; font-weight: 700; padding: .42rem .85rem; cursor: pointer; white-space: nowrap; }
+    .empty-msg { font-size: .75rem; color: var(--muted); text-align: center; padding: .75rem 0; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Blocked Numbers</div>
+  <p class="page-sub">Stop robocalls, spam, and problem callers before they waste your AI's time. Auto-block known spam, or add specific numbers manually.</p>
+  <div class="card">
+    <div class="card-title">Auto-Block Rules</div>
+    <div class="row">
+      <div><div class="row-label">Enable Call Blocking</div><div class="row-sub">Block flagged numbers from reaching the AI</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Block Robocalls</div><div class="row-sub">Block known robocall and auto-dialer numbers</div></div>
+      <label class="toggle"><input type="checkbox" id="block-robocalls"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Block Spam</div><div class="row-sub">Block numbers flagged as spam by carriers</div></div>
+      <label class="toggle"><input type="checkbox" id="block-spam"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Block Anonymous Callers</div><div class="row-sub">Block calls with hidden or withheld numbers</div></div>
+      <label class="toggle"><input type="checkbox" id="block-anon"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Block Action</div><div class="row-sub">What to do when a blocked number calls</div></div>
+      <select id="block-action">
+        <option value="silent_reject">Silent Reject</option>
+        <option value="busy_tone">Busy Tone</option>
+        <option value="voicemail">Send to Voicemail</option>
+        <option value="play_message">Play Block Message</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notify on Block</div><div class="row-sub">Get alerted when a number is blocked</div></div>
+      <label class="toggle"><input type="checkbox" id="notify-block"><span class="slider"></span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Manual Block List</div>
+    <div class="block-list" id="block-list"></div>
+    <div class="add-row">
+      <input type="tel" id="new-number" placeholder="+1 (555) 000-0000" onkeydown="if(event.key==='Enter')addNumber()">
+      <button class="add-btn" onclick="addNumber()">Block Number</button>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let blockedList = [];
+  function renderList() {
+    const el = document.getElementById('block-list');
+    if (!blockedList.length) { el.innerHTML = '<div class="empty-msg">No numbers blocked yet</div>'; return; }
+    el.innerHTML = '';
+    blockedList.forEach((n,i) => {
+      const div = document.createElement('div');
+      div.className = 'block-chip';
+      div.innerHTML = `<span>${esc(n)}</span><button onclick="removeNumber(${i})">✕ Remove</button>`;
+      el.appendChild(div);
+    });
+  }
+  function addNumber() {
+    const inp = document.getElementById('new-number');
+    const v = inp.value.trim();
+    if (v && !blockedList.includes(v)) { blockedList.push(v); renderList(); }
+    inp.value = '';
+  }
+  function removeNumber(i) { blockedList.splice(i,1); renderList(); }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  async function load() {
+    const d = await fetch('/api/settings/blocked-numbers').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('block-robocalls').checked = d.auto_block_robocalls;
+    document.getElementById('block-spam').checked = d.auto_block_spam;
+    document.getElementById('block-anon').checked = d.block_anonymous_callers;
+    document.getElementById('block-action').value = d.block_action || 'silent_reject';
+    document.getElementById('notify-block').checked = d.notify_on_block;
+    blockedList = d.blocked_list || [];
+    renderList();
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      auto_block_robocalls: document.getElementById('block-robocalls').checked,
+      auto_block_spam: document.getElementById('block-spam').checked,
+      block_anonymous_callers: document.getElementById('block-anon').checked,
+      block_action: document.getElementById('block-action').value,
+      notify_on_block: document.getElementById('notify-block').checked,
+      blocked_list: blockedList
+    };
+    await fetch('/api/settings/blocked-numbers', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

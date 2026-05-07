@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Export Reports — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .section-title { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin: 1.5rem 0 .85rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
+    /* Report type radio cards */
+    .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
+    .report-card { background: var(--surface2); border: 2px solid var(--border); border-radius: 10px; padding: .85rem 1rem; cursor: pointer; transition: border-color .15s, background .15s; display: flex; align-items: center; gap: .75rem; user-select: none; }
+    .report-card.selected { border-color: var(--accent); background: rgba(167,139,250,.06); }
+    .report-icon { font-size: 1.3rem; flex-shrink: 0; }
+    .report-name { font-size: .83rem; font-weight: 700; }
+    .report-desc { font-size: .68rem; color: var(--muted); margin-top: .1rem; }
+    /* Date row */
+    .date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-group { margin-bottom: 0; }
+    label { display: block; font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .35rem; }
+    input[type=date] { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: .85rem; font-family: inherit; padding: .6rem .85rem; border-radius: 8px; outline: none; transition: border-color .15s; color-scheme: dark; }
+    input[type=date]:focus { border-color: rgba(167,139,250,.5); }
+    /* Format selector */
+    .format-row { display: flex; gap: .65rem; }
+    .fmt-btn { background: var(--surface2); border: 2px solid var(--border); color: var(--muted); font-size: .8rem; font-weight: 700; padding: .45rem 1.1rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .fmt-btn.selected { border-color: var(--accent); color: var(--accent); background: rgba(167,139,250,.06); }
+    /* Generate button */
+    .gen-btn { width: 100%; background: var(--accent); color: #fff; border: none; font-size: .9rem; font-weight: 800; padding: .75rem 1.5rem; border-radius: 10px; cursor: pointer; font-family: inherit; transition: opacity .15s; margin-top: 1.5rem; }
+    .gen-btn:hover { opacity: .85; }
+    .gen-btn:disabled { opacity: .5; cursor: default; }
+    /* Download ready state */
+    .download-box { display: none; margin-top: 1.5rem; background: rgba(52,211,153,.06); border: 1px solid rgba(52,211,153,.2); border-radius: 12px; padding: 1.25rem 1.5rem; }
+    .download-box.show { display: block; }
+    .dl-label { font-size: .68rem; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
+    .dl-filename { font-size: .88rem; font-weight: 800; color: var(--text); margin-bottom: .75rem; font-family: "SF Mono","Fira Code",monospace; }
+    .dl-btn { display: inline-block; background: var(--green); color: #000; font-size: .82rem; font-weight: 800; padding: .5rem 1.2rem; border-radius: 7px; text-decoration: none; transition: opacity .15s; }
+    .dl-btn:hover { opacity: .85; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Export Reports</div>
+  <p class="page-sub">Download your data as CSV or PDF for accounting, payroll, or analysis.</p>
+
+  <div class="section-title">Report Type</div>
+  <div class="report-grid" id="report-grid">
+    <div class="report-card selected" data-type="revenue_summary" onclick="selectReport(this)">
+      <div class="report-icon">💰</div>
+      <div><div class="report-name">Revenue Summary</div><div class="report-desc">Daily/monthly totals</div></div>
+    </div>
+    <div class="report-card" data-type="client_list" onclick="selectReport(this)">
+      <div class="report-icon">👥</div>
+      <div><div class="report-name">Client List</div><div class="report-desc">All clients + contact info</div></div>
+    </div>
+    <div class="report-card" data-type="appointment_history" onclick="selectReport(this)">
+      <div class="report-icon">📅</div>
+      <div><div class="report-name">Appointment History</div><div class="report-desc">All bookings + outcomes</div></div>
+    </div>
+    <div class="report-card" data-type="staff_performance" onclick="selectReport(this)">
+      <div class="report-icon">✂️</div>
+      <div><div class="report-name">Staff Performance</div><div class="report-desc">Revenue + metrics per staff</div></div>
+    </div>
+    <div class="report-card" data-type="no_show_report" onclick="selectReport(this)">
+      <div class="report-icon">📵</div>
+      <div><div class="report-name">No-Show Report</div><div class="report-desc">Missed appointments log</div></div>
+    </div>
+  </div>
+
+  <div class="section-title">Date Range</div>
+  <div class="date-row">
+    <div class="form-group"><label>From</label><input type="date" id="date-from"></div>
+    <div class="form-group"><label>To</label><input type="date" id="date-to"></div>
+  </div>
+
+  <div class="section-title">Format</div>
+  <div class="format-row">
+    <button class="fmt-btn selected" onclick="selectFmt(this,'csv')">CSV</button>
+    <button class="fmt-btn" onclick="selectFmt(this,'pdf')">PDF</button>
+  </div>
+
+  <button class="gen-btn" onclick="generate()" id="gen-btn">Generate Report</button>
+
+  <div class="download-box" id="download-box">
+    <div class="dl-label">✓ Report Ready</div>
+    <div class="dl-filename" id="dl-filename">ringdesk_report.csv</div>
+    <a class="dl-btn" id="dl-link" href="#">Download File</a>
+  </div>
+</div>
+<script>
+  let selectedType = 'revenue_summary';
+  let selectedFmt = 'csv';
+
+  // Default dates: last 30 days
+  const today = new Date();
+  const from = new Date(today); from.setDate(from.getDate() - 30);
+  document.getElementById('date-to').value = today.toISOString().slice(0,10);
+  document.getElementById('date-from').value = from.toISOString().slice(0,10);
+
+  function selectReport(el) {
+    document.querySelectorAll('.report-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedType = el.dataset.type;
+    document.getElementById('download-box').classList.remove('show');
+  }
+
+  function selectFmt(btn, fmt) {
+    document.querySelectorAll('.fmt-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedFmt = fmt;
+    document.getElementById('download-box').classList.remove('show');
+  }
+
+  async function generate() {
+    const btn = document.getElementById('gen-btn');
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    const payload = {
+      report_type: selectedType,
+      date_from: document.getElementById('date-from').value,
+      date_to: document.getElementById('date-to').value,
+      format: selectedFmt,
+    };
+    const r = await fetch('/api/reports/export', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    btn.disabled = false;
+    btn.textContent = 'Generate Report';
+    if (d.ok) {
+      const filename = d.filename.replace('.csv', '.' + selectedFmt);
+      document.getElementById('dl-filename').textContent = filename;
+      document.getElementById('dl-link').href = d.download_url;
+      document.getElementById('download-box').classList.add('show');
+    }
+  }
+</script>
+</body>
+</html>

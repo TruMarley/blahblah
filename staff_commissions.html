@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Commissions — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 880px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .55rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th:not(:first-child) { text-align: center; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .7rem 1rem; font-size: .82rem; text-align: center; }
+    tbody td:first-child { text-align: left; font-weight: 800; }
+    .owed-badge { display: inline-block; font-size: .68rem; font-weight: 800; padding: .15rem .5rem; border-radius: 99px; }
+    .owed-yes { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.25); }
+    .owed-no  { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .pay-btn { font-size: .72rem; font-weight: 800; padding: .25rem .75rem; border-radius: 7px; border: 1px solid rgba(52,211,153,.3); background: rgba(52,211,153,.07); color: var(--green); cursor: pointer; font-family: inherit; transition: all .15s; }
+    .pay-btn:hover { background: rgba(52,211,153,.15); }
+    .pay-btn:disabled { opacity: .4; cursor: default; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Commissions</div>
+  <p class="page-sub" id="page-period">Commission tracking for current period.</p>
+
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Earned</div>
+      <div class="hero-val" id="h-earned" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total Paid</div>
+      <div class="hero-val" id="h-paid" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total Owed</div>
+      <div class="hero-val" id="h-owed" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Commission Breakdown</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Staff</th>
+          <th>Revenue</th>
+          <th>Rate</th>
+          <th>Earned</th>
+          <th>Paid</th>
+          <th>Owed</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="comm-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  let staffData = [];
+
+  async function load() {
+    const r = await fetch('/api/staff-commissions');
+    const d = await r.json();
+    staffData = d.staff || [];
+    document.getElementById('page-period').textContent = 'Commission tracking for ' + (d.period || 'current period') + '.';
+
+    const totalEarned = staffData.reduce((s,m) => s + m.commission_earned, 0);
+    const totalPaid   = staffData.reduce((s,m) => s + m.commission_paid, 0);
+    const totalOwed   = staffData.reduce((s,m) => s + m.commission_owed, 0);
+    document.getElementById('h-earned').textContent = '$' + totalEarned.toFixed(0);
+    document.getElementById('h-paid').textContent   = '$' + totalPaid.toFixed(0);
+    document.getElementById('h-owed').textContent   = '$' + totalOwed.toFixed(0);
+    render();
+  }
+
+  function render() {
+    document.getElementById('comm-tbody').innerHTML = staffData.map(m => {
+      const hasOwed = m.commission_owed > 0;
+      return `<tr>
+        <td>${esc(m.name)}</td>
+        <td>$${m.revenue_generated.toFixed(0)}</td>
+        <td style="color:var(--muted)">${Math.round(m.commission_rate*100)}%</td>
+        <td style="font-weight:800">$${m.commission_earned.toFixed(0)}</td>
+        <td style="color:var(--green)">$${m.commission_paid.toFixed(0)}</td>
+        <td><span class="owed-badge ${hasOwed ? 'owed-yes' : 'owed-no'}">$${m.commission_owed.toFixed(0)}</span></td>
+        <td>${hasOwed
+          ? `<button class="pay-btn" id="pb-${m.id}" onclick="markPaid('${m.id}')">Mark Paid</button>`
+          : '<span style="color:var(--muted);font-size:.75rem">✓ Paid</span>'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function markPaid(id) {
+    const btn = document.getElementById('pb-' + id);
+    if (btn) { btn.disabled = true; btn.textContent = '…'; }
+    const r = await fetch(`/api/staff-commissions/${id}/mark-paid`, {method:'POST'});
+    const upd = await r.json();
+    const idx = staffData.findIndex(m => m.id === id);
+    if (idx >= 0) staffData[idx] = upd.staff;
+    const totalOwed = staffData.reduce((s,m) => s + m.commission_owed, 0);
+    const totalPaid = staffData.reduce((s,m) => s + m.commission_paid, 0);
+    document.getElementById('h-owed').textContent = '$' + totalOwed.toFixed(0);
+    document.getElementById('h-paid').textContent = '$' + totalPaid.toFixed(0);
+    render();
+  }
+
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

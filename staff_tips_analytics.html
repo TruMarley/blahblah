@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Tips — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .heroes { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem; }
+    .hero-label { font-size: .63rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; }
+    .hero-value { font-size: 1.55rem; font-weight: 900; letter-spacing: -.03em; }
+    .hero-sub { font-size: .68rem; color: var(--muted); margin-top: .15rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .staff-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: .65rem; }
+    .staff-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+    .staff-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .82rem; font-weight: 800; color: #fff; flex-shrink: 0; }
+    .staff-name { font-size: .9rem; font-weight: 700; flex: 1; }
+    .staff-appts { font-size: .72rem; color: var(--muted); }
+    .staff-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+    .metric-box { text-align: center; }
+    .metric-val { font-size: 1rem; font-weight: 900; }
+    .metric-lbl { font-size: .62rem; color: var(--muted); margin-top: .1rem; }
+    .trend-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .35rem; }
+    .trend-label { font-size: .72rem; color: var(--muted); width: 36px; text-align: right; flex-shrink: 0; }
+    .trend-bar-bg { flex: 1; background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+    .trend-bar-fill { height: 100%; border-radius: 4px; background: var(--green); }
+    .trend-val { font-size: .7rem; width: 70px; text-align: right; flex-shrink: 0; }
+    @media (max-width: 600px) { .heroes { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Tips</div>
+  <p class="page-sub">Track tip totals, tip rates, and average tip per appointment by staff member. Use this data for payroll reconciliation and to recognize top performers.</p>
+
+  <div class="heroes">
+    <div class="hero">
+      <div class="hero-label">Total Tips (30d)</div>
+      <div class="hero-value" id="h-total" style="color:var(--green)">—</div>
+      <div class="hero-sub">across all staff</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Avg Tip Rate</div>
+      <div class="hero-value" id="h-rate" style="color:var(--accent)">—</div>
+      <div class="hero-sub">% of appts tipped</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Avg Tip / Appt</div>
+      <div class="hero-value" id="h-avg">—</div>
+      <div class="hero-sub">across all staff</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Top Tipper</div>
+      <div class="hero-value" id="h-top" style="color:var(--yellow); font-size:1.1rem">—</div>
+      <div class="hero-sub">highest total</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">By Staff Member</div>
+    <div id="staff-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Tip Total</div>
+    <div id="monthly-chart"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/staff-tips-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = '$' + d.total_tips_30d.toLocaleString(undefined, {maximumFractionDigits: 0});
+    document.getElementById('h-rate').textContent = d.avg_tip_rate_pct.toFixed(1) + '%';
+    document.getElementById('h-avg').textContent = '$' + d.avg_tip_per_appt.toFixed(2);
+    document.getElementById('h-top').textContent = d.top_tipper;
+
+    const maxTips = Math.max(...d.staff.map(s => s.total_tips_30d));
+    const list = document.getElementById('staff-list');
+    d.staff.forEach(s => {
+      const initials = s.name.split(' ').map(p => p[0]).join('').slice(0,2);
+      const block = document.createElement('div');
+      block.className = 'staff-block';
+      const tipPct = maxTips > 0 ? (s.total_tips_30d / maxTips * 100).toFixed(0) : 0;
+      block.innerHTML = `
+        <div class="staff-header">
+          <div class="staff-avatar" style="background:${s.color}">${initials}</div>
+          <div class="staff-name">${s.name}</div>
+          <div class="staff-appts">${s.appointments_30d} appts</div>
+        </div>
+        <div style="background:var(--surface);border-radius:4px;height:6px;margin-bottom:.75rem;overflow:hidden">
+          <div style="width:${tipPct}%;height:100%;background:${s.color};border-radius:4px"></div>
+        </div>
+        <div class="staff-metrics">
+          <div class="metric-box"><div class="metric-val" style="color:var(--green)">$${s.total_tips_30d.toFixed(0)}</div><div class="metric-lbl">Total Tips</div></div>
+          <div class="metric-box"><div class="metric-val" style="color:${s.color}">${s.tip_rate_pct.toFixed(0)}%</div><div class="metric-lbl">Tip Rate</div></div>
+          <div class="metric-box"><div class="metric-val">$${s.avg_tip_per_appt.toFixed(2)}</div><div class="metric-lbl">Avg / Appt</div></div>
+        </div>
+      `;
+      list.appendChild(block);
+    });
+
+    const maxMo = Math.max(...d.monthly.map(m => m.total_tips));
+    const chart = document.getElementById('monthly-chart');
+    d.monthly.forEach(m => {
+      const pct = maxMo > 0 ? (m.total_tips / maxMo * 100) : 0;
+      const row = document.createElement('div');
+      row.className = 'trend-row';
+      row.innerHTML = `<div class="trend-label">${m.month}</div><div class="trend-bar-bg"><div class="trend-bar-fill" style="width:${pct.toFixed(1)}%"></div></div><div class="trend-val" style="color:var(--green)">$${m.total_tips.toFixed(0)}</div>`;
+      chart.appendChild(row);
+    });
+  }
+  load();
+</script>
+</body>
+</html>

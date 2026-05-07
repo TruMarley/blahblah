@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Win-Back Rate — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .cohort-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .65rem; }
+    .cohort-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+    .cohort-month { font-size: .9rem; font-weight: 800; }
+    .cohort-right { text-align: right; }
+    .cohort-rate { font-size: 1.1rem; font-weight: 900; }
+    .cohort-meta { font-size: .7rem; color: var(--muted); }
+    .bar-bg { width: 100%; height: 7px; background: var(--border); border-radius: 4px; }
+    .bar-fill { height: 7px; border-radius: 4px; background: var(--green); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Win-Back Rate</div>
+  <p class="page-sub">Of lapsed clients who stopped visiting, how many did your AI win back — a higher rate means your outreach is working.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg Win-Back Rate</div>
+      <div class="hero-val" id="h-avg" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Best Month</div>
+      <div class="hero-val" id="h-best" style="color:var(--accent); font-size:1.2rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Days to Return</div>
+      <div class="hero-val" id="h-days" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Win-Back by Month</div>
+    <div id="cohort-list"></div>
+  </div>
+</div>
+<script>
+  function rateColor(r) {
+    if (r >= 30) return 'var(--green)';
+    if (r >= 20) return 'var(--accent)';
+    if (r >= 10) return 'var(--yellow)';
+    return 'var(--red)';
+  }
+  async function load() {
+    const r = await fetch('/api/analytics/client-win-back-rate');
+    const d = await r.json();
+    const cohorts = d.cohorts || [];
+    const avg = (cohorts.reduce((s,c)=>s+c.win_back_rate_pct,0)/cohorts.length).toFixed(1);
+    const best = cohorts.reduce((a,b)=>b.win_back_rate_pct>a.win_back_rate_pct?b:a, cohorts[0]||{});
+    const avgDays = Math.round(cohorts.reduce((s,c)=>s+c.avg_days_to_return,0)/cohorts.length);
+    document.getElementById('h-avg').textContent = avg + '%';
+    document.getElementById('h-best').textContent = best.month ? `${best.month} (${best.win_back_rate_pct}%)` : '—';
+    document.getElementById('h-days').textContent = avgDays + 'd';
+    const list = document.getElementById('cohort-list');
+    cohorts.forEach(c => {
+      const color = rateColor(c.win_back_rate_pct);
+      list.innerHTML += `
+        <div class="cohort-row">
+          <div class="cohort-top">
+            <div>
+              <div class="cohort-month">${esc(c.month)}</div>
+              <div class="cohort-meta">${c.won_back} won back / ${c.lapsed_clients} lapsed · avg ${c.avg_days_to_return}d to return</div>
+            </div>
+            <div class="cohort-right">
+              <div class="cohort-rate" style="color:${color}">${c.win_back_rate_pct}%</div>
+            </div>
+          </div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,c.win_back_rate_pct*2)}%;background:${color}"></div></div>
+        </div>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

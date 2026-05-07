@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue Per Client — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .client-row { display: flex; align-items: center; gap: .75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .7rem 1rem; margin-bottom: .45rem; }
+    .client-rank { font-size: .7rem; color: var(--muted); width: 20px; text-align: center; flex-shrink: 0; }
+    .client-name { font-size: .88rem; font-weight: 700; flex: 1; }
+    .client-meta { font-size: .7rem; color: var(--muted); }
+    .client-ltv { font-size: .95rem; font-weight: 900; color: var(--green); }
+    .bracket-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .6rem; }
+    .bracket-label { font-size: .78rem; width: 80px; flex-shrink: 0; }
+    .bracket-bar-wrap { flex: 1; background: var(--surface2); border-radius: 6px; height: 20px; overflow: hidden; }
+    .bracket-bar { height: 100%; border-radius: 6px; opacity: .8; }
+    .bracket-count { font-size: .75rem; font-weight: 700; width: 36px; text-align: right; }
+    .monthly-bar-row { display: flex; align-items: flex-end; gap: 3px; height: 72px; }
+    .monthly-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .monthly-bar { width: 100%; border-radius: 3px 3px 0 0; min-height: 2px; background: var(--accent); opacity: .7; }
+    .monthly-lbl { font-size: .56rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue Per Client</div>
+  <p class="page-sub">Understand how much each client contributes over 12 months. Identify your highest-value segments and direct retention energy where it produces the most return.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-avg" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Avg Revenue / Client (12m)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-median" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Median</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-top10" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Top 10% Threshold</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-analyzed" style="color:var(--muted)">—</div>
+      <div class="stat-lbl">Clients Analyzed</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Top Clients by 12-Month Revenue</div>
+    <div id="client-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Revenue Distribution</div>
+    <div id="bracket-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Avg Revenue Per Active Client</div>
+    <div class="monthly-bar-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/revenue-per-client-stats').then(r => r.json());
+    document.getElementById('h-avg').textContent = '$' + data.avg_revenue_per_client_12m.toFixed(0);
+    document.getElementById('h-median').textContent = '$' + data.median_revenue_per_client.toFixed(0);
+    document.getElementById('h-top10').textContent = '$' + data.top_10pct_threshold.toFixed(0);
+    document.getElementById('h-analyzed').textContent = data.total_clients_analyzed;
+
+    const list = document.getElementById('client-list');
+    (data.top_clients || []).forEach((c, i) => {
+      list.innerHTML += `
+        <div class="client-row">
+          <div class="client-rank">#${i+1}</div>
+          <div class="client-name">${c.name}</div>
+          <div class="client-meta">${c.visits_12m} visits &middot; $${c.avg_ticket.toFixed(0)} avg &middot; ${c.last_visit_days_ago}d ago</div>
+          <div class="client-ltv">$${c.ltv_12m.toFixed(0)}</div>
+        </div>`;
+    });
+
+    const maxCount = Math.max(...(data.brackets || []).map(b => b.count), 1);
+    const bList = document.getElementById('bracket-list');
+    (data.brackets || []).forEach(b => {
+      bList.innerHTML += `
+        <div class="bracket-row">
+          <div class="bracket-label">${b.label}</div>
+          <div class="bracket-bar-wrap"><div class="bracket-bar" style="width:${(b.count/maxCount*100).toFixed(1)}%;background:${b.color}"></div></div>
+          <div class="bracket-count" style="color:${b.color}">${b.count}</div>
+        </div>`;
+    });
+
+    const monthly = data.monthly || [];
+    const maxAvg = Math.max(...monthly.map(m => m.avg_revenue_per_client), 1);
+    const barsEl = document.getElementById('monthly-bars');
+    monthly.forEach(m => {
+      const h = Math.max((m.avg_revenue_per_client / maxAvg * 64).toFixed(0), 2);
+      barsEl.innerHTML += `
+        <div class="monthly-col">
+          <div class="monthly-bar" style="height:${h}px" title="${m.month}: $${m.avg_revenue_per_client.toFixed(0)} avg · ${m.active_clients} clients"></div>
+          <div class="monthly-lbl">${m.month.slice(0,3)}</div>
+        </div>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

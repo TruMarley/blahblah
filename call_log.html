@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Log — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-top: .2rem; }
+    .filters { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .filter-btn { background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: .75rem; font-weight: 700; padding: .35rem .8rem; border-radius: 99px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .filter-btn.active { background: rgba(167,139,250,.12); color: var(--accent); border-color: rgba(167,139,250,.3); }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .7rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; }
+    tbody tr.main-row { border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s; }
+    tbody tr.main-row:hover { background: var(--surface2); }
+    tbody tr.expand-row { border-bottom: 1px solid var(--border); display: none; }
+    tbody tr.expand-row.open { display: table-row; }
+    tbody td { padding: .8rem 1.25rem; font-size: .82rem; vertical-align: middle; }
+    .num-cell { font-family: "SF Mono","Fira Code",monospace; font-size: .8rem; color: var(--text); }
+    .time-cell { font-size: .72rem; color: var(--muted); white-space: nowrap; }
+    .dur-cell { font-variant-numeric: tabular-nums; font-size: .8rem; }
+    .outcome-badge { font-size: .68rem; font-weight: 800; padding: .18rem .55rem; border-radius: 99px; white-space: nowrap; }
+    .o-booked    { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .o-info      { background: rgba(167,139,250,.1); color: var(--accent); border: 1px solid rgba(167,139,250,.2); }
+    .o-canceled  { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+    .o-voicemail { background: rgba(102,102,102,.1); color: var(--muted); border: 1px solid rgba(102,102,102,.2); }
+    .o-escalated { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+    .intent-chip { font-size: .68rem; font-weight: 700; padding: .15rem .5rem; border-radius: 6px; background: rgba(167,139,250,.06); color: var(--muted); border: 1px solid var(--border); }
+    .expand-cell { background: var(--surface2); padding: .85rem 1.5rem 1rem; }
+    .transcript-label { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .35rem; }
+    .transcript-text { font-size: .8rem; color: var(--text); line-height: 1.6; }
+    .expand-arrow { font-size: .7rem; color: var(--muted); transition: transform .2s; }
+    .expand-arrow.open { transform: rotate(180deg); }
+    .empty { text-align: center; color: var(--muted); padding: 3rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="header-row">
+    <div>
+      <div class="page-title">Call Log</div>
+      <div class="page-sub">All AI-handled calls with outcome and transcript summary.</div>
+    </div>
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="filter-btn active" data-outcome="" onclick="setFilter('',this)">All</button>
+    <button class="filter-btn" data-outcome="booked" onclick="setFilter('booked',this)">Booked</button>
+    <button class="filter-btn" data-outcome="info" onclick="setFilter('info',this)">Info</button>
+    <button class="filter-btn" data-outcome="canceled" onclick="setFilter('canceled',this)">Canceled</button>
+    <button class="filter-btn" data-outcome="voicemail" onclick="setFilter('voicemail',this)">Voicemail</button>
+    <button class="filter-btn" data-outcome="escalated" onclick="setFilter('escalated',this)">Escalated</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th></th>
+        <th>Caller</th>
+        <th>Time</th>
+        <th>Duration</th>
+        <th>Outcome</th>
+        <th>Intent</th>
+        <th>Staff</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  let currentOutcome = '';
+  let calls = [];
+
+  function setFilter(outcome, btn) {
+    currentOutcome = outcome;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    load();
+  }
+
+  async function load() {
+    let url = '/api/call-log?limit=40';
+    if (currentOutcome) url += `&outcome=${currentOutcome}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    calls = d.calls || [];
+    render();
+  }
+
+  function render() {
+    if (!calls.length) {
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="7" class="empty">No calls found.</td></tr>';
+      return;
+    }
+    document.getElementById('tbody').innerHTML = calls.map((c, i) => {
+      const oc = c.outcome || 'info';
+      const dur = fmtDuration(c.duration_seconds || 0);
+      const timeStr = relTime(c.timestamp);
+      return `<tr class="main-row" onclick="toggleRow('${i}')">
+        <td><span class="expand-arrow" id="arr-${i}">▼</span></td>
+        <td class="num-cell">${esc(c.caller_number || '—')}</td>
+        <td class="time-cell">${timeStr}</td>
+        <td class="dur-cell">${dur}</td>
+        <td><span class="outcome-badge o-${oc}">${oc}</span></td>
+        <td><span class="intent-chip">${esc(c.intent || '—')}</span></td>
+        <td style="color:var(--muted);font-size:.78rem">${esc(c.staff_assigned || '—')}</td>
+      </tr>
+      <tr class="expand-row" id="expand-${i}">
+        <td colspan="7" class="expand-cell">
+          <div class="transcript-label">Transcript Summary</div>
+          <div class="transcript-text">${esc(c.transcript_summary || 'No transcript available.')}</div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function toggleRow(i) {
+    const row = document.getElementById(`expand-${i}`);
+    const arr = document.getElementById(`arr-${i}`);
+    if (row) row.classList.toggle('open');
+    if (arr) arr.classList.toggle('open');
+  }
+
+  function fmtDuration(secs) {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
+  function relTime(iso) {
+    if (!iso) return '—';
+    const diff = Math.floor((new Date() - new Date(iso)) / 60000);
+    if (diff < 1) return 'just now';
+    if (diff < 60) return diff + 'm ago';
+    if (diff < 1440) return Math.floor(diff/60) + 'h ago';
+    return Math.floor(diff/1440) + 'd ago';
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

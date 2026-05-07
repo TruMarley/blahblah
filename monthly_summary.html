@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monthly Summary — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; --gold: #f59e0b; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    /* Hero revenue card */
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem 2.5rem; margin-bottom: 1.5rem; }
+    .hero-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .5rem; }
+    .hero-row { display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap; }
+    .hero-rev { font-size: 3.5rem; font-weight: 900; letter-spacing: -.08em; color: var(--green); line-height: 1; }
+    .delta-badge { font-size: .82rem; font-weight: 800; padding: .3rem .7rem; border-radius: 99px; display: inline-flex; align-items: center; gap: .25rem; margin-bottom: .4rem; }
+    .delta-pos { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .delta-neg { background: rgba(248,113,113,.12); color: var(--red); border: 1px solid rgba(248,113,113,.25); }
+    /* Metrics grid */
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: .85rem; margin-bottom: 1.5rem; }
+    .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.1rem; }
+    .metric-label { font-size: .63rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .3rem; }
+    .metric-value { font-size: 1.5rem; font-weight: 900; letter-spacing: -.04em; }
+    /* Highlight cards */
+    .highlight-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .highlight-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.4rem; }
+    .hl-label { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
+    .hl-name { font-size: 1rem; font-weight: 900; margin-bottom: .2rem; }
+    .hl-rev { font-size: 1.4rem; font-weight: 900; letter-spacing: -.04em; color: var(--accent); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Monthly Summary</div>
+  <p class="page-sub" id="month-label">This month at a glance.</p>
+
+  <div class="hero-card">
+    <div class="hero-label">Total Revenue</div>
+    <div class="hero-row">
+      <div class="hero-rev" id="hero-rev">—</div>
+      <div id="delta-badge"></div>
+    </div>
+  </div>
+
+  <div class="metrics-grid" id="metrics-grid"></div>
+
+  <div class="highlight-row" id="highlight-row"></div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/monthly-summary');
+    const d = await r.json();
+    const now = new Date();
+    document.getElementById('month-label').textContent = now.toLocaleDateString('en-US', {month:'long', year:'numeric'}) + ' performance.';
+
+    document.getElementById('hero-rev').textContent = '$' + Math.round(d.total_revenue).toLocaleString();
+
+    const vs = d.vs_last_month;
+    const badgeCls = vs >= 0 ? 'delta-pos' : 'delta-neg';
+    const arrow = vs >= 0 ? '▲' : '▼';
+    document.getElementById('delta-badge').innerHTML = `<span class="delta-badge ${badgeCls}">${arrow} ${Math.abs(vs)}% vs last month</span>`;
+
+    document.getElementById('metrics-grid').innerHTML = [
+      {label:'Appointments', value: d.total_appointments, color:'var(--accent)'},
+      {label:'New Clients', value: d.new_clients, color:'var(--accent)'},
+      {label:'Returning', value: d.returning_clients, color:'var(--green)'},
+      {label:'No-Shows', value: d.no_show_count, color:'var(--red)'},
+      {label:'Avg Rating', value: (d.avg_rating||0).toFixed(1) + '★', color:'var(--gold)'},
+    ].map(m => `<div class="metric-card">
+      <div class="metric-label">${m.label}</div>
+      <div class="metric-value" style="color:${m.color}">${m.value}</div>
+    </div>`).join('');
+
+    document.getElementById('highlight-row').innerHTML = [
+      {label:'⭐ Top Service', name: d.top_service?.name||'—', rev: d.top_service?.revenue||0},
+      {label:'✂️ Top Staff', name: d.top_staff?.name||'—', rev: d.top_staff?.revenue||0},
+    ].map(h => `<div class="highlight-card">
+      <div class="hl-label">${h.label}</div>
+      <div class="hl-name">${esc(h.name)}</div>
+      <div class="hl-rev">$${Math.round(h.rev).toLocaleString()}</div>
+    </div>`).join('');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

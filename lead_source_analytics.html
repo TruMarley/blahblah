@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Sources — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .src-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .7rem; }
+    .src-label { font-size: .78rem; width: 110px; flex-shrink: 0; }
+    .src-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+    .src-fill { height: 100%; border-radius: 4px; }
+    .src-pct { font-size: .75rem; font-weight: 700; width: 40px; text-align: right; }
+    .trend-wrap { display: grid; grid-template-columns: repeat(6, 1fr); gap: .4rem; align-items: end; }
+    .trend-col { display: flex; flex-direction: column; gap: .18rem; align-items: center; }
+    .trend-bar-phone { border-radius: 3px 3px 0 0; background: var(--accent); opacity: .8; }
+    .trend-bar-online { border-radius: 3px 3px 0 0; background: var(--green); opacity: .6; }
+    .trend-lbl { font-size: .58rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Booking Sources</div>
+  <p class="page-sub">See where your bookings originate — phone AI, online portal, walk-in, social, or referral. Optimise your intake channels.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Total Bookings (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-top" style="color:var(--yellow)">—</div><div class="stat-lbl">Top Source</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-phone" style="color:var(--green)">—</div><div class="stat-lbl">AI Phone Share</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Source Breakdown</div>
+    <div id="src-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">6-Month Phone vs Online Trend</div>
+    <div style="display:flex;gap:.5rem;margin-bottom:.8rem">
+      <span style="font-size:.68rem;color:var(--accent)">▪ Phone (AI)</span>
+      <span style="font-size:.68rem;color:var(--green)">▪ Online</span>
+    </div>
+    <div class="trend-wrap" id="trend-wrap" style="height:70px;align-items:end"></div>
+    <div class="trend-wrap" id="trend-lbls" style="margin-top:.25rem"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['var(--accent)','#60a5fa','var(--green)','var(--yellow)','var(--red)','#e879f9'];
+  async function load() {
+    const d = await fetch('/api/analytics/lead-source-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_bookings_30d.toLocaleString();
+    document.getElementById('h-top').textContent = d.top_source;
+    document.getElementById('h-phone').textContent = d.phone_pct.toFixed(1) + '%';
+    const sl = document.getElementById('src-list');
+    const maxP = Math.max(...d.sources.map(s => s.pct));
+    d.sources.forEach((s, i) => {
+      const w = (s.pct / maxP * 100).toFixed(1);
+      sl.innerHTML += '<div class="src-row"><div class="src-label">' + s.source + '</div><div class="src-track"><div class="src-fill" style="width:' + w + '%;background:' + COLORS[i] + '"></div></div><div class="src-pct" style="color:' + COLORS[i] + '">' + s.pct.toFixed(1) + '%</div></div>';
+    });
+    const maxV = Math.max(...d.trend.map(t => Math.max(t.phone, t.online)));
+    const tw = document.getElementById('trend-wrap');
+    const tl = document.getElementById('trend-lbls');
+    d.trend.forEach(t => {
+      const hp = Math.max(3, (t.phone / maxV * 64)).toFixed(0);
+      const ho = Math.max(3, (t.online / maxV * 64)).toFixed(0);
+      tw.innerHTML += '<div class="trend-col"><div class="trend-bar-phone" style="width:100%;height:' + hp + 'px"></div><div class="trend-bar-online" style="width:100%;height:' + ho + 'px"></div></div>';
+      tl.innerHTML += '<div class="trend-col"><div class="trend-lbl">' + t.month + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

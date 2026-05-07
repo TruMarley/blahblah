@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Referral Program — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .stat-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
+    .stat-val { font-size: 1.6rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .link-row { display: flex; gap: .75rem; align-items: center; }
+    .link-box { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: .6rem .9rem; font-size: .82rem; color: var(--muted); font-family: monospace; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .copy-btn { background: var(--accent); border: none; color: #000; font-size: .8rem; font-weight: 900; padding: .6rem 1.2rem; border-radius: 8px; cursor: pointer; font-family: inherit; transition: opacity .15s; white-space: nowrap; }
+    .copy-btn:hover { opacity: .85; }
+    .copy-confirm { font-size: .75rem; color: var(--green); font-weight: 700; display: none; margin-top: .4rem; }
+    .copy-confirm.show { display: block; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .55rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .7rem 1rem; font-size: .82rem; }
+    .badge { display: inline-block; font-size: .65rem; font-weight: 800; padding: .15rem .5rem; border-radius: 99px; }
+    .badge-active   { background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.25); }
+    .badge-pending  { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.25); }
+    .badge-expired  { background: rgba(102,102,102,.1); color: var(--muted); border: 1px solid rgba(102,102,102,.2); }
+    .invite-form { display: flex; gap: .75rem; align-items: flex-end; flex-wrap: wrap; }
+    .form-field { display: flex; flex-direction: column; gap: .3rem; flex: 1; min-width: 160px; }
+    .form-field label { font-size: .72rem; color: var(--muted); font-weight: 700; }
+    .form-field input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: .85rem; font-family: inherit; padding: .6rem .85rem; border-radius: 8px; outline: none; transition: border-color .15s; }
+    .form-field input:focus { border-color: rgba(167,139,250,.5); }
+    .send-btn { background: var(--accent); border: none; color: #000; font-size: .85rem; font-weight: 900; padding: .6rem 1.4rem; border-radius: 9px; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+    .send-btn:hover { opacity: .85; }
+    .send-msg { font-size: .78rem; color: var(--green); font-weight: 700; display: none; margin-top: .5rem; }
+    .send-msg.show { display: block; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Referral Program</div>
+  <p class="page-sub">Earn credits when you refer other shops to RingDesk.</p>
+  <div class="stats-row" id="stats-row">
+    <div class="stat-card"><div class="stat-label">Total Referrals</div><div class="stat-val" id="s-total">—</div></div>
+    <div class="stat-card"><div class="stat-label">Active</div><div class="stat-val" style="color:var(--green)" id="s-active">—</div></div>
+    <div class="stat-card"><div class="stat-label">Credits Earned</div><div class="stat-val" style="color:var(--accent)" id="s-earned">—</div></div>
+    <div class="stat-card"><div class="stat-label">Credits Used</div><div class="stat-val" style="color:var(--muted)" id="s-used">—</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Your Referral Link</div>
+    <div class="link-row">
+      <div class="link-box" id="ref-link">Loading…</div>
+      <button class="copy-btn" onclick="copyLink()">Copy Link</button>
+    </div>
+    <div class="copy-confirm" id="copy-confirm">✓ Copied to clipboard!</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Invite a Shop</div>
+    <div class="invite-form">
+      <div class="form-field"><label>Shop / Contact Name</label><input type="text" id="inv-name" placeholder="e.g. Mario's Barber"></div>
+      <div class="form-field"><label>Email Address</label><input type="email" id="inv-email" placeholder="owner@example.com"></div>
+      <button class="send-btn" onclick="sendInvite()">Send Invite</button>
+    </div>
+    <div class="send-msg" id="send-msg">✓ Invite sent!</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Referral History</div>
+    <table>
+      <thead><tr><th>Shop / Name</th><th>Email</th><th>Date</th><th>Credit</th><th>Status</th></tr></thead>
+      <tbody id="ref-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  let refLink = '';
+
+  async function load() {
+    const r = await fetch('/api/referral-program');
+    const d = await r.json();
+    refLink = d.referral_link || '';
+    document.getElementById('ref-link').textContent = refLink;
+    document.getElementById('s-total').textContent = d.total_referrals ?? '—';
+    document.getElementById('s-active').textContent = d.active_referrals ?? '—';
+    document.getElementById('s-earned').textContent = d.credits_earned != null ? '$' + d.credits_earned : '—';
+    document.getElementById('s-used').textContent = d.credits_used != null ? '$' + d.credits_used : '—';
+    const refs = d.referrals || [];
+    document.getElementById('ref-tbody').innerHTML = refs.map(r => `
+      <tr>
+        <td style="font-weight:800">${esc(r.referred_name)}</td>
+        <td style="color:var(--muted)">${esc(r.referred_email)}</td>
+        <td style="color:var(--muted)">${esc(r.date)}</td>
+        <td style="color:var(--accent);font-weight:800">$${r.credit_amount}</td>
+        <td><span class="badge badge-${r.status}">${r.status}</span></td>
+      </tr>`).join('');
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText(refLink).catch(() => {});
+    const el = document.getElementById('copy-confirm');
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2000);
+  }
+
+  async function sendInvite() {
+    const name = document.getElementById('inv-name').value.trim();
+    const email = document.getElementById('inv-email').value.trim();
+    if (!name || !email) return;
+    await fetch('/api/referral-program/send-invite', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({name, email})
+    });
+    document.getElementById('inv-name').value = '';
+    document.getElementById('inv-email').value = '';
+    const msg = document.getElementById('send-msg');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2500);
+    load();
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

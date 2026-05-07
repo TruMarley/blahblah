@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Review Sentiment — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .sentiment-bar { display: flex; border-radius: 8px; overflow: hidden; height: 28px; margin-bottom: 1rem; }
+    .seg { display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 800; }
+    .theme-grid { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .theme-tag { font-size: .72rem; font-weight: 600; background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); border-radius: 6px; padding: .2rem .6rem; }
+    .sent-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; }
+    .sent-label { font-size: .78rem; font-weight: 600; width: 70px; flex-shrink: 0; }
+    .sent-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+    .sent-fill { height: 100%; border-radius: 4px; }
+    .sent-pct { font-size: .75rem; font-weight: 700; width: 40px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Review Sentiment</div>
+  <p class="page-sub">Track how clients feel about your business across reviews and AI call sentiment analysis. Monitor positive vs. negative trends and see which themes keep coming up so you can double down on what's working.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Reviews (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-rating" style="color:var(--yellow)">—</div><div class="stat-lbl">Avg Rating</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-requests" style="color:var(--muted)">—</div><div class="stat-lbl">Review Requests Sent</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-cvr" style="color:var(--green)">—</div><div class="stat-lbl">Request Conversion</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Sentiment Breakdown</div>
+    <div class="sentiment-bar" id="sent-bar"></div>
+    <div id="sent-rows"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Top Themes in Positive Reviews</div>
+    <div class="theme-grid" id="theme-grid"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/review-sentiment-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_reviews_30d;
+    document.getElementById('h-rating').textContent = '★ ' + d.avg_rating.toFixed(1);
+    document.getElementById('h-requests').textContent = d.ai_review_requests_sent_30d;
+    document.getElementById('h-cvr').textContent = d.conversion_rate_pct.toFixed(1) + '%';
+    const bar = document.getElementById('sent-bar');
+    bar.innerHTML = '<div class="seg" style="width:' + d.positive_pct + '%;background:var(--green);color:#000">' + d.positive_pct.toFixed(0) + '%</div>' +
+      '<div class="seg" style="width:' + d.neutral_pct + '%;background:var(--yellow);color:#000">' + d.neutral_pct.toFixed(0) + '%</div>' +
+      '<div class="seg" style="width:' + d.negative_pct + '%;background:var(--red);color:#fff">' + d.negative_pct.toFixed(0) + '%</div>';
+    const rows = document.getElementById('sent-rows');
+    const sents = [{l:'Positive',p:d.positive_pct,c:'var(--green)'},{l:'Neutral',p:d.neutral_pct,c:'var(--yellow)'},{l:'Negative',p:d.negative_pct,c:'var(--red)'}];
+    sents.forEach(s => {
+      rows.innerHTML += '<div class="sent-row"><div class="sent-label">' + s.l + '</div><div class="sent-track"><div class="sent-fill" style="width:' + s.p + '%;background:' + s.c + '"></div></div><div class="sent-pct" style="color:' + s.c + '">' + s.p.toFixed(1) + '%</div></div>';
+    });
+    const tg = document.getElementById('theme-grid');
+    d.top_themes.forEach(t => { tg.innerHTML += '<div class="theme-tag">' + t + '</div>'; });
+  }
+  load();
+</script>
+</body>
+</html>

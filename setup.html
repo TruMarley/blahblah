@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Setup — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 2rem; height: 60px; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+
+    .wizard { max-width: 560px; margin: 3rem auto; padding: 0 1.5rem; flex: 1; }
+
+    /* Progress */
+    .progress-wrap { display: flex; align-items: center; gap: 0; margin-bottom: 2.5rem; }
+    .step-dot { display: flex; flex-direction: column; align-items: center; gap: .35rem; position: relative; flex: 1; }
+    .dot-circle { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 800; color: var(--muted); transition: all .3s; z-index: 1; }
+    .step-dot.active .dot-circle { border-color: var(--accent); color: var(--accent); background: rgba(167,139,250,.1); }
+    .step-dot.done .dot-circle { border-color: var(--green); background: var(--green); color: #000; }
+    .dot-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; white-space: nowrap; }
+    .step-dot.active .dot-label { color: var(--accent); }
+    .step-dot.done .dot-label { color: var(--green); }
+    .connector { flex: 1; height: 2px; background: var(--border); margin-top: -1.35rem; transition: background .3s; }
+    .connector.done { background: var(--green); }
+
+    /* Cards */
+    .step-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; display: none; }
+    .step-card.active { display: block; }
+    .step-card h2 { font-size: 1.2rem; font-weight: 900; margin-bottom: .35rem; }
+    .step-card .sub { font-size: .84rem; color: var(--muted); margin-bottom: 1.75rem; }
+
+    /* Fields */
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; }
+    .field input, .field select, .field textarea { width: 100%; background: #0d0d0d; border: 1px solid var(--border); color: var(--text); font-size: .88rem; padding: .65rem .9rem; border-radius: 9px; outline: none; font-family: inherit; transition: border-color .15s; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field.error input, .field.error select, .field.error textarea { border-color: #f87171; }
+    .field .err-msg { font-size: .72rem; color: #f87171; margin-top: .3rem; display: none; }
+    .field.error .err-msg { display: block; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .char-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: .35rem; }
+    .char-count { font-size: .72rem; color: var(--muted); }
+
+    /* Hours */
+    .hours-grid { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1rem; }
+    .hours-row { display: grid; grid-template-columns: 60px 1fr 1fr; gap: .65rem; align-items: center; }
+    .hours-row .day { font-size: .82rem; font-weight: 600; }
+
+    /* Buttons */
+    .btn-row { display: flex; justify-content: space-between; margin-top: 1.5rem; }
+    .btn { padding: .75rem 1.75rem; border-radius: 10px; font-size: .88rem; font-weight: 700; border: none; cursor: pointer; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-ghost { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+    .btn-green { background: var(--green); color: #000; font-size: 1rem; padding: .9rem 2.5rem; width: 100%; margin-top: 1rem; }
+
+    /* Done step */
+    .done-icon { font-size: 3rem; text-align: center; margin-bottom: 1rem; }
+    .summary { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+    .summary-row { display: flex; justify-content: space-between; padding: .4rem 0; font-size: .84rem; border-bottom: 1px solid var(--border); }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-row .key { color: var(--muted); }
+    .summary-row .val { color: var(--text); font-weight: 600; max-width: 55%; text-align: right; }
+    .forward-box { background: rgba(167,139,250,.06); border: 1px solid rgba(167,139,250,.2); border-radius: 10px; padding: 1rem 1.25rem; font-size: .82rem; color: var(--muted); line-height: 1.75; }
+    .forward-box strong { color: var(--text); font-family: monospace; font-size: .9rem; }
+
+    select option { background: #111; }
+  </style>
+</head>
+<body>
+<nav><a href="/" class="logo">Ring<span>Desk</span></a></nav>
+
+<div class="wizard">
+
+  <!-- Progress bar -->
+  <div class="progress-wrap" id="progress">
+    <div class="step-dot active" id="dot-1"><div class="dot-circle">1</div><div class="dot-label">Shop Info</div></div>
+    <div class="connector" id="conn-1"></div>
+    <div class="step-dot" id="dot-2"><div class="dot-circle">2</div><div class="dot-label">Hours</div></div>
+    <div class="connector" id="conn-2"></div>
+    <div class="step-dot" id="dot-3"><div class="dot-circle">3</div><div class="dot-label">AI Setup</div></div>
+    <div class="connector" id="conn-3"></div>
+    <div class="step-dot" id="dot-4"><div class="dot-circle">✓</div><div class="dot-label">Done!</div></div>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="step-card active" id="step-1">
+    <h2>Tell us about your shop</h2>
+    <p class="sub">This takes about 15 minutes. Let's start with the basics.</p>
+    <div class="field" id="f-shop-name"><label>Shop name</label><input type="text" id="shop-name" placeholder="Crown & Blade"><div class="err-msg">Shop name is required</div></div>
+    <div class="field" id="f-shop-type"><label>Shop type</label>
+      <select id="shop-type"><option value="">Select type...</option><option>Barbershop</option><option>Salon</option><option>Nail Studio</option><option>Spa</option><option>Other</option></select>
+      <div class="err-msg">Please select a type</div>
+    </div>
+    <div class="row2">
+      <div class="field" id="f-phone"><label>Phone number</label><input type="tel" id="phone" placeholder="(305) 555-0100"><div class="err-msg">10-digit phone required</div></div>
+      <div class="field"><label>City, State</label><input type="text" id="city" placeholder="Miami, FL"></div>
+    </div>
+    <div class="btn-row"><span></span><button class="btn btn-accent" onclick="next1()">Next →</button></div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step-card" id="step-2">
+    <h2>Hours &amp; Services</h2>
+    <p class="sub">Set your business hours and the services you offer.</p>
+    <div class="hours-grid" id="hours-grid"></div>
+    <div class="field"><label>Services (comma separated)</label><textarea id="services" placeholder="Haircut, Fade, Beard Trim, Color, Highlights"></textarea></div>
+    <div class="btn-row"><button class="btn btn-ghost" onclick="goTo(1)">← Back</button><button class="btn btn-accent" onclick="next2()">Next →</button></div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step-card" id="step-3">
+    <h2>Customize your AI</h2>
+    <p class="sub">Give your AI receptionist a name and voice.</p>
+    <div class="field"><label>AI Name</label><input type="text" id="ai-name" value="Alex" placeholder="Alex"></div>
+    <div class="field"><label>AI Voice</label>
+      <select id="ai-voice">
+        <option value="aura-asteria-en">Aura-Asteria (Female, Warm)</option>
+        <option value="aura-luna-en">Aura-Luna (Female, Bright)</option>
+        <option value="aura-zeus-en">Aura-Zeus (Male, Deep)</option>
+        <option value="aura-orion-en">Aura-Orion (Male, Smooth)</option>
+      </select>
+    </div>
+    <div class="field">
+      <div class="char-row"><label>AI Greeting</label><span class="char-count" id="greet-count">0 / 200</span></div>
+      <textarea id="greeting" maxlength="200" rows="3" placeholder="Hi! Thanks for calling {shop_name}. This is {ai_name}, your AI receptionist. How can I help you today?" oninput="updateCount()"></textarea>
+    </div>
+    <div class="btn-row"><button class="btn btn-ghost" onclick="goTo(2)">← Back</button><button class="btn btn-accent" onclick="next3()">Finish setup →</button></div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="step-card" id="step-4">
+    <div class="done-icon">🎉</div>
+    <h2 style="text-align:center">You're all set!</h2>
+    <p class="sub" style="text-align:center">Your AI receptionist is configured and ready to answer calls.</p>
+    <div class="summary" id="summary"></div>
+    <div class="forward-box">
+      📞 <strong>To activate call forwarding:</strong><br>
+      From your shop phone, dial <strong id="forward-code">*72 + (your RingDesk number)</strong><br>
+      Then press Call. Your calls will forward to RingDesk automatically.
+    </div>
+    <a href="/dashboard"><button class="btn btn-green">Go to Dashboard →</button></a>
+  </div>
+
+</div>
+
+<script>
+  const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+  const TIMES = [];
+  for (let h = 8; h <= 22; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      if (h === 22 && m > 0) break;
+      const hh = h % 12 === 0 ? 12 : h % 12;
+      const ap = h < 12 ? 'AM' : 'PM';
+      TIMES.push({ val: `${String(h).padStart(2,'0')}:${m===0?'00':'30'}`, label: `${hh}:${m===0?'00':'30'} ${ap}` });
+    }
+  }
+
+  let currentStep = 1;
+  const data = JSON.parse(localStorage.getItem('ringdesk_setup') || '{}');
+
+  function buildHoursGrid() {
+    const grid = document.getElementById('hours-grid');
+    grid.innerHTML = '';
+    DAYS.forEach(day => {
+      const row = document.createElement('div');
+      row.className = 'hours-row';
+      const dayEl = document.createElement('div');
+      dayEl.className = 'day';
+      dayEl.textContent = day.slice(0,3);
+      const openSel = buildSel('09:00');
+      const closeSel = buildSel('18:00');
+      row.appendChild(dayEl); row.appendChild(openSel); row.appendChild(closeSel);
+      grid.appendChild(row);
+    });
+  }
+
+  function buildSel(def) {
+    const s = document.createElement('select');
+    TIMES.forEach(t => { const o = document.createElement('option'); o.value = t.val; o.textContent = t.label; if (t.val === def) o.selected = true; s.appendChild(o); });
+    return s;
+  }
+
+  function goTo(n) {
+    document.getElementById('step-' + currentStep).classList.remove('active');
+    document.getElementById('dot-' + currentStep).classList.remove('active');
+    if (n > currentStep) {
+      document.getElementById('dot-' + currentStep).classList.add('done');
+      if (currentStep < 4) document.getElementById('conn-' + currentStep).classList.add('done');
+    }
+    currentStep = n;
+    document.getElementById('step-' + currentStep).classList.add('active');
+    document.getElementById('dot-' + currentStep).classList.add('active');
+    saveData();
+  }
+
+  function fieldErr(id, show) {
+    document.getElementById(id).classList.toggle('error', show);
+    return !show;
+  }
+
+  function next1() {
+    const name = document.getElementById('shop-name').value.trim();
+    const type = document.getElementById('shop-type').value;
+    const phone = document.getElementById('phone').value.replace(/\D/g,'');
+    let ok = true;
+    ok = fieldErr('f-shop-name', !name) && ok;
+    ok = fieldErr('f-shop-type', !type) && ok;
+    ok = fieldErr('f-phone', phone.length < 10) && ok;
+    if (!ok) return;
+    data.shopName = name; data.shopType = type; data.phone = phone; data.city = document.getElementById('city').value.trim();
+    goTo(2);
+  }
+
+  function next2() {
+    const rows = document.querySelectorAll('#hours-grid .hours-row');
+    data.hours = Array.from(rows).map((r, i) => ({
+      day: DAYS[i],
+      open: r.querySelectorAll('select')[0].value,
+      close: r.querySelectorAll('select')[1].value,
+    }));
+    data.services = document.getElementById('services').value.trim() || 'Haircut, Fade, Beard Trim';
+    goTo(3);
+  }
+
+  function next3() {
+    data.aiName = document.getElementById('ai-name').value.trim() || 'Alex';
+    data.aiVoice = document.getElementById('ai-voice').value;
+    data.greeting = document.getElementById('greeting').value.trim();
+    buildSummary();
+    goTo(4);
+    submitSetup();
+  }
+
+  function buildSummary() {
+    const s = document.getElementById('summary');
+    const rows = [
+      ['Shop', data.shopName || '—'],
+      ['Type', data.shopType || '—'],
+      ['Location', data.city || '—'],
+      ['Services', (data.services || '').split(',').slice(0,3).map(s=>s.trim()).join(', ') + (data.services?.split(',').length > 3 ? ' +more' : '')],
+      ['AI Name', data.aiName || 'Alex'],
+      ['AI Voice', data.aiVoice || '—'],
+    ];
+    s.innerHTML = rows.map(([k,v]) => `<div class="summary-row"><span class="key">${k}</span><span class="val">${v}</span></div>`).join('');
+    document.getElementById('forward-code').textContent = '*72 (your RingDesk number)';
+  }
+
+  async function submitSetup() {
+    try {
+      await fetch('/api/setup-shop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ai_name: data.aiName,
+          ai_voice: data.aiVoice,
+          greeting: data.greeting,
+          shop_name: data.shopName,
+          shop_type: data.shopType,
+          phone: data.phone,
+          city: data.city,
+          services: data.services ? data.services.split(',').map(s=>s.trim()) : [],
+          hours: data.hours,
+        }),
+      });
+    } catch(e) {}
+  }
+
+  function saveData() { localStorage.setItem('ringdesk_setup', JSON.stringify(data)); }
+  function updateCount() {
+    const len = document.getElementById('greeting').value.length;
+    document.getElementById('greet-count').textContent = `${len} / 200`;
+  }
+
+  buildHoursGrid();
+</script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Business Hours — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .day-row { display: flex; align-items: center; gap: .75rem; padding: .55rem 0; border-bottom: 1px solid rgba(30,30,30,.7); }
+    .day-row:last-child { border-bottom: none; }
+    .day-name { font-size: .85rem; font-weight: 700; min-width: 40px; }
+    .toggle { position: relative; width: 38px; height: 22px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 22px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--green); }
+    input:checked + .slider::before { transform: translateX(16px); background: #fff; }
+    .time-group { display: flex; align-items: center; gap: .4rem; flex: 1; }
+    input[type=time] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .78rem; padding: .3rem .55rem; outline: none; }
+    input[type=time]:focus { border-color: var(--accent); }
+    .time-sep { font-size: .72rem; color: var(--muted); }
+    .closed-label { font-size: .75rem; color: var(--muted); font-style: italic; }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 100%; cursor: pointer; }
+    select:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .8rem; padding: .55rem .75rem; outline: none; resize: vertical; min-height: 60px; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .28rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .field-wrap { margin-bottom: .9rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Business Hours</div>
+  <p class="page-sub">Set when you're open each day. The AI uses these hours to only offer bookings during available windows and delivers your after-hours message when clients call outside them.</p>
+
+  <div class="card">
+    <div class="card-title">Hours by Day</div>
+    <div id="day-rows"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Timezone &amp; Messages</div>
+    <div class="field-wrap">
+      <div class="field-label">Timezone</div>
+      <select id="timezone">
+        <option value="America/Los_Angeles">Pacific Time (PT)</option>
+        <option value="America/Denver">Mountain Time (MT)</option>
+        <option value="America/Chicago">Central Time (CT)</option>
+        <option value="America/New_York">Eastern Time (ET)</option>
+        <option value="America/Phoenix">Arizona (MST, no DST)</option>
+        <option value="America/Anchorage">Alaska Time (AKT)</option>
+        <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+      </select>
+    </div>
+    <div class="field-wrap">
+      <div class="field-label">After-Hours Message</div>
+      <textarea id="after-hours-msg" rows="3"></textarea>
+    </div>
+    <div class="field-wrap" style="margin-bottom:0">
+      <div class="field-label">Holiday Closure Message</div>
+      <textarea id="holiday-msg" rows="2"></textarea>
+    </div>
+    <button class="save-btn" onclick="save()">Save Business Hours</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let hoursData = {};
+
+  function renderDays() {
+    const el = document.getElementById('day-rows');
+    el.innerHTML = '';
+    DAYS.forEach(day => {
+      const h = hoursData[day] || { open: false, start: '09:00', end: '18:00' };
+      el.innerHTML += `<div class="day-row" id="row-${day}">
+        <div class="day-name">${day}</div>
+        <label class="toggle"><input type="checkbox" id="open-${day}" ${h.open ? 'checked' : ''} onchange="toggleDay('${day}', this.checked)"><span class="slider"></span></label>
+        <div class="time-group" id="times-${day}" style="${h.open ? '' : 'opacity:.35;pointer-events:none'}">
+          <input type="time" id="start-${day}" value="${h.start}">
+          <span class="time-sep">–</span>
+          <input type="time" id="end-${day}" value="${h.end}">
+        </div>
+        ${h.open ? '' : '<div class="closed-label" id="closed-lbl-' + day + '">Closed</div>'}
+      </div>`;
+    });
+  }
+
+  function toggleDay(day, open) {
+    hoursData[day] = hoursData[day] || { start: '09:00', end: '18:00' };
+    hoursData[day].open = open;
+    renderDays();
+  }
+
+  async function load() {
+    const d = await fetch('/api/settings/business-hours-cfg').then(r => r.json());
+    hoursData = d.hours || {};
+    renderDays();
+    document.getElementById('timezone').value = d.timezone || 'America/Los_Angeles';
+    document.getElementById('after-hours-msg').value = d.after_hours_message || '';
+    document.getElementById('holiday-msg').value = d.holiday_closure_message || '';
+  }
+
+  async function save() {
+    const hours = {};
+    DAYS.forEach(day => {
+      const openEl = document.getElementById('open-' + day);
+      hours[day] = {
+        open: openEl ? openEl.checked : false,
+        start: document.getElementById('start-' + day)?.value || '09:00',
+        end: document.getElementById('end-' + day)?.value || '18:00'
+      };
+    });
+    const data = { timezone: document.getElementById('timezone').value, hours, after_hours_message: document.getElementById('after-hours-msg').value, holiday_closure_message: document.getElementById('holiday-msg').value };
+    await fetch('/api/settings/business-hours-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  load();
+</script>
+</body>
+</html>

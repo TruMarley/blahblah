@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Booking Rate — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: .6rem; }
+    .stats-row2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .trend-row { display: flex; align-items: flex-end; gap: .5rem; height: 90px; }
+    .trend-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .35rem; }
+    .trend-bar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; }
+    .trend-bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 4px; }
+    .trend-lbl { font-size: .58rem; color: var(--muted); }
+    .trend-val { font-size: .62rem; font-weight: 700; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Booking Rate</div>
+  <p class="page-sub">Track how effectively the AI converts inbound calls into confirmed bookings. Booking rate and first-call resolution are the primary AI performance metrics.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-calls" style="color:var(--accent)">—</div><div class="stat-lbl">AI Calls (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-rate" style="color:var(--green)">—</div><div class="stat-lbl">Booking Rate</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-dur" style="color:var(--yellow)">—</div><div class="stat-lbl">Avg Call Duration</div></div>
+  </div>
+  <div class="stats-row2">
+    <div class="stat-pill"><div class="stat-val" id="h-fcr" style="color:var(--green)">—</div><div class="stat-lbl">First-Call Resolution</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-fallback" style="color:var(--red)">—</div><div class="stat-lbl">Fallback to Human</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">6-Month Booking Rate Trend</div>
+    <div class="trend-row" id="monthly-trend"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Booking Rate by Hour</div>
+    <div class="trend-row" id="hour-trend"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/ai-booking-rate-stats').then(r => r.json());
+    document.getElementById('h-calls').textContent = d.total_ai_calls_30d;
+    document.getElementById('h-rate').textContent = d.ai_booking_rate_pct.toFixed(1) + '%';
+    const mins = Math.floor(d.avg_call_duration_sec / 60);
+    const secs = d.avg_call_duration_sec % 60;
+    document.getElementById('h-dur').textContent = mins + 'm' + secs + 's';
+    document.getElementById('h-fcr').textContent = d.first_call_resolution_pct.toFixed(1) + '%';
+    document.getElementById('h-fallback').textContent = d.fallback_rate_pct.toFixed(1) + '%';
+    const mt = document.getElementById('monthly-trend');
+    const maxM = Math.max(...d.monthly.map(m => m.booking_rate));
+    d.monthly.forEach(m => {
+      const h = Math.max(6, (m.booking_rate / maxM * 78)).toFixed(1);
+      mt.innerHTML += '<div class="trend-col"><div class="trend-val" style="color:var(--green)">' + m.booking_rate.toFixed(1) + '%</div><div class="trend-bar-wrap"><div class="trend-bar" style="height:' + h + 'px;background:var(--green);opacity:.75"></div></div><div class="trend-lbl">' + m.month + '</div></div>';
+    });
+    const ht = document.getElementById('hour-trend');
+    const maxH = Math.max(...d.by_hour.map(h => h.booking_rate));
+    d.by_hour.forEach(h => {
+      const hh = Math.max(6, (h.booking_rate / maxH * 78)).toFixed(1);
+      ht.innerHTML += '<div class="trend-col"><div class="trend-val" style="color:var(--accent)">' + h.booking_rate.toFixed(0) + '%</div><div class="trend-bar-wrap"><div class="trend-bar" style="height:' + hh + 'px;background:var(--accent);opacity:.75"></div></div><div class="trend-lbl">' + h.hour + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

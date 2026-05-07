@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Appointment Value Trend — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.9rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { height: 250px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Appointment Value Trend</div>
+  <p class="page-sub">Track how your average appointment ticket evolves over time — a rising trend signals successful upselling.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Latest Avg Value</div>
+      <div class="hero-val" id="h-latest" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Peak Month</div>
+      <div class="hero-val" id="h-peak" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">8-Month Change</div>
+      <div class="hero-val" id="h-change" style="color:var(--yellow)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Avg Appointment Value ($) by Month</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 700 250" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/appointment-value-trend');
+    const d = await r.json();
+    const months = d.months || [];
+    const vals = months.map(m=>m.avg_appointment_value);
+    const latest = vals[vals.length-1]||0;
+    const first = vals[0]||1;
+    const change = ((latest-first)/first*100).toFixed(1);
+    document.getElementById('h-latest').textContent = '$' + latest.toFixed(2);
+    document.getElementById('h-peak').textContent = d.peak_month || '—';
+    document.getElementById('h-change').textContent = (change>0?'+':'')+change+'%';
+
+    const svg = document.getElementById('chart');
+    const W=700, H=250, pL=48, pR=16, pT=14, pB=30;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n=months.length;
+    const minV = Math.min(...vals)*0.92;
+    const maxV = Math.max(...vals)*1.08;
+    const xOf = i => pL + i/(n-1)*cW;
+    const yOf = v => pT+cH - (v-minV)/(maxV-minV)*cH;
+
+    // Grid
+    const step = Math.round((maxV-minV)/4/5)*5||5;
+    for(let v=Math.ceil(minV/step)*step; v<=maxV; v+=step){
+      const y=yOf(v);
+      svg.innerHTML+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML+=`<text x="${pL-5}" y="${y+3.5}" font-size="8.5" fill="#555" text-anchor="end">$${v.toFixed(0)}</text>`;
+    }
+
+    // Area
+    const pts = months.map((m,i)=>`${xOf(i)},${yOf(m.avg_appointment_value)}`).join(' ');
+    const fill = `${xOf(0)},${pT+cH} `+pts+` ${xOf(n-1)},${pT+cH}`;
+    svg.innerHTML+=`<polygon points="${fill}" fill="rgba(167,139,250,.07)"/>`;
+    svg.innerHTML+=`<polyline points="${pts}" fill="none" stroke="rgba(167,139,250,.85)" stroke-width="2.5"/>`;
+
+    // Dots + labels
+    months.forEach((m,i)=>{
+      const cx=xOf(i), cy=yOf(m.avg_appointment_value);
+      const isPeak = m.month===d.peak_month;
+      svg.innerHTML+=`<circle cx="${cx}" cy="${cy}" r="${isPeak?4.5:3}" fill="${isPeak?'var(--accent)':'rgba(167,139,250,.7)'}"/>`;
+      if(isPeak) svg.innerHTML+=`<text x="${cx}" y="${cy-10}" font-size="8.5" fill="rgba(167,139,250,.9)" text-anchor="middle" font-weight="800">$${m.avg_appointment_value.toFixed(0)}</text>`;
+      svg.innerHTML+=`<text x="${cx}" y="${H-4}" font-size="9" fill="#666" text-anchor="middle">${esc(m.month)}</text>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

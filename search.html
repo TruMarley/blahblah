@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Search — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: 1.5rem; }
+    .search-wrap { position: relative; margin-bottom: 2rem; }
+    .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-size: 1rem; pointer-events: none; }
+    .search-input { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 1rem; padding: .85rem 1rem .85rem 2.8rem; border-radius: 12px; font-family: inherit; outline: none; transition: border-color .15s; }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: #444; }
+    .spinner { display: none; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
+    .spinner.show { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Empty state */
+    .empty-state { text-align: center; padding: 3rem 1rem; }
+    .empty-title { font-size: .95rem; font-weight: 700; margin-bottom: .5rem; }
+    .empty-sub { font-size: .82rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .suggestions { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; }
+    .sug-chip { background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: .78rem; padding: .35rem .8rem; border-radius: 8px; cursor: pointer; transition: all .15s; }
+    .sug-chip:hover { border-color: var(--accent); color: var(--accent); }
+    /* Results */
+    .results { display: flex; flex-direction: column; gap: 1.5rem; }
+    .result-group { }
+    .group-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .6rem; }
+    .result-list { display: flex; flex-direction: column; gap: .4rem; }
+    .result-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem 1rem; display: flex; align-items: center; gap: .75rem; text-decoration: none; color: var(--text); transition: background .1s, border-color .1s; }
+    .result-item:hover { background: var(--surface2); border-color: #2e2e2e; }
+    .result-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .result-name { font-weight: 700; font-size: .88rem; }
+    .result-detail { font-size: .75rem; color: var(--muted); margin-top: .1rem; }
+    .result-arrow { margin-left: auto; color: var(--muted); font-size: .8rem; }
+    .no-results { text-align: center; color: var(--muted); padding: 2rem; font-size: .85rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Search</div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="q" placeholder="Search clients, appointments, staff…" oninput="onInput()" autofocus>
+    <div class="spinner" id="spinner"></div>
+  </div>
+  <div id="content">
+    <div class="empty-state">
+      <div class="empty-title">Search anything</div>
+      <div class="empty-sub">Find clients, upcoming appointments, or staff</div>
+      <div class="suggestions">
+        <span class="sug-chip" onclick="setQ('Marcus')">Marcus</span>
+        <span class="sug-chip" onclick="setQ('Jordan')">Jordan</span>
+        <span class="sug-chip" onclick="setQ('haircut')">haircut</span>
+        <span class="sug-chip" onclick="setQ('Gold')">Gold tier</span>
+        <span class="sug-chip" onclick="setQ('Saturday')">Saturday</span>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  const ICONS = {appointments:'📅', clients:'👤', staff:'✂️'};
+  const LABELS = {appointments:'Appointments', clients:'Clients', staff:'Staff'};
+  let debounce = null;
+
+  function setQ(val) {
+    document.getElementById('q').value = val;
+    doSearch(val);
+  }
+
+  function onInput() {
+    clearTimeout(debounce);
+    const q = document.getElementById('q').value.trim();
+    if (!q) { showEmpty(); return; }
+    document.getElementById('spinner').classList.add('show');
+    debounce = setTimeout(() => doSearch(q), 300);
+  }
+
+  async function doSearch(q) {
+    const r = await fetch('/api/search?q=' + encodeURIComponent(q));
+    const d = await r.json();
+    document.getElementById('spinner').classList.remove('show');
+    const total = (d.appointments||[]).length + (d.clients||[]).length + (d.staff||[]).length;
+    if (!total) { document.getElementById('content').innerHTML = `<div class="no-results">No results for "<strong>${esc(q)}</strong>"</div>`; return; }
+    const groups = [['appointments',d.appointments||[]],['clients',d.clients||[]],['staff',d.staff||[]]].filter(([,items])=>items.length);
+    document.getElementById('content').innerHTML = `<div class="results">${groups.map(([type, items]) => `
+      <div class="result-group">
+        <div class="group-label">${ICONS[type]} ${LABELS[type]}</div>
+        <div class="result-list">${items.map(item => `
+          <a class="result-item" href="${item.url}">
+            <span class="result-icon">${ICONS[type]}</span>
+            <div><div class="result-name">${esc(item.name)}</div><div class="result-detail">${esc(item.detail)}</div></div>
+            <span class="result-arrow">→</span>
+          </a>`).join('')}
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  function showEmpty() {
+    document.getElementById('spinner').classList.remove('show');
+    document.getElementById('content').innerHTML = `<div class="empty-state"><div class="empty-title">Search anything</div><div class="empty-sub">Find clients, upcoming appointments, or staff</div><div class="suggestions"><span class="sug-chip" onclick="setQ('Marcus')">Marcus</span><span class="sug-chip" onclick="setQ('Jordan')">Jordan</span><span class="sug-chip" onclick="setQ('haircut')">haircut</span><span class="sug-chip" onclick="setQ('Gold')">Gold tier</span></div></div>`;
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>

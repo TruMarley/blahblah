@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Appointment Gap Analysis — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { height: 220px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Appointment Gap Analysis</div>
+  <p class="page-sub">Average idle time between appointments per day — identify scheduling inefficiencies and reclaim lost revenue.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg Gap (6 mo)</div>
+      <div class="hero-val" id="h-gap" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Latest Month</div>
+      <div class="hero-val" id="h-cur" style="color:var(--accent)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Avg Gap Between Appointments (minutes) — 6 Months</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart-gap" viewBox="0 0 700 220" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Wasted Slots per Day — 6 Months</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart-slots" viewBox="0 0 700 220" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/appointment-gap-analysis');
+    const d = await r.json();
+    const months = d.months || [];
+    document.getElementById('h-gap').textContent = d.overall_avg_gap_minutes + ' min';
+    const last = months[months.length - 1];
+    document.getElementById('h-cur').textContent = last ? last.avg_gap_minutes + ' min' : '—';
+
+    function drawBars(svgId, data, key, color, maxV, unit) {
+      const svg = document.getElementById(svgId);
+      const W=700, H=220, pL=44, pR=16, pT=14, pB=34;
+      const cW=W-pL-pR, cH=H-pT-pB;
+      const n = data.length;
+      const barW = cW / n * 0.55;
+      const xStep = cW / n;
+      const yOf = v => pT + cH - v / maxV * cH;
+      const gridVals = [Math.round(maxV*0.25), Math.round(maxV*0.5), Math.round(maxV*0.75), maxV];
+      gridVals.forEach(v => {
+        const y = yOf(v);
+        svg.innerHTML += `<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+        svg.innerHTML += `<text x="${pL-4}" y="${y+3}" font-size="8.5" fill="#555" text-anchor="end">${v}</text>`;
+      });
+      data.forEach((m, i) => {
+        const cx = pL + i * xStep + xStep / 2;
+        const val = m[key];
+        const barH = cH * val / maxV;
+        const barY = pT + cH - barH;
+        svg.innerHTML += `<rect x="${cx - barW/2}" y="${barY}" width="${barW}" height="${barH}" rx="4" fill="${color}"/>`;
+        svg.innerHTML += `<text x="${cx}" y="${barY - 5}" font-size="8.5" fill="${color}" text-anchor="middle">${val}${unit}</text>`;
+        svg.innerHTML += `<text x="${cx}" y="${H-4}" font-size="9" fill="#555" text-anchor="middle">${m.month}</text>`;
+      });
+    }
+
+    drawBars('chart-gap', months, 'avg_gap_minutes', 'rgba(251,191,36,.75)', 50, '');
+    drawBars('chart-slots', months, 'wasted_slots', 'rgba(248,113,113,.7)', 12, '');
+  }
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Utilization by Day — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.8rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .grid-wrap { overflow-x: auto; }
+    .hm-label-row { display: flex; gap: 3px; margin-bottom: 3px; padding-left: 70px; }
+    .hm-day-label { font-size: .65rem; color: var(--muted); text-align: center; }
+    .hm-row { display: flex; align-items: center; gap: 3px; margin-bottom: 3px; }
+    .hm-staff-label { font-size: .72rem; font-weight: 700; color: var(--text); width: 64px; text-align: right; flex-shrink: 0; padding-right: 6px; }
+    .hm-cell { border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: .65rem; font-weight: 800; color: rgba(255,255,255,.7); cursor: default; }
+    .legend-bar { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; font-size: .7rem; color: var(--muted); }
+    .legend-gradient { flex: 1; height: 8px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Utilization by Day</div>
+  <p class="page-sub">How booked each staff member is per day of the week — identify who's overloaded and who has capacity to fill.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Busiest Slot</div>
+      <div class="hero-val" id="h-peak" style="color:var(--green); font-size:1.1rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Most Available</div>
+      <div class="hero-val" id="h-avail" style="color:var(--accent); font-size:1.1rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Utilization % — Staff × Day</div>
+    <div class="grid-wrap" id="grid-wrap"></div>
+  </div>
+</div>
+<script>
+  function utilColor(pct) {
+    if (pct >= 85) return `rgba(248,113,113,${0.3+pct/100*0.6})`;
+    if (pct >= 60) return `rgba(167,139,250,${0.3+pct/100*0.6})`;
+    if (pct >= 35) return `rgba(251,191,36,${0.2+pct/100*0.5})`;
+    return `rgba(52,211,153,${0.15+pct/100*0.4})`;
+  }
+  async function load() {
+    const r = await fetch('/api/analytics/staff-utilization-by-day');
+    const d = await r.json();
+    const cells = d.cells || [];
+    const staff = d.staff || [];
+    const days = d.days || [];
+
+    const peak = cells.reduce((a,b)=>b.utilization_pct>a.utilization_pct?b:a, cells[0]||{});
+    const avail = cells.reduce((a,b)=>b.utilization_pct<a.utilization_pct?b:a, cells[0]||{});
+    document.getElementById('h-peak').textContent = peak.staff ? `${peak.staff} ${peak.day} (${peak.utilization_pct}%)` : '—';
+    document.getElementById('h-avail').textContent = avail.staff ? `${avail.staff} ${avail.day} (${avail.utilization_pct}%)` : '—';
+
+    const cellW = Math.max(46, Math.floor((Math.min(window.innerWidth,760)-140) / days.length));
+    const cellH = 38;
+    const wrap = document.getElementById('grid-wrap');
+    let html = `<div class="hm-label-row">`;
+    days.forEach(day => {
+      html += `<div class="hm-day-label" style="width:${cellW}px">${esc(day)}</div>`;
+    });
+    html += '</div>';
+    staff.forEach(s => {
+      html += `<div class="hm-row"><div class="hm-staff-label">${esc(s)}</div>`;
+      days.forEach(day => {
+        const cell = cells.find(c=>c.staff===s&&c.day===day)||{utilization_pct:0};
+        const pct = cell.utilization_pct;
+        html += `<div class="hm-cell" style="width:${cellW}px;height:${cellH}px;background:${utilColor(pct)}" title="${s} ${day}: ${pct}%">${pct}%</div>`;
+      });
+      html += '</div>';
+    });
+    html += `<div class="legend-bar"><span>Low</span><div class="legend-gradient" style="background:linear-gradient(to right,rgba(52,211,153,.3),rgba(251,191,36,.5),rgba(167,139,250,.7),rgba(248,113,113,.8))"></div><span>High</span></div>`;
+    wrap.innerHTML = html;
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

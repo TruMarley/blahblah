@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Customer Stories — RingDesk</title>
+  <meta name="description" content="Barbershops and salons share how RingDesk's AI receptionist helped them stop missing calls and grow their business.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    nav a.back:hover { color: var(--text); }
+
+    /* Hero */
+    .hero { text-align: center; padding: 4.5rem 2rem 3rem; }
+    .hero-tag { display: inline-block; background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.2); color: var(--accent); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; padding: .3rem .8rem; border-radius: 99px; margin-bottom: 1.25rem; }
+    .hero h1 { font-size: clamp(1.8rem, 5vw, 3rem); font-weight: 900; letter-spacing: -.04em; margin-bottom: .75rem; line-height: 1.1; }
+    .hero p { font-size: .9rem; color: var(--muted); max-width: 480px; margin: 0 auto 1rem; }
+    .stars-hero { font-size: 1.4rem; letter-spacing: .12rem; margin-bottom: 2.5rem; }
+
+    /* Stats strip */
+    .stats-strip { display: flex; justify-content: center; gap: 3rem; flex-wrap: wrap; margin-bottom: 4rem; padding: 0 2rem; }
+    .strip-stat { text-align: center; }
+    .strip-val { font-size: 2rem; font-weight: 900; letter-spacing: -.05em; color: #fff; }
+    .strip-val em { font-style: normal; color: var(--accent); }
+    .strip-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .09em; margin-top: .2rem; }
+
+    /* Grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; max-width: 1080px; margin: 0 auto; padding: 0 2rem 5rem; }
+
+    /* Cards */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; display: flex; flex-direction: column; gap: 1.25rem; transition: border-color .2s, transform .2s; }
+    .card:hover { border-color: rgba(167,139,250,.25); transform: translateY(-2px); }
+    .card.featured { border-color: rgba(167,139,250,.3); background: linear-gradient(150deg, rgba(167,139,250,.06) 0%, var(--surface) 60%); }
+
+    .card-stars { color: var(--yellow); font-size: .95rem; letter-spacing: .08rem; }
+    .card-quote { font-size: .88rem; color: var(--text); line-height: 1.75; position: relative; padding-left: 1.1rem; }
+    .card-quote::before { content: '"'; position: absolute; left: 0; top: -.15em; font-size: 2rem; color: var(--accent); opacity: .4; font-family: Georgia, serif; line-height: 1; }
+
+    .card-footer { display: flex; align-items: center; gap: .9rem; padding-top: .75rem; border-top: 1px solid var(--border); }
+    .avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; border: 1px solid var(--border); }
+    .owner-name { font-size: .85rem; font-weight: 800; line-height: 1.2; }
+    .shop-info { font-size: .75rem; color: var(--muted); margin-top: .1rem; }
+
+    .highlight-chip { display: inline-block; background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.2); color: var(--green); font-size: .65rem; font-weight: 700; padding: .15rem .5rem; border-radius: 99px; margin-top: .4rem; }
+
+    /* CTA */
+    .bottom-cta { text-align: center; padding: 0 2rem 6rem; }
+    .bottom-cta p { font-size: .85rem; color: var(--muted); margin-bottom: 1.25rem; }
+    .btn { display: inline-block; background: var(--accent); color: #fff; font-size: .92rem; font-weight: 700; padding: .85rem 2.5rem; border-radius: 12px; text-decoration: none; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/" class="back">← Back to home</a>
+</nav>
+
+<div class="hero">
+  <div class="hero-tag">Customer Stories</div>
+  <h1>Shops that stopped missing calls.</h1>
+  <p>Real results from barbershops, salons, and nail studios using RingDesk every day.</p>
+  <div class="stars-hero">⭐⭐⭐⭐⭐</div>
+</div>
+
+<div class="stats-strip">
+  <div class="strip-stat"><div class="strip-val"><em>4.9</em>/5</div><div class="strip-label">avg rating</div></div>
+  <div class="strip-stat"><div class="strip-val">73<em>%</em></div><div class="strip-label">fewer no-shows</div></div>
+  <div class="strip-stat"><div class="strip-val">15<em>min</em></div><div class="strip-label">avg setup time</div></div>
+  <div class="strip-stat"><div class="strip-val"><em>$0</em></div><div class="strip-label">setup fee</div></div>
+</div>
+
+<div class="grid">
+
+  <!-- 1 -->
+  <div class="card featured">
+    <div class="card-stars">★★★★★</div>
+    <div class="card-quote">
+      I was losing 10–15 bookings a week because I couldn't answer the phone while I was cutting. RingDesk solved that overnight — my AI picks up every call, books the appointment, and sends the confirmation text automatically. I've added $800 a month in revenue I was just leaving on the table.
+    </div>
+    <div class="card-footer">
+      <div class="avatar">💈</div>
+      <div>
+        <div class="owner-name">Marcus Johnson</div>
+        <div class="shop-info">Crown &amp; Blade · Miami, FL</div>
+        <div class="highlight-chip">+$800/mo revenue recovered</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="card">
+    <div class="card-stars">★★★★★</div>
+    <div class="card-quote">
+      A lot of my clients call in Spanish and they'd hang up if nobody answered or if they got an English-only voicemail. RingDesk speaks Spanish from the first word — it detected the language and switched automatically. My abuela called to book for my cousin and didn't even realize it was AI.
+    </div>
+    <div class="card-footer">
+      <div class="avatar">✂️</div>
+      <div>
+        <div class="owner-name">Sandra Reyes</div>
+        <div class="shop-info">Cortes &amp; Colores · Houston, TX</div>
+        <div class="highlight-chip">Bilingual AI — no extra cost</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="card">
+    <div class="card-stars">★★★★★</div>
+    <div class="card-quote">
+      My no-show rate went from 22% to under 8% in the first month. The 2-hour reminder text is what does it — people see it and either show up or cancel in time for me to fill the slot. I'm a 2-chair shop and those slots are money. Setup took me about 12 minutes.
+    </div>
+    <div class="card-footer">
+      <div class="avatar">💈</div>
+      <div>
+        <div class="owner-name">Darius King</div>
+        <div class="shop-info">Kings Cuts · Atlanta, GA</div>
+        <div class="highlight-chip">No-show rate: 22% → 8%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="card">
+    <div class="card-stars">★★★★★</div>
+    <div class="card-quote">
+      I run three nail stations and I was spending the first hour of every morning returning missed calls from the night before. Now the AI answers 24/7. A client called at 11pm to book a Saturday appointment and it went straight into my dashboard. That would have been a missed booking before.
+    </div>
+    <div class="card-footer">
+      <div class="avatar">💅</div>
+      <div>
+        <div class="owner-name">Linh Nguyen</div>
+        <div class="shop-info">Nails by Linh · San Jose, CA</div>
+        <div class="highlight-chip">24/7 booking — even at 11pm</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="card">
+    <div class="card-stars">★★★★★</div>
+    <div class="card-quote">
+      I tried two other AI phone tools before RingDesk and they both failed when clients asked for a specific barber or mentioned a service by the wrong name. RingDesk understood "Edgar cut" and "low taper" without me having to program anything. It just works for barbershops specifically.
+    </div>
+    <div class="card-footer">
+      <div class="avatar">💈</div>
+      <div>
+        <div class="owner-name">Alejandro Vega</div>
+        <div class="shop-info">Studio 7 Cuts · Phoenix, AZ</div>
+        <div class="highlight-chip">Barbershop vocabulary built in</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="card">
+    <div class="card-stars">★★★★★</div>
+    <div class="card-quote">
+      I was skeptical that clients would accept talking to an AI. But the voice is so natural and it actually listens — it asked my client "would you prefer morning or afternoon?" and adjusted. I've had multiple clients compliment "the woman who answered the phone." They have no idea it's AI.
+    </div>
+    <div class="card-footer">
+      <div class="avatar">✂️</div>
+      <div>
+        <div class="owner-name">Tanya Williams</div>
+        <div class="shop-info">Tanya's Salon &amp; Spa · Chicago, IL</div>
+        <div class="highlight-chip">Clients think it's human</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="bottom-cta">
+  <p>Join 400+ shops already using RingDesk. No setup fee. Cancel anytime.</p>
+  <a href="/#signup" class="btn">Start free — takes 15 minutes</a>
+</div>
+</body>
+</html>

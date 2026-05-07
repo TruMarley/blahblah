@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Top Clients — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --gold: #f59e0b; --silver: #94a3b8; --bronze: #b45309; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .7rem 1rem; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; position: relative; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .8rem 1rem; font-size: .82rem; vertical-align: middle; }
+    .rank-td { width: 52px; padding-left: 0 !important; position: relative; }
+    .rank-bar { position: absolute; top: 0; bottom: 0; left: 0; width: 3px; border-radius: 0; }
+    .rank-num { font-size: .78rem; font-weight: 900; color: var(--muted); padding-left: 1rem; display: inline-block; }
+    .client-name { font-weight: 800; font-size: .88rem; }
+    .client-phone { font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+    .rev-cell { font-weight: 900; color: var(--green); font-size: .88rem; }
+    .svc-chip { font-size: .68rem; font-weight: 700; padding: .15rem .5rem; border-radius: 6px; background: rgba(167,139,250,.07); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; }
+    .last-cell { font-size: .75rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Top Clients</div>
+  <p class="page-sub">Your highest-value clients ranked by lifetime revenue.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th style="width:52px"></th>
+        <th>Client</th>
+        <th>Lifetime Revenue</th>
+        <th>Visits</th>
+        <th>Avg Ticket</th>
+        <th>Last Visit</th>
+        <th>Fav Service</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  function relTime(days) {
+    if (days <= 1) return 'Yesterday';
+    if (days < 7) return days + 'd ago';
+    if (days < 30) return Math.floor(days/7) + 'w ago';
+    return Math.floor(days/30) + 'mo ago';
+  }
+
+  async function load() {
+    const r = await fetch('/api/clients/top');
+    const d = await r.json();
+    const clients = d.clients || [];
+    const RANK_COLORS = ['#f59e0b','#94a3b8','#b45309'];
+
+    document.getElementById('tbody').innerHTML = clients.map((c, i) => {
+      const barColor = i < 3 ? RANK_COLORS[i] : '';
+      return `<tr>
+        <td class="rank-td">
+          ${barColor ? `<div class="rank-bar" style="background:${barColor}"></div>` : ''}
+          <span class="rank-num">#${c.rank}</span>
+        </td>
+        <td>
+          <div class="client-name">${esc(c.client_name)}</div>
+          <div class="client-phone">${esc(c.phone)}</div>
+        </td>
+        <td class="rev-cell">$${Math.round(c.lifetime_revenue||0).toLocaleString()}</td>
+        <td>${c.total_visits}</td>
+        <td>$${(c.avg_ticket||0).toFixed(2)}</td>
+        <td class="last-cell">${relTime(c.last_visit_days_ago)}</td>
+        <td><span class="svc-chip">${esc(c.favorite_service)}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

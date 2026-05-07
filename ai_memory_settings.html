@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Memory — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 75px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Memory</div>
+  <p class="page-sub">The AI remembers each client across every call — their preferred stylist, last service, allergy notes, booking time preference. Returning clients feel known, not processed.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-clients" style="color:var(--accent)">—</div><div class="stat-lbl">Clients with Memory (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-hits" style="color:var(--green)">—</div><div class="stat-lbl">Memory Recalled (30d)</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">What the AI Remembers</div>
+    <div class="row">
+      <div><div class="row-label">Enable AI Memory</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Last Service Booked</div></div>
+      <label class="toggle"><input type="checkbox" id="last-svc"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Preferred Stylist</div></div>
+      <label class="toggle"><input type="checkbox" id="pref-stylist"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Booking Time Preference</div><div class="row-sub">Morning / afternoon / evening</div></div>
+      <label class="toggle"><input type="checkbox" id="time-pref"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Communication Preference</div><div class="row-sub">SMS vs. email vs. call-back</div></div>
+      <label class="toggle"><input type="checkbox" id="comm-pref"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Allergy &amp; Sensitivity Notes</div></div>
+      <label class="toggle"><input type="checkbox" id="allergies"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">VIP Status</div></div>
+      <label class="toggle"><input type="checkbox" id="vip"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Memory Settings</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Greeting Behaviour</div>
+    <div class="row">
+      <div><div class="row-label">Greet Returning Clients by Name</div><div class="row-sub">"Welcome back, Sarah!"</div></div>
+      <label class="toggle"><input type="checkbox" id="greet-name"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Reference Last Visit on Call</div><div class="row-sub">"Last time you had a colour — book the same?"</div></div>
+      <label class="toggle"><input type="checkbox" id="ref-last"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Memory Retention (months)</div></div>
+      <input type="number" id="retention" min="1" max="60">
+    </div>
+    <button class="save-btn" onclick="save()">Save Greeting Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/ai-memory-cfg').then(r => r.json());
+    document.getElementById('h-clients').textContent = data.clients_with_memory_30d;
+    document.getElementById('h-hits').textContent = data.memory_hits_30d;
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('last-svc').checked = data.remember_last_service;
+    document.getElementById('pref-stylist').checked = data.remember_preferred_stylist;
+    document.getElementById('time-pref').checked = data.remember_booking_time_preference;
+    document.getElementById('comm-pref').checked = data.remember_communication_preference;
+    document.getElementById('allergies').checked = data.remember_allergies;
+    document.getElementById('vip').checked = data.remember_vip_status;
+    document.getElementById('greet-name').checked = data.greet_returning_clients_by_name;
+    document.getElementById('ref-last').checked = data.reference_last_visit_on_call;
+    document.getElementById('retention').value = data.memory_retention_months;
+  }
+  async function save() {
+    const payload = { ...data,
+      enabled: document.getElementById('enabled').checked,
+      remember_last_service: document.getElementById('last-svc').checked,
+      remember_preferred_stylist: document.getElementById('pref-stylist').checked,
+      remember_booking_time_preference: document.getElementById('time-pref').checked,
+      remember_communication_preference: document.getElementById('comm-pref').checked,
+      remember_allergies: document.getElementById('allergies').checked,
+      remember_vip_status: document.getElementById('vip').checked,
+      greet_returning_clients_by_name: document.getElementById('greet-name').checked,
+      reference_last_visit_on_call: document.getElementById('ref-last').checked,
+      memory_retention_months: parseInt(document.getElementById('retention').value) || 18,
+    };
+    await fetch('/api/settings/ai-memory-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

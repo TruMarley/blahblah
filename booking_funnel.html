@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Funnel — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.5rem; }
+    .funnel-wrap { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .funnel-row { display: flex; align-items: center; width: 100%; gap: 1rem; margin-bottom: .5rem; }
+    .funnel-svg-wrap { flex: 1; display: flex; justify-content: center; }
+    .funnel-meta { width: 180px; flex-shrink: 0; }
+    .funnel-stage { font-size: .82rem; font-weight: 800; }
+    .funnel-count { font-size: 1.4rem; font-weight: 900; letter-spacing: -.04em; }
+    .funnel-pct { font-size: .75rem; font-weight: 700; color: var(--muted); }
+    .funnel-arrow { text-align: center; color: var(--border); font-size: 1.2rem; margin: -.1rem 0; flex: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Booking Funnel</div>
+  <p class="page-sub">How calls convert to kept appointments, step by step.</p>
+  <div class="card">
+    <div class="card-title">Conversion Funnel</div>
+    <div class="funnel-wrap" id="funnel"></div>
+  </div>
+</div>
+<script>
+  // Interpolate color between accent (#a78bfa) and green (#34d399) based on step index
+  function lerpColor(t) {
+    const r = Math.round(0xa7 + t * (0x34 - 0xa7));
+    const g = Math.round(0x8b + t * (0xd3 - 0x8b));
+    const b = Math.round(0xfa + t * (0x99 - 0xfa));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  async function load() {
+    const r = await fetch('/api/analytics/booking-funnel');
+    const d = await r.json();
+    const stages = d.stages || [];
+    const n = stages.length;
+    const maxCount = stages[0]?.count || 1;
+
+    const W = 340;
+    const trapH = 44;
+    const container = document.getElementById('funnel');
+
+    stages.forEach((s, i) => {
+      const t = n > 1 ? i / (n - 1) : 0;
+      const color = lerpColor(t);
+      const widthPct = 0.95 - (i / (n - 1)) * 0.45; // 95% → 50%
+      const nextWidthPct = i < n - 1 ? 0.95 - ((i + 1) / (n - 1)) * 0.45 : widthPct - 0.09;
+      const topW = Math.round(W * widthPct);
+      const botW = Math.round(W * nextWidthPct);
+      const topX = (W - topW) / 2;
+      const botX = (W - botW) / 2;
+
+      const points = `${topX},0 ${topX + topW},0 ${botX + botW},${trapH} ${botX},${trapH}`;
+
+      const row = document.createElement('div');
+      row.className = 'funnel-row';
+      row.innerHTML = `
+        <div class="funnel-svg-wrap">
+          <svg width="${W}" height="${trapH}" viewBox="0 0 ${W} ${trapH}" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="${points}" fill="${color}" opacity=".85"/>
+            <text x="${W/2}" y="${trapH/2 + 5}" text-anchor="middle" font-size="13" font-weight="800" fill="#fff" font-family="-apple-system,sans-serif">${s.stage}</text>
+          </svg>
+        </div>
+        <div class="funnel-meta">
+          <div class="funnel-count" style="color:${color}">${s.count.toLocaleString()}</div>
+          <div class="funnel-pct">${s.conversion_rate_pct}% of total</div>
+        </div>`;
+      container.appendChild(row);
+
+      if (i < n - 1) {
+        const arrow = document.createElement('div');
+        arrow.className = 'funnel-arrow';
+        const dropPct = (100 - stages[i + 1].conversion_rate_pct + s.conversion_rate_pct).toFixed(0);
+        arrow.innerHTML = `<svg width="${W}" height="16" viewBox="0 0 ${W} 16" style="display:block;margin:auto">
+          <text x="${W/2}" y="12" text-anchor="middle" font-size="10" fill="#555" font-family="-apple-system,sans-serif">▼ ${stages[i].count - stages[i+1].count} dropped</text>
+        </svg>`;
+        container.appendChild(arrow);
+      }
+    });
+  }
+  load();
+</script>
+</body>
+</html>

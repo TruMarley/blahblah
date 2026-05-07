@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat Widget — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .layout { display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; align-items: start; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .form-group { margin-bottom: 1.1rem; }
+    label { display: block; font-size: .72rem; color: var(--muted); font-weight: 700; margin-bottom: .4rem; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: .85rem; font-family: inherit; padding: .65rem .85rem; border-radius: 8px; outline: none; resize: vertical; min-height: 72px; transition: border-color .15s; }
+    textarea:focus { border-color: rgba(167,139,250,.5); }
+    /* Toggle */
+    .toggle-row { display: flex; align-items: center; gap: .85rem; }
+    .toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: var(--surface2); border-radius: 22px; transition: .2s; border: 1px solid var(--border); }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background: var(--muted); border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: rgba(52,211,153,.15); border-color: rgba(52,211,153,.35); }
+    input:checked + .slider:before { transform: translateX(18px); background: var(--green); }
+    .toggle-label { font-size: .82rem; font-weight: 700; }
+    /* Color swatches */
+    .swatches { display: flex; gap: .6rem; margin-top: .4rem; }
+    .swatch { width: 32px; height: 32px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all .15s; }
+    .swatch.active { border-color: #fff; transform: scale(1.1); }
+    /* Position radios */
+    .radio-row { display: flex; gap: 1rem; margin-top: .4rem; }
+    .radio-option { display: flex; align-items: center; gap: .4rem; font-size: .82rem; cursor: pointer; }
+    .radio-option input { accent-color: var(--accent); }
+    /* Save button */
+    .save-btn { background: var(--accent); border: none; color: #000; font-size: .85rem; font-weight: 900; padding: .6rem 1.5rem; border-radius: 9px; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+    .save-btn:hover { opacity: .85; }
+    .save-msg { display: none; color: var(--green); font-size: .78rem; font-weight: 700; margin-top: .6rem; }
+    .save-msg.show { display: block; }
+    /* Preview panel */
+    .preview-panel { background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; height: 420px; position: relative; overflow: hidden; }
+    .preview-label { position: absolute; top: 1rem; left: 50%; transform: translateX(-50%); font-size: .68rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+    .preview-site { position: absolute; inset: 2.5rem 1rem 1rem; background: #0d0d0d; border-radius: 8px; border: 1px solid #1a1a1a; }
+    /* Mock widget */
+    .widget-bubble { position: absolute; width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,.4); transition: all .3s; }
+    .widget-br { bottom: 14px; right: 14px; }
+    .widget-bl { bottom: 14px; left: 14px; }
+    .widget-popup { position: absolute; width: 200px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 10px 12px; font-size: .7rem; line-height: 1.4; color: #e8e8e8; box-shadow: 0 4px 20px rgba(0,0,0,.4); }
+    .widget-popup-br { bottom: 76px; right: 14px; }
+    .widget-popup-bl { bottom: 76px; left: 14px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Chat Widget</div>
+  <p class="page-sub">Configure the AI chat widget that appears on your booking page.</p>
+  <div class="layout">
+    <div class="card">
+      <div class="card-title">Widget Settings</div>
+      <div class="form-group">
+        <div class="toggle-row">
+          <label class="toggle"><input type="checkbox" id="f-enabled" onchange="updatePreview()"><span class="slider"></span></label>
+          <div class="toggle-label" id="enabled-label">Widget Enabled</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Widget Color</label>
+        <div class="swatches" id="swatches">
+          <div class="swatch active" data-color="#a78bfa" style="background:#a78bfa" onclick="selectColor('#a78bfa',this)" title="Accent"></div>
+          <div class="swatch" data-color="#34d399" style="background:#34d399" onclick="selectColor('#34d399',this)" title="Green"></div>
+          <div class="swatch" data-color="#60a5fa" style="background:#60a5fa" onclick="selectColor('#60a5fa',this)" title="Blue"></div>
+          <div class="swatch" data-color="#f87171" style="background:#f87171" onclick="selectColor('#f87171',this)" title="Red"></div>
+          <div class="swatch" data-color="#fb923c" style="background:#fb923c" onclick="selectColor('#fb923c',this)" title="Orange"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Welcome Message</label>
+        <textarea id="f-message" oninput="updatePreview()"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Widget Position</label>
+        <div class="radio-row">
+          <label class="radio-option"><input type="radio" name="pos" value="bottom-right" onchange="updatePreview()"> Bottom Right</label>
+          <label class="radio-option"><input type="radio" name="pos" value="bottom-left" onchange="updatePreview()"> Bottom Left</label>
+        </div>
+      </div>
+      <button class="save-btn" onclick="save()">Save Settings</button>
+      <div class="save-msg" id="save-msg">✓ Settings saved!</div>
+    </div>
+    <div>
+      <div class="card-title" style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem">Live Preview</div>
+      <div class="preview-panel" id="preview-panel">
+        <div class="preview-label">Your Booking Page</div>
+        <div class="preview-site" id="preview-site">
+          <div class="widget-bubble widget-br" id="preview-bubble" style="background:#a78bfa">💬</div>
+          <div class="widget-popup widget-popup-br" id="preview-popup"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  let currentColor = '#a78bfa';
+
+  function selectColor(color, el) {
+    currentColor = color;
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    updatePreview();
+  }
+
+  function updatePreview() {
+    const enabled = document.getElementById('f-enabled').checked;
+    const msg = document.getElementById('f-message').value || 'Hi! How can I help you?';
+    const pos = document.querySelector('input[name="pos"]:checked')?.value || 'bottom-right';
+    const bubble = document.getElementById('preview-bubble');
+    const popup = document.getElementById('preview-popup');
+    bubble.style.background = currentColor;
+    bubble.style.display = enabled ? '' : 'none';
+    popup.style.display = enabled ? '' : 'none';
+    bubble.className = 'widget-bubble widget-' + (pos === 'bottom-right' ? 'br' : 'bl');
+    popup.className = 'widget-popup widget-popup-' + (pos === 'bottom-right' ? 'br' : 'bl');
+    popup.textContent = msg;
+    document.getElementById('enabled-label').textContent = enabled ? 'Widget Enabled' : 'Widget Disabled';
+  }
+
+  async function load() {
+    const r = await fetch('/api/chat-widget');
+    const d = await r.json();
+    document.getElementById('f-enabled').checked = d.enabled;
+    document.getElementById('f-message').value = d.welcome_message || '';
+    const posEl = document.querySelector(`input[name="pos"][value="${d.position}"]`);
+    if (posEl) posEl.checked = true;
+    currentColor = d.widget_color || '#a78bfa';
+    document.querySelectorAll('.swatch').forEach(s => {
+      s.classList.toggle('active', s.dataset.color === currentColor);
+    });
+    updatePreview();
+  }
+
+  async function save() {
+    const pos = document.querySelector('input[name="pos"]:checked')?.value || 'bottom-right';
+    const payload = {
+      enabled: document.getElementById('f-enabled').checked,
+      widget_color: currentColor,
+      welcome_message: document.getElementById('f-message').value,
+      position: pos,
+      show_on_pages: ['home','services','contact'],
+    };
+    await fetch('/api/chat-widget', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const msg = document.getElementById('save-msg');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2500);
+  }
+
+  load();
+</script>
+</body>
+</html>

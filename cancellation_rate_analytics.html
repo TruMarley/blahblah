@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancellation Rate — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .heroes { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem; }
+    .hero-label { font-size: .63rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; }
+    .hero-value { font-size: 1.55rem; font-weight: 900; letter-spacing: -.03em; }
+    .hero-sub { font-size: .68rem; color: var(--muted); margin-top: .15rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    th { text-align: left; font-size: .67rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding-bottom: .6rem; border-bottom: 1px solid var(--border); }
+    td { padding: .55rem 0; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    td.num { font-weight: 700; }
+    td.red { color: var(--red); }
+    td.green { color: var(--green); }
+    td.yellow { color: var(--yellow); }
+    .trend-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .35rem; }
+    .trend-label { font-size: .72rem; color: var(--muted); width: 42px; text-align: right; flex-shrink: 0; }
+    .trend-bar-bg { flex: 1; background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+    .trend-bar-fill { height: 100%; border-radius: 4px; background: var(--red); }
+    .trend-val { font-size: .7rem; color: var(--muted); width: 36px; text-align: right; flex-shrink: 0; }
+    .reason-row { display: flex; align-items: center; gap: .75rem; padding: .6rem 0; border-bottom: 1px solid var(--border); }
+    .reason-row:last-child { border-bottom: none; }
+    .reason-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .reason-name { flex: 1; font-size: .82rem; }
+    .reason-bar-bg { flex: 2; background: var(--surface2); border-radius: 4px; height: 7px; overflow: hidden; }
+    .reason-bar-fill { height: 100%; border-radius: 4px; }
+    .reason-count { font-size: .78rem; font-weight: 700; width: 28px; text-align: right; flex-shrink: 0; }
+    .alert-box { background: rgba(248,113,113,.07); border: 1px solid rgba(248,113,113,.2); border-radius: 10px; padding: .85rem 1.1rem; margin-top: 1rem; font-size: .8rem; color: var(--red); }
+    @media (max-width: 600px) { .heroes { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Cancellation Rate</div>
+  <p class="page-sub">Track cancellations, no-shows, estimated lost revenue, and rebook recovery over the last 30 days.</p>
+
+  <div class="heroes">
+    <div class="hero">
+      <div class="hero-label">Cancel Rate</div>
+      <div class="hero-value" id="h-rate" style="color:var(--red)">—</div>
+      <div class="hero-sub">of all appointments</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Total Cancels</div>
+      <div class="hero-value" id="h-total">—</div>
+      <div class="hero-sub" id="h-detail-sub">incl. late + no-shows</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Est. Lost Revenue</div>
+      <div class="hero-value" id="h-lost" style="color:var(--yellow)">—</div>
+      <div class="hero-sub">this month</div>
+    </div>
+    <div class="hero">
+      <div class="hero-value" id="h-rebook" style="color:var(--green)">—</div>
+      <div class="hero-label" style="margin-top:.2rem">Rebooked</div>
+      <div class="hero-sub" id="h-rebook-sub">recovery</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Cancellation Rate Trend</div>
+    <div id="trend-chart"></div>
+    <div class="alert-box" id="alert-box" style="display:none"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Detail</div>
+    <table>
+      <thead><tr><th>Month</th><th>Total</th><th>Cancelled</th><th>Late Cancel</th><th>No-Show</th><th>Rebooked</th></tr></thead>
+      <tbody id="monthly-table"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Cancellation Reasons</div>
+    <div id="reasons-list"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/cancellation-rate-stats').then(r => r.json());
+    document.getElementById('h-rate').textContent = d.cancel_rate_pct.toFixed(1) + '%';
+    document.getElementById('h-total').textContent = d.total_cancellations_30d;
+    document.getElementById('h-detail-sub').textContent = d.late_cancellations_30d + ' late · ' + d.no_shows_30d + ' no-show';
+    document.getElementById('h-lost').textContent = '$' + Math.round(d.estimated_lost_revenue_30d).toLocaleString();
+    document.getElementById('h-rebook').textContent = d.rebooked_after_cancel_30d;
+    document.getElementById('h-rebook-sub').textContent = d.rebook_after_cancel_pct.toFixed(1) + '% recovery';
+
+    const maxRate = Math.max(...d.monthly.map(m => m.cancel_rate_pct));
+    const chart = document.getElementById('trend-chart');
+    d.monthly.forEach(m => {
+      const pct = maxRate > 0 ? (m.cancel_rate_pct / maxRate * 100) : 0;
+      const row = document.createElement('div');
+      row.className = 'trend-row';
+      row.innerHTML = `
+        <div class="trend-label">${m.month}</div>
+        <div class="trend-bar-bg"><div class="trend-bar-fill" style="width:${pct}%"></div></div>
+        <div class="trend-val">${m.cancel_rate_pct}%</div>
+      `;
+      chart.appendChild(row);
+    });
+
+    const ab = document.getElementById('alert-box');
+    ab.style.display = 'block';
+    ab.textContent = `${d.no_shows_30d} no-shows and ${d.late_cancellations_30d} late cancellations this month. Enabling AI pre-appointment reminders and a cancellation policy reduces these by up to 40%.`;
+
+    const tbody = document.getElementById('monthly-table');
+    d.monthly.forEach(m => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${m.month}</td><td class="num">${m.total_appts}</td><td class="num red">${m.cancelled}</td><td class="num yellow">${m.late_cancel}</td><td class="num red">${m.no_show}</td><td class="num green">${m.rebooked}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    const maxCount = Math.max(...d.cancellation_reasons.map(r => r.count));
+    const rl = document.getElementById('reasons-list');
+    d.cancellation_reasons.forEach(r => {
+      const pct = maxCount > 0 ? (r.count / maxCount * 100) : 0;
+      const row = document.createElement('div');
+      row.className = 'reason-row';
+      row.innerHTML = `
+        <div class="reason-dot" style="background:${r.color}"></div>
+        <div class="reason-name">${r.reason}</div>
+        <div class="reason-bar-bg"><div class="reason-bar-fill" style="width:${pct}%;background:${r.color}"></div></div>
+        <div class="reason-count">${r.count}</div>
+      `;
+      rl.appendChild(row);
+    });
+  }
+  load();
+</script>
+</body>
+</html>

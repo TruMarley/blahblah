@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Referral Program — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.2rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select, input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus, input[type=number]:focus { border-color: var(--accent); }
+    input[type=number] { width: 90px; }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .79rem; padding: .5rem .72rem; outline: none; resize: vertical; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .reward-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: .65rem; }
+    .reward-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .75rem; }
+    .token-list { display: flex; flex-wrap: wrap; gap: .28rem; margin-top: .35rem; }
+    .token { font-size: .65rem; background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.25); border-radius: 4px; padding: .08rem .35rem; color: var(--accent); font-family: monospace; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Referral Program</div>
+  <p class="page-sub">Turn happy clients into your best marketers. Your AI mentions the referral program after bookings and rewards both the referrer and the new client automatically.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-referrals" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Referrals (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-converted" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Converted</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-conv-rate" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Conversion Rate</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-revenue" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Revenue from Refs</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Program Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Referral Program</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Reward Trigger</div><div class="row-sub">When the referrer earns their reward</div></div>
+      <select id="reward-trigger">
+        <option value="after_first_visit">After referee's first visit</option>
+        <option value="after_booking">After referee books</option>
+        <option value="after_second_visit">After referee's 2nd visit</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Referrals Per Client</div></div>
+      <input type="number" id="max-referrals" min="1" max="50">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Referral Link Expiry (days)</div></div>
+      <input type="number" id="expiry-days" min="7" max="365">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Send Link Via</div></div>
+      <select id="send-via">
+        <option value="sms">SMS</option>
+        <option value="email">Email</option>
+        <option value="both">Both</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Promotes Referral</div><div class="row-sub">AI mentions program during calls</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-promotes"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Mentions After Booking</div><div class="row-sub">Sends referral link post-booking</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-after-booking"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Rewards</div>
+    <div class="reward-card">
+      <div class="reward-label">Referrer Gets (Existing Client)</div>
+      <div class="row" style="margin-bottom:.75rem">
+        <div class="row-label">Reward Type</div>
+        <select id="referrer-type">
+          <option value="discount">Discount ($)</option>
+          <option value="points">Loyalty Points</option>
+          <option value="free_service">Free Service</option>
+        </select>
+      </div>
+      <div class="row">
+        <div class="row-label">Reward Value</div>
+        <input type="number" id="referrer-value" min="5" max="200">
+      </div>
+    </div>
+    <div class="reward-card">
+      <div class="reward-label">Referee Gets (New Client)</div>
+      <div class="row" style="margin-bottom:.75rem">
+        <div class="row-label">Reward Type</div>
+        <select id="referee-type">
+          <option value="discount">Discount ($)</option>
+          <option value="points">Loyalty Points</option>
+          <option value="free_service">Free Service</option>
+        </select>
+      </div>
+      <div class="row">
+        <div class="row-label">Reward Value</div>
+        <input type="number" id="referee-value" min="5" max="200">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Referral Message</div>
+    <textarea id="referral-msg" rows="3"></textarea>
+    <div class="token-list">
+      <span class="token">{referral_link}</span>
+      <span class="token">{first_name}</span>
+      <span class="token">{business_name}</span>
+      <span class="token">{referee_reward}</span>
+    </div>
+    <button class="save-btn" onclick="save()">Save Referral Program</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+
+  async function load() {
+    data = await fetch('/api/settings/client-referral-cfg').then(r => r.json());
+    document.getElementById('h-referrals').textContent = data.total_referrals_30d;
+    document.getElementById('h-converted').textContent = data.referrals_converted_30d;
+    document.getElementById('h-conv-rate').textContent = data.referral_conversion_pct.toFixed(1) + '%';
+    document.getElementById('h-revenue').textContent = '$' + data.revenue_from_referrals_30d.toLocaleString(undefined, {maximumFractionDigits: 0});
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('reward-trigger').value = data.reward_trigger;
+    document.getElementById('max-referrals').value = data.max_referrals_per_client;
+    document.getElementById('expiry-days').value = data.referral_expiry_days;
+    document.getElementById('send-via').value = data.send_referral_link_via;
+    document.getElementById('ai-promotes').checked = data.ai_promotes_referral;
+    document.getElementById('ai-after-booking').checked = data.ai_mentions_after_booking;
+    document.getElementById('referrer-type').value = data.referrer_reward_type;
+    document.getElementById('referrer-value').value = data.referrer_reward_value;
+    document.getElementById('referee-type').value = data.referee_reward_type;
+    document.getElementById('referee-value').value = data.referee_reward_value;
+    document.getElementById('referral-msg').value = data.referral_message || '';
+  }
+
+  async function save() {
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      reward_trigger: document.getElementById('reward-trigger').value,
+      max_referrals_per_client: parseInt(document.getElementById('max-referrals').value) || 10,
+      referral_expiry_days: parseInt(document.getElementById('expiry-days').value) || 90,
+      send_referral_link_via: document.getElementById('send-via').value,
+      ai_promotes_referral: document.getElementById('ai-promotes').checked,
+      ai_mentions_after_booking: document.getElementById('ai-after-booking').checked,
+      referrer_reward_type: document.getElementById('referrer-type').value,
+      referrer_reward_value: parseInt(document.getElementById('referrer-value').value) || 15,
+      referee_reward_type: document.getElementById('referee-type').value,
+      referee_reward_value: parseInt(document.getElementById('referee-value').value) || 10,
+      referral_message: document.getElementById('referral-msg').value,
+    };
+    await fetch('/api/settings/client-referral-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

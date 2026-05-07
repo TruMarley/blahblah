@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Age Groups — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .group-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+    .group-label { font-size: .82rem; font-weight: 700; width: 50px; flex-shrink: 0; }
+    .group-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 12px; overflow: hidden; }
+    .group-fill { height: 100%; border-radius: 4px; }
+    .group-pct { font-size: .78rem; font-weight: 700; width: 42px; text-align: right; }
+    .group-ticket { font-size: .68rem; color: var(--green); width: 44px; text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Age Groups</div>
+  <p class="page-sub">Understand the age distribution of your client base and which groups spend the most per visit. Use this to tailor your service menu, marketing, and AI communication style.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-largest" style="color:var(--accent)">—</div><div class="stat-lbl">Largest Segment</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-highest" style="color:var(--green)">—</div><div class="stat-lbl">Highest Value Group</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Age Distribution & Avg Ticket</div>
+    <div id="group-list"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['#60a5fa','var(--accent)','var(--green)','var(--yellow)','var(--red)'];
+  async function load() {
+    const d = await fetch('/api/analytics/client-age-group-stats').then(r => r.json());
+    document.getElementById('h-largest').textContent = d.largest_segment;
+    document.getElementById('h-highest').textContent = d.highest_value_group;
+    const gl = document.getElementById('group-list');
+    const maxP = Math.max(...d.groups.map(g => g.pct));
+    d.groups.forEach((g, i) => {
+      const w = (g.pct / maxP * 100).toFixed(1);
+      gl.innerHTML += '<div class="group-row"><div class="group-label" style="color:' + COLORS[i] + '">' + g.group + '</div><div class="group-track"><div class="group-fill" style="width:' + w + '%;background:' + COLORS[i] + '"></div></div><div class="group-pct" style="color:' + COLORS[i] + '">' + g.pct.toFixed(1) + '%</div><div class="group-ticket">$' + g.avg_ticket + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

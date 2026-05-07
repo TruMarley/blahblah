@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loyalty — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --gold: #fbbf24; --silver: #94a3b8; --bronze: #cd7c4a; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    nav a.back:hover { color: var(--text); }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+
+    /* Tier columns */
+    .tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 2rem; }
+    .tier-card { border-radius: 14px; padding: 1.25rem 1.4rem; border: 1px solid; }
+    .tier-card.bronze { background: rgba(205,124,74,.08); border-color: rgba(205,124,74,.25); }
+    .tier-card.silver { background: rgba(148,163,184,.08); border-color: rgba(148,163,184,.25); }
+    .tier-card.gold   { background: rgba(251,191,36,.08);  border-color: rgba(251,191,36,.25); }
+    .tier-icon { font-size: 1.6rem; margin-bottom: .6rem; }
+    .tier-name { font-size: .8rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; margin-bottom: .5rem; }
+    .tier-card.bronze .tier-name { color: var(--bronze); }
+    .tier-card.silver .tier-name { color: var(--silver); }
+    .tier-card.gold   .tier-name { color: var(--gold); }
+    .tier-range { font-size: .72rem; color: var(--muted); margin-bottom: .85rem; }
+    .tier-stat { display: flex; justify-content: space-between; margin-bottom: .3rem; font-size: .78rem; }
+    .tier-stat .label { color: var(--muted); }
+    .tier-stat .val { font-weight: 700; }
+
+    /* Search */
+    .search-row { margin-bottom: 1rem; }
+    .search-input { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: .88rem; padding: .65rem 1rem; border-radius: 10px; outline: none; font-family: inherit; }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: #444; }
+
+    /* Table */
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .71rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .7rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .8rem 1.25rem; font-size: .83rem; vertical-align: middle; }
+    .name-cell { font-weight: 700; }
+    .phone-cell { color: var(--muted); font-size: .75rem; }
+    .tier-badge { display: inline-block; padding: .2rem .6rem; border-radius: 99px; font-size: .68rem; font-weight: 800; }
+    .tb-gold   { background: rgba(251,191,36,.15);  border: 1px solid rgba(251,191,36,.3);  color: var(--gold); }
+    .tb-silver { background: rgba(148,163,184,.12); border: 1px solid rgba(148,163,184,.25); color: var(--silver); }
+    .tb-bronze { background: rgba(205,124,74,.12);  border: 1px solid rgba(205,124,74,.25);  color: var(--bronze); }
+    .visits-cell { font-weight: 700; }
+    .spend-cell { color: var(--green); font-weight: 700; }
+    .last-cell { color: var(--muted); font-size: .78rem; }
+    .empty { text-align: center; color: var(--muted); padding: 2.5rem; font-size: .85rem; }
+    .spinner { display: none; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; margin: 2rem auto; }
+    .spinner.show { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Loyalty Program</div>
+  <p class="page-sub">Client visit history and loyalty tiers — automatically computed from booking data.</p>
+
+  <div class="tiers" id="tiers">
+    <div class="tier-card bronze"><div class="tier-icon">🥉</div><div class="tier-name">Bronze</div><div class="tier-range">1–4 visits</div><div class="tier-stat"><span class="label">Clients</span><span class="val" id="t-bronze-c">—</span></div><div class="tier-stat"><span class="label">Total spend</span><span class="val" id="t-bronze-s">—</span></div></div>
+    <div class="tier-card silver"><div class="tier-icon">🥈</div><div class="tier-name">Silver</div><div class="tier-range">5–9 visits</div><div class="tier-stat"><span class="label">Clients</span><span class="val" id="t-silver-c">—</span></div><div class="tier-stat"><span class="label">Total spend</span><span class="val" id="t-silver-s">—</span></div></div>
+    <div class="tier-card gold"><div class="tier-icon">🥇</div><div class="tier-name">Gold</div><div class="tier-range">10+ visits</div><div class="tier-stat"><span class="label">Clients</span><span class="val" id="t-gold-c">—</span></div><div class="tier-stat"><span class="label">Total spend</span><span class="val" id="t-gold-s">—</span></div></div>
+  </div>
+
+  <div class="search-row">
+    <input class="search-input" id="search" placeholder="Search by name or phone…" oninput="filterTable()">
+  </div>
+
+  <div class="table-wrap">
+    <div class="spinner show" id="spinner"></div>
+    <table id="loyalty-table" style="display:none">
+      <thead><tr>
+        <th>Client</th>
+        <th>Tier</th>
+        <th>Visits</th>
+        <th>Total Spend</th>
+        <th>Last Visit</th>
+      </tr></thead>
+      <tbody id="loyalty-body"></tbody>
+    </table>
+    <div class="empty" id="loyalty-empty" style="display:none">No clients match your search.</div>
+  </div>
+</div>
+<script>
+  let allClients = [];
+
+  async function load() {
+    const r = await fetch('/api/loyalty');
+    const d = await r.json();
+    allClients = d.clients || [];
+    document.getElementById('spinner').classList.remove('show');
+
+    // Tier summaries
+    ['Bronze','Silver','Gold'].forEach(tier => {
+      const group = allClients.filter(c => c.tier === tier);
+      const spend = group.reduce((s,c)=>s+c.total_spend,0);
+      document.getElementById(`t-${tier.toLowerCase()}-c`).textContent = group.length;
+      document.getElementById(`t-${tier.toLowerCase()}-s`).textContent = '$' + spend.toLocaleString();
+    });
+
+    filterTable();
+  }
+
+  function filterTable() {
+    const q = document.getElementById('search').value.toLowerCase();
+    const filtered = q
+      ? allClients.filter(c => (c.name||'').toLowerCase().includes(q) || (c.phone||'').includes(q))
+      : allClients;
+
+    if (!filtered.length) {
+      document.getElementById('loyalty-table').style.display = 'none';
+      document.getElementById('loyalty-empty').style.display = '';
+      return;
+    }
+    document.getElementById('loyalty-table').style.display = '';
+    document.getElementById('loyalty-empty').style.display = 'none';
+    document.getElementById('loyalty-body').innerHTML = filtered.map(c => {
+      const tc = c.tier === 'Gold' ? 'tb-gold' : c.tier === 'Silver' ? 'tb-silver' : 'tb-bronze';
+      return `<tr>
+        <td><div class="name-cell">${esc(c.name)}</div><div class="phone-cell">${esc(c.phone)}</div></td>
+        <td><span class="tier-badge ${tc}">${c.tier}</span></td>
+        <td class="visits-cell">${c.visit_count}</td>
+        <td class="spend-cell">$${c.total_spend.toLocaleString()}</td>
+        <td class="last-cell">${relDate(c.last_visit)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function relDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso + 'T00:00:00'), now = new Date();
+    const days = Math.floor((now - d) / 86400000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 30) return `${days}d ago`;
+    return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  load();
+</script>
+</body>
+</html>

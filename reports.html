@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monthly Report — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; --blue: #60a5fa; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; }
+    .month-pick { display: flex; align-items: center; gap: .5rem; }
+    .month-pick select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: .85rem; padding: .5rem .85rem; border-radius: 9px; font-family: inherit; outline: none; cursor: pointer; }
+    .month-pick select:focus { border-color: var(--accent); }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.75rem; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.2rem; }
+    .kpi-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .35rem; }
+    .kpi-val { font-size: 1.75rem; font-weight: 900; letter-spacing: -.04em; }
+    .kpi-delta { font-size: .72rem; margin-top: .2rem; }
+    .up { color: var(--green); } .down { color: var(--red); } .flat { color: var(--muted); }
+
+    .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .section-title { font-size: .8rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+
+    .bar-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .6rem; }
+    .bar-label { font-size: .8rem; width: 120px; flex-shrink: 0; color: var(--muted); }
+    .bar-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 99px; transition: width .6s ease; }
+    .bar-count { font-size: .78rem; font-weight: 700; width: 36px; text-align: right; flex-shrink: 0; }
+
+    .insight-list { list-style: none; }
+    .insight-list li { font-size: .83rem; color: var(--muted); padding: .45rem 0; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: .6rem; }
+    .insight-list li:last-child { border-bottom: none; }
+    .insight-list li .ico { flex-shrink: 0; }
+
+    .export-row { text-align: right; margin-top: 1.5rem; }
+    .export-btn { font-size: .78rem; font-weight: 700; color: var(--accent); text-decoration: none; border: 1px solid rgba(167,139,250,.3); border-radius: 8px; padding: .4rem 1rem; transition: background .15s; }
+    .export-btn:hover { background: rgba(167,139,250,.08); }
+    @media (max-width: 640px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="top-row">
+    <div class="page-title">Monthly Report</div>
+    <div class="month-pick">
+      <select id="month-sel" onchange="loadReport()"></select>
+    </div>
+  </div>
+
+  <div class="kpi-grid" id="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Calls Handled</div><div class="kpi-val" id="k-calls">—</div><div class="kpi-delta" id="kd-calls">—</div></div>
+    <div class="kpi"><div class="kpi-label">Bookings</div><div class="kpi-val" id="k-books">—</div><div class="kpi-delta" id="kd-books">—</div></div>
+    <div class="kpi"><div class="kpi-label">No-Show Rate</div><div class="kpi-val" id="k-ns">—</div><div class="kpi-delta" id="kd-ns">—</div></div>
+    <div class="kpi"><div class="kpi-label">Est. Revenue</div><div class="kpi-val" id="k-rev">—</div><div class="kpi-delta" id="kd-rev">—</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Bookings by Service</div>
+    <div id="service-bars"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">AI Insights</div>
+    <ul class="insight-list" id="insights"></ul>
+  </div>
+
+  <div class="export-row">
+    <a href="/api/reports/monthly" class="export-btn">↓ Export JSON</a>
+  </div>
+</div>
+<script>
+  // Populate month selector: last 6 months
+  const sel = document.getElementById('month-sel');
+  const now = new Date();
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const lbl = d.toLocaleDateString('en-US', {month: 'long', year: 'numeric'});
+    const opt = document.createElement('option');
+    opt.value = val; opt.textContent = lbl;
+    sel.appendChild(opt);
+  }
+
+  // Mock data generator seeded by month string
+  function mockForMonth(ym) {
+    const seed = ym.replace('-','') | 0;
+    const rng = (n) => ((seed * 1103515245 + 12345) & 0x7fffffff) % n;
+    const calls = 180 + (seed % 80);
+    const books = 90 + (seed % 50);
+    const ns = 3 + (seed % 8);
+    const rev = books * 22;
+    const services = [
+      {name: 'Fade / Cut', count: 28 + rng(20), color: '#a78bfa'},
+      {name: 'Color',      count: 18 + rng(15), color: '#60a5fa'},
+      {name: 'Manicure',   count: 15 + rng(12), color: '#34d399'},
+      {name: 'Beard Trim', count: 10 + rng(10), color: '#fbbf24'},
+      {name: 'Wax',        count:  8 + rng(8),  color: '#f87171'},
+    ];
+    return { calls, books, ns, rev, services,
+      prev: { calls: calls - 10 - rng(20), books: books - 5 - rng(15) } };
+  }
+
+  function delta(now, prev, invert) {
+    const d = now - prev;
+    const pct = prev ? Math.round(d / prev * 100) : 0;
+    const up = invert ? d < 0 : d > 0;
+    const cls = d === 0 ? 'flat' : (up ? 'up' : 'down');
+    const arrow = d > 0 ? '↑' : (d < 0 ? '↓' : '→');
+    return `<span class="${cls}">${arrow} ${Math.abs(pct)}% vs prior month</span>`;
+  }
+
+  function loadReport() {
+    const ym = sel.value;
+    const m = mockForMonth(ym);
+
+    document.getElementById('k-calls').textContent = m.calls;
+    document.getElementById('kd-calls').innerHTML = delta(m.calls, m.prev.calls, false);
+    document.getElementById('k-books').textContent = m.books;
+    document.getElementById('kd-books').innerHTML = delta(m.books, m.prev.books, false);
+    document.getElementById('k-ns').textContent = m.ns + '%';
+    document.getElementById('kd-ns').innerHTML = '<span class="flat">— stable</span>';
+    document.getElementById('k-rev').textContent = '$' + m.rev.toLocaleString();
+    document.getElementById('kd-rev').innerHTML = delta(m.rev, m.prev.books * 22, false);
+
+    const max = Math.max(...m.services.map(s => s.count));
+    document.getElementById('service-bars').innerHTML = m.services.map(s => `
+      <div class="bar-row">
+        <div class="bar-label">${s.name}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(s.count/max*100)}%;background:${s.color}"></div></div>
+        <div class="bar-count">${s.count}</div>
+      </div>`).join('');
+
+    document.getElementById('insights').innerHTML = [
+      `<li><span class="ico">📞</span> Your AI answered ${m.calls} calls — <strong>${Math.round(m.calls*.87)} handled without you</strong> picking up.</li>`,
+      `<li><span class="ico">📅</span> Booking conversion rate: <strong>${Math.round(m.books/m.calls*100)}%</strong> of calls became appointments.</li>`,
+      `<li><span class="ico">🕐</span> Peak call time: <strong>Tuesday–Thursday 11 AM–2 PM</strong>.</li>`,
+      `<li><span class="ico">❌</span> No-show rate ${m.ns}% — industry avg is 12%. ${m.ns < 12 ? 'You are below average. Great job!' : 'Consider adding SMS reminders.'}</li>`,
+      `<li><span class="ico">💬</span> <strong>${Math.round(m.books*.92)} SMS confirmations</strong> sent automatically this month.</li>`,
+    ].join('');
+  }
+
+  loadReport();
+</script>
+</body>
+</html>

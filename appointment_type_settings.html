@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Appointment Types — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    .type-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .8rem 1rem; margin-bottom: .45rem; display: flex; align-items: center; gap: .75rem; }
+    .type-card.inactive { opacity: .4; }
+    .type-name { font-size: .85rem; font-weight: 700; flex: 1; }
+    .type-dur { font-size: .72rem; color: var(--muted); }
+    .type-price { font-size: .82rem; font-weight: 700; color: var(--green); width: 48px; text-align: right; }
+    .consult-badge { font-size: .6rem; font-weight: 700; padding: .15rem .4rem; border-radius: 4px; background: rgba(251,191,36,.15); color: var(--yellow); flex-shrink: 0; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Appointment Types</div>
+  <p class="page-sub">Define which services the AI can book, their duration, and price. The AI will confirm service details and flag consultation-required services appropriately.</p>
+
+  <div class="card">
+    <div class="card-title">Booking Behavior</div>
+    <div class="row">
+      <div><div class="row-label">AI Confirms Service Type</div><div class="row-sub">Repeats service back to caller</div></div>
+      <label class="toggle"><input type="checkbox" id="confirms"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Warns If Unavailable</div><div class="row-sub">Tells caller if service isn't offered</div></div>
+      <label class="toggle"><input type="checkbox" id="warns"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Show Duration to Caller</div></div>
+      <label class="toggle"><input type="checkbox" id="show-dur"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Show Price to Caller</div></div>
+      <label class="toggle"><input type="checkbox" id="show-price"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Type Settings</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Service Types</div>
+    <div id="type-list"></div>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/appointment-type-cfg').then(r => r.json());
+    document.getElementById('confirms').checked = data.ai_confirms_type_on_booking;
+    document.getElementById('warns').checked = data.ai_warns_if_type_unavailable;
+    document.getElementById('show-dur').checked = data.show_duration_to_caller;
+    document.getElementById('show-price').checked = data.show_price_to_caller;
+
+    const list = document.getElementById('type-list');
+    (data.types || []).forEach(t => {
+      const card = document.createElement('div');
+      card.className = 'type-card' + (t.active ? '' : ' inactive');
+      card.innerHTML = `
+        <div style="flex:1">
+          <div class="type-name">${t.name}</div>
+          <div class="type-dur">${t.duration_minutes} min</div>
+        </div>
+        ${t.requires_consultation ? '<span class="consult-badge">Consult req.</span>' : ''}
+        <div class="type-price">$${t.price}</div>
+        <label class="toggle"><input type="checkbox" class="tp-toggle" data-id="${t.id}" ${t.active?'checked':''}><span class="slider"></span></label>
+      `;
+      list.appendChild(card);
+    });
+    list.querySelectorAll('.tp-toggle').forEach(cb => cb.addEventListener('change', e => {
+      const t = data.types.find(x => x.id === e.target.dataset.id);
+      if (t) { t.active = e.target.checked; e.target.closest('.type-card').className = 'type-card' + (t.active ? '' : ' inactive'); }
+    }));
+  }
+  async function save() {
+    const payload = {
+      ...data,
+      ai_confirms_type_on_booking: document.getElementById('confirms').checked,
+      ai_warns_if_type_unavailable: document.getElementById('warns').checked,
+      show_duration_to_caller: document.getElementById('show-dur').checked,
+      show_price_to_caller: document.getElementById('show-price').checked,
+    };
+    await fetch('/api/settings/appointment-type-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

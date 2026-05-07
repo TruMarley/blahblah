@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Spend Tiers — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .tier-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .5rem; display: flex; align-items: center; justify-content: space-between; }
+    .tier-left { display: flex; align-items: center; gap: .6rem; }
+    .tier-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .tier-name { font-size: .82rem; font-weight: 700; }
+    .tier-right { text-align: right; }
+    .tier-count { font-size: .8rem; font-weight: 800; }
+    .tier-spend { font-size: .68rem; color: var(--muted); margin-top: .1rem; }
+    .tier-pct { font-size: .65rem; font-weight: 700; margin-top: .1rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Spend Tiers</div>
+  <p class="page-sub">Segment your client base by monthly spend. VIP clients drive outsized revenue — knowing who they are helps you protect relationships and tailor the AI's tone accordingly.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Total Clients</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-vip-share" style="color:var(--accent)">—</div><div class="stat-lbl">VIP Revenue Share</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Spend Tier Breakdown</div>
+    <div id="tier-list"></div>
+  </div>
+</div>
+<script>
+  const COLOR_MAP = { accent: 'var(--accent)', green: 'var(--green)', yellow: 'var(--yellow)', muted: 'var(--muted)' };
+  async function load() {
+    const d = await fetch('/api/analytics/client-spend-tier-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_clients;
+    document.getElementById('h-vip-share').textContent = d.vip_revenue_share_pct.toFixed(1) + '%';
+    const tl = document.getElementById('tier-list');
+    d.tiers.forEach(t => {
+      const c = COLOR_MAP[t.color] || 'var(--muted)';
+      tl.innerHTML += '<div class="tier-card"><div class="tier-left"><div class="tier-dot" style="background:' + c + '"></div><div class="tier-name" style="color:' + c + '">' + t.tier + '</div></div><div class="tier-right"><div class="tier-count" style="color:' + c + '">' + t.count + ' clients</div><div class="tier-spend">Avg $' + t.avg_spend.toFixed(2) + '/mo</div><div class="tier-pct" style="color:' + c + '">' + t.pct.toFixed(1) + '% of base</div></div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

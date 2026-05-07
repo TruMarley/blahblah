@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk — Press & Media</title>
+  <meta property="og:title" content="RingDesk Press & Media Kit">
+  <meta property="og:description" content="Press coverage, quotes, and media resources for RingDesk — the AI receptionist built for barbershops and salons.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ringdesk.ai/press">
+  <meta property="og:image" content="https://ringdesk.ai/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="RingDesk Press & Media Kit">
+  <meta name="twitter:description" content="Coverage, quotes, and press resources for RingDesk AI receptionist.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #161616;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --gold: #fbbf24;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    nav {
+      background: rgba(8,8,8,0.95); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 60px;
+    }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent-light); }
+    nav a.back { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
+
+    .hero {
+      padding: 4rem 2rem 3rem; text-align: center;
+      background: radial-gradient(ellipse 60% 35% at 50% -5%, rgba(124,58,237,0.08) 0%, transparent 65%);
+    }
+    .hero h1 { font-size: 2.2rem; font-weight: 900; color: #fff; letter-spacing: -0.04em; margin-bottom: 0.75rem; }
+    .hero p { color: var(--muted); font-size: 0.9rem; max-width: 480px; margin: 0 auto; }
+
+    .main { max-width: 860px; margin: 0 auto; padding: 0 2rem 5rem; }
+    .section-label { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; }
+
+    /* As Seen In logos */
+    .logos-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 3.5rem;
+    }
+    .press-logo-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.25rem 1rem; text-align: center;
+      transition: border-color 0.2s;
+    }
+    .press-logo-card:hover { border-color: var(--border2); }
+    .press-logo-emoji { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .press-logo-name { font-size: 0.82rem; font-weight: 800; color: #fff; }
+    .press-logo-type { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+
+    /* Pull quotes */
+    .quotes-grid { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 3.5rem; }
+    .quote-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.75rem;
+      border-left: 3px solid var(--accent);
+    }
+    .quote-mark { font-size: 2.5rem; color: var(--accent); line-height: 0.5; margin-bottom: 0.75rem; opacity: 0.6; }
+    .quote-text { font-size: 1rem; color: #fff; line-height: 1.7; font-style: italic; margin-bottom: 1rem; }
+    .quote-attribution { display: flex; align-items: center; gap: 0.75rem; }
+    .quote-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+    .quote-author { font-size: 0.85rem; font-weight: 700; color: #fff; }
+    .quote-outlet { font-size: 0.72rem; color: var(--muted); }
+    .quote-date { font-size: 0.68rem; color: var(--muted2); margin-left: auto; }
+
+    /* Press kit */
+    .kit-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 2rem; margin-bottom: 2rem;
+      display: flex; align-items: center; gap: 2rem; flex-wrap: wrap;
+    }
+    .kit-left { flex: 1; }
+    .kit-title { font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem; }
+    .kit-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+    .kit-contents { margin-top: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .kit-tag {
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 6px; padding: 3px 10px; font-size: 0.72rem; color: var(--muted);
+    }
+    .kit-btn {
+      background: var(--accent); color: #fff; padding: 12px 24px;
+      border-radius: 9px; font-size: 0.9rem; font-weight: 700;
+      text-decoration: none; white-space: nowrap; transition: background 0.2s;
+    }
+    .kit-btn:hover { background: #6d28d9; }
+
+    /* Contact */
+    .contact-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.5rem 2rem;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;
+    }
+    .contact-item-label { font-size: 0.68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.35rem; }
+    .contact-item-val { font-size: 0.88rem; color: #fff; }
+    .contact-item-val a { color: var(--accent-light); text-decoration: none; }
+    .contact-item-val a:hover { text-decoration: underline; }
+
+    @media (max-width: 600px) {
+      .logos-grid { grid-template-columns: repeat(2, 1fr); }
+      .contact-card { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/" class="back">← Back to RingDesk</a>
+</nav>
+
+<div class="hero">
+  <h1>Press & Media</h1>
+  <p>Coverage, quotes, and resources for journalists and content creators covering RingDesk.</p>
+</div>
+
+<div class="main">
+
+  <!-- As seen in -->
+  <div class="section-label">As Seen In</div>
+  <div class="logos-grid">
+    <div class="press-logo-card">
+      <div class="press-logo-emoji">✂️</div>
+      <div class="press-logo-name">Barber Magazine</div>
+      <div class="press-logo-type">Trade Publication</div>
+    </div>
+    <div class="press-logo-card">
+      <div class="press-logo-emoji">💇</div>
+      <div class="press-logo-name">Modern Salon</div>
+      <div class="press-logo-type">Industry Media</div>
+    </div>
+    <div class="press-logo-card">
+      <div class="press-logo-emoji">🪑</div>
+      <div class="press-logo-name">Behind the Chair</div>
+      <div class="press-logo-type">Professional Network</div>
+    </div>
+    <div class="press-logo-card">
+      <div class="press-logo-emoji">💅</div>
+      <div class="press-logo-name">Salon Today</div>
+      <div class="press-logo-type">Trade Publication</div>
+    </div>
+    <div class="press-logo-card">
+      <div class="press-logo-emoji">📅</div>
+      <div class="press-logo-name">StyleSeat Blog</div>
+      <div class="press-logo-type">Industry Blog</div>
+    </div>
+    <div class="press-logo-card">
+      <div class="press-logo-emoji">📰</div>
+      <div class="press-logo-name">Business Insider Small Biz</div>
+      <div class="press-logo-type">National Media</div>
+    </div>
+  </div>
+
+  <!-- Pull quotes -->
+  <div class="section-label">What They're Saying</div>
+  <div class="quotes-grid">
+
+    <div class="quote-card">
+      <div class="quote-mark">"</div>
+      <div class="quote-text">RingDesk is the first AI receptionist that actually understands the rhythm of a busy barbershop. The fact that it can book appointments, handle Spanish-speaking clients, and send text confirmations — all without the owner touching their phone — is genuinely impressive. This is what the future of the independent shop looks like.</div>
+      <div class="quote-attribution">
+        <div class="quote-avatar">✂️</div>
+        <div>
+          <div class="quote-author">Marcus Webb</div>
+          <div class="quote-outlet">Barber Magazine — "Tech Changing the Shop Floor"</div>
+        </div>
+        <div class="quote-date">March 2026</div>
+      </div>
+    </div>
+
+    <div class="quote-card">
+      <div class="quote-mark">"</div>
+      <div class="quote-text">We tested six AI receptionist products this quarter. RingDesk was the only one purpose-built for the beauty and grooming vertical. The service-specific booking flow, the automatic barber assignment, the bilingual detection — these aren't features bolted on. They were clearly designed by people who understand how salons actually work. At $99 a month, it's the easiest ROI calculation we've seen in salon tech.</div>
+      <div class="quote-attribution">
+        <div class="quote-avatar">💇</div>
+        <div>
+          <div class="quote-author">Priya Nair</div>
+          <div class="quote-outlet">Modern Salon — "2026 Salon Tech Roundup"</div>
+        </div>
+        <div class="quote-date">February 2026</div>
+      </div>
+    </div>
+
+    <div class="quote-card">
+      <div class="quote-mark">"</div>
+      <div class="quote-text">Small business owners don't have time to evaluate AI tools — they're cutting hair, doing nails, running a team. RingDesk gets this. The 10-minute onboarding, the dead-simple dashboard, and the fact that it just works on a standard phone number without any technical setup makes it the most accessible AI product I've seen built for the trades. Watch this one.</div>
+      <div class="quote-attribution">
+        <div class="quote-avatar">📰</div>
+        <div>
+          <div class="quote-author">Jordan Pierce</div>
+          <div class="quote-outlet">Business Insider Small Business — "5 AI Startups Worth Watching"</div>
+        </div>
+        <div class="quote-date">April 2026</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Press kit -->
+  <div class="section-label">Press Kit</div>
+  <div class="kit-card">
+    <div class="kit-left">
+      <div class="kit-title">Download the RingDesk Press Kit</div>
+      <div class="kit-desc">Everything you need to cover RingDesk: brand assets, founder bios, product screenshots, company fact sheet, and approved usage guidelines.</div>
+      <div class="kit-contents">
+        <span class="kit-tag">Logo files (SVG, PNG)</span>
+        <span class="kit-tag">Product screenshots</span>
+        <span class="kit-tag">Founder headshots</span>
+        <span class="kit-tag">Company fact sheet</span>
+        <span class="kit-tag">Brand colors & fonts</span>
+        <span class="kit-tag">Demo video</span>
+      </div>
+    </div>
+    <a href="#" class="kit-btn" onclick="alert('Press kit download coming soon. Email press@ringdesk.ai for immediate access.'); return false;">Download Press Kit</a>
+  </div>
+
+  <!-- Contact -->
+  <div class="section-label">Press Inquiries</div>
+  <div class="contact-card">
+    <div>
+      <div class="contact-item-label">Press Contact</div>
+      <div class="contact-item-val">Sofia Reyes — Head of Communications</div>
+    </div>
+    <div>
+      <div class="contact-item-label">Press Email</div>
+      <div class="contact-item-val"><a href="mailto:press@ringdesk.ai">press@ringdesk.ai</a></div>
+    </div>
+    <div>
+      <div class="contact-item-label">Response Time</div>
+      <div class="contact-item-val">Same business day for press requests</div>
+    </div>
+    <div>
+      <div class="contact-item-label">For Demos & Embargoed Coverage</div>
+      <div class="contact-item-val"><a href="mailto:press@ringdesk.ai">press@ringdesk.ai</a> — subject line: EMBARGO</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

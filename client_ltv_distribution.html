@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client LTV Distribution — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { height: 230px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client LTV Distribution</div>
+  <p class="page-sub">How your clients break down by lifetime value — understanding where your revenue is concentrated.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Clients</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">High-Value Clients ($600+)</div>
+      <div class="hero-val" id="h-high" style="color:var(--green)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Clients by Lifetime Value Tier</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 700 230" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  const COLORS = ['rgba(100,100,100,.5)','rgba(167,139,250,.4)','rgba(167,139,250,.6)','rgba(52,211,153,.5)','rgba(52,211,153,.75)','rgba(52,211,153,.95)'];
+  async function load() {
+    const r = await fetch('/api/analytics/client-ltv-distribution');
+    const d = await r.json();
+    const buckets = d.buckets || [];
+    document.getElementById('h-total').textContent = (d.total_clients || 0).toLocaleString();
+    const highVal = buckets.filter((_,i)=>i>=3).reduce((s,b)=>s+b.count,0);
+    document.getElementById('h-high').textContent = highVal;
+
+    const svg = document.getElementById('chart');
+    const W=700, H=230, pL=110, pR=70, pT=10, pB=10;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n=buckets.length;
+    const barH=Math.min(28, cH/n*0.62);
+    const yStep=cH/n;
+    const maxCount=Math.max(...buckets.map(b=>b.count));
+
+    buckets.forEach((b,i)=>{
+      const cy=pT+i*yStep+yStep/2;
+      const bw=cW*b.count/maxCount;
+      svg.innerHTML+=`<text x="${pL-8}" y="${cy+4}" font-size="11" fill="#ccc" text-anchor="end" font-weight="700">${esc(b.label)}</text>`;
+      svg.innerHTML+=`<rect x="${pL}" y="${cy-barH/2}" width="${bw}" height="${barH}" rx="5" fill="${COLORS[i]}"/>`;
+      svg.innerHTML+=`<text x="${pL+bw+6}" y="${cy+4}" font-size="10" fill="#888">${b.count} clients <tspan fill="#555">(${b.pct}%)</tspan></text>`;
+    });
+    [25,50,75,100].forEach(v=>{
+      const x=pL+cW*v/100;
+      svg.innerHTML=`<line x1="${x}" y1="${pT}" x2="${x}" y2="${pT+cH}" stroke="#1a1a1a" stroke-width="1"/>`+svg.innerHTML;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Volume Forecast — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1rem; text-align: center; }
+    .hero-label { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.5rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .day-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; }
+    .day-label { font-size: .82rem; font-weight: 700; width: 38px; flex-shrink: 0; }
+    .bar-wrap { flex: 1; background: var(--surface2); border-radius: 5px; height: 10px; overflow: hidden; }
+    .bar { height: 100%; border-radius: 5px; }
+    .day-num { font-size: .76rem; font-weight: 700; width: 36px; text-align: right; flex-shrink: 0; }
+    .hour-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: .35rem; }
+    .hour-cell { background: var(--surface2); border-radius: 6px; padding: .5rem .3rem; text-align: center; }
+    .hour-label { font-size: .62rem; color: var(--muted); margin-bottom: .2rem; }
+    .hour-val { font-size: .82rem; font-weight: 800; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Volume Forecast</div>
+  <p class="page-sub">AI-predicted call volume by day and hour. Staff accordingly, and never get caught understaffed on your busiest days.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Peak Day</div>
+      <div class="hero-val" id="h-day" style="color:var(--accent);font-size:1.1rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Peak Hour</div>
+      <div class="hero-val" id="h-hour" style="color:var(--yellow);font-size:1.1rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Daily</div>
+      <div class="hero-val" id="h-avg" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Next Week</div>
+      <div class="hero-val" id="h-week" style="color:var(--text);font-size:1.2rem">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Daily Forecast — Next 7 Days</div>
+    <div id="day-chart"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Hourly Call Distribution</div>
+    <div class="hour-grid" id="hour-grid"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['var(--accent)','var(--green)','var(--yellow)','#60a5fa','var(--red)','#fb923c','#34d399'];
+  async function load() {
+    const d = await fetch('/api/analytics/call-volume-forecast').then(r => r.json());
+    document.getElementById('h-day').textContent = d.peak_day || '—';
+    document.getElementById('h-hour').textContent = d.peak_hour || '—';
+    document.getElementById('h-avg').textContent = d.avg_daily_calls || '—';
+    document.getElementById('h-week').textContent = d.forecast_next_week ? '~'+d.forecast_next_week : '—';
+
+    const days = d.daily_forecast || [];
+    const maxD = Math.max(...days.map(x=>x.predicted),1);
+    document.getElementById('day-chart').innerHTML = days.map((x,i)=>`
+      <div class="day-row">
+        <span class="day-label">${esc(x.day)}</span>
+        <div class="bar-wrap"><div class="bar" style="width:${(x.predicted/maxD*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]}"></div></div>
+        <span class="day-num" style="color:${COLORS[i%COLORS.length]}">${x.predicted}</span>
+      </div>
+    `).join('');
+
+    const hours = d.hourly_heatmap || [];
+    const maxH = Math.max(...hours.map(x=>x.avg_calls),1);
+    document.getElementById('hour-grid').innerHTML = hours.map(x=>{
+      const intensity = x.avg_calls/maxH;
+      const bg = `rgba(167,139,250,${(intensity*0.7+0.1).toFixed(2)})`;
+      return `<div class="hour-cell" style="background:${bg}"><div class="hour-label">${esc(x.hour)}</div><div class="hour-val">${x.avg_calls}</div></div>`;
+    }).join('');
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

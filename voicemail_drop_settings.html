@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voicemail Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number], input[type=url] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    input[type=number] { width: 80px; }
+    input[type=url] { width: 100%; }
+    input:focus { border-color: var(--accent); }
+    textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .55rem .75rem; outline: none; width: 100%; resize: vertical; min-height: 80px; font-family: inherit; }
+    textarea:focus { border-color: var(--accent); }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .28rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .field-wrap { margin-bottom: .85rem; }
+    .char-count { font-size: .7rem; color: var(--muted); text-align: right; margin-top: .2rem; }
+    .info-note { background: rgba(167,139,250,.06); border: 1px solid rgba(167,139,250,.15); border-radius: 10px; padding: .75rem 1rem; margin-bottom: .85rem; }
+    .info-note p { font-size: .75rem; color: var(--muted); line-height: 1.5; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Voicemail Settings</div>
+  <p class="page-sub">Configure how your AI handles calls it can't answer. Set how many rings before voicemail kicks in, customize the greeting message, and choose whether voicemails get transcribed and sent to you as alerts.</p>
+
+  <div class="card">
+    <div class="card-title">Voicemail Behavior</div>
+    <div class="row">
+      <div><div class="row-label">Enable Voicemail</div><div class="row-sub">Unanswered calls are routed to voicemail</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div class="row-label">Trigger After Rings</div>
+      <input type="number" id="trigger-rings" min="2" max="10" placeholder="4">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Transcribe Voicemails</div><div class="row-sub">AI converts recordings to text for easy review</div></div>
+      <label class="toggle"><input type="checkbox" id="transcribe"><span class="slider"></span></label>
+    </div>
+    <div class="row" style="margin-bottom:0">
+      <div><div class="row-label">Notify on New Voicemail</div><div class="row-sub">Receive an alert when a voicemail is left</div></div>
+      <label class="toggle"><input type="checkbox" id="notify"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Voicemail Greeting</div>
+    <div class="info-note">
+      <p>Write the message your AI plays when a caller reaches voicemail. Keep it warm, brief, and include a callback time frame. Variables: {business_name}, {ai_name}.</p>
+    </div>
+    <div class="field-wrap">
+      <div class="field-label">Custom Greeting Message</div>
+      <textarea id="custom-msg" placeholder="Hi, you've reached {business_name}. We're currently with a client. Please leave your name, number, and a brief message and we'll get back to you shortly." oninput="updateCount()"></textarea>
+      <div class="char-count" id="char-count">0 / 300</div>
+    </div>
+    <div class="field-wrap" style="margin-bottom:0">
+      <div class="field-label">Custom Audio URL (optional)</div>
+      <input type="url" id="msg-url" placeholder="https://yourcdn.com/voicemail-greeting.mp3">
+    </div>
+    <button class="save-btn" onclick="save()">Save Voicemail Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  function updateCount() {
+    const val = document.getElementById('custom-msg').value;
+    document.getElementById('char-count').textContent = val.length + ' / 300';
+  }
+
+  async function load() {
+    const d = await fetch('/api/settings/voicemail-drop-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled ?? false;
+    document.getElementById('trigger-rings').value = d.drop_after_rings ?? 4;
+    document.getElementById('transcribe').checked = d.only_if_no_answer ?? true;
+    document.getElementById('notify').checked = d.schedule_drops ?? false;
+    document.getElementById('custom-msg').value = d.drop_message || '';
+    document.getElementById('msg-url').value = d.drop_window_start || '';
+    updateCount();
+  }
+
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      drop_after_rings: parseInt(document.getElementById('trigger-rings').value) || 4,
+      only_if_no_answer: document.getElementById('transcribe').checked,
+      schedule_drops: document.getElementById('notify').checked,
+      drop_message: document.getElementById('custom-msg').value,
+      drop_window_start: document.getElementById('msg-url').value,
+    };
+    await fetch('/api/settings/voicemail-drop-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  load();
+</script>
+</body>
+</html>

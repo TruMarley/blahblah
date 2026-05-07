@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Availability — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=time], input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .78rem; padding: .32rem .55rem; outline: none; }
+    input[type=time] { width: 100px; }
+    input[type=number] { width: 70px; }
+    input[type=time]:focus, input[type=number]:focus { border-color: var(--accent); }
+    .staff-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem; margin-bottom: .75rem; }
+    .staff-header { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; }
+    .staff-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 800; color: #fff; flex-shrink: 0; }
+    .staff-name { font-size: .9rem; font-weight: 700; flex: 1; }
+    .staff-meta-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: .85rem; align-items: center; }
+    .meta-item { display: flex; align-items: center; gap: .35rem; font-size: .75rem; color: var(--muted); }
+    .meta-label { font-size: .68rem; color: var(--muted); }
+    .schedule-grid { display: grid; grid-template-columns: 80px 1fr 100px 100px; gap: .3rem .5rem; align-items: center; font-size: .75rem; }
+    .sch-head { font-size: .63rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding-bottom: .3rem; }
+    .sch-day { font-size: .78rem; color: var(--muted); }
+    .mini-toggle { position: relative; width: 34px; height: 20px; }
+    .mini-toggle input { opacity: 0; width: 0; height: 0; }
+    .mini-slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .mini-slider::before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .mini-slider { background: var(--accent); }
+    input:checked + .mini-slider::before { transform: translateX(14px); background: #fff; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Availability</div>
+  <p class="page-sub">Set each staff member's working schedule. Your AI uses this to offer accurate booking slots and avoid double-booking.</p>
+
+  <div class="card">
+    <div class="card-title">Global Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Availability Module</div><div class="row-sub">Use schedules for booking decisions</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Default Open</div></div>
+      <input type="time" id="global-open">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Default Close</div></div>
+      <input type="time" id="global-close">
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Offers Any Available Staff</div><div class="row-sub">Book first available if no preference given</div></div>
+      <label class="toggle"><input type="checkbox" id="any-available"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Round-Robin New Clients</div><div class="row-sub">Distribute new clients evenly across staff</div></div>
+      <label class="toggle"><input type="checkbox" id="round-robin"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div id="staff-blocks"></div>
+
+  <button class="save-btn" onclick="save()">Save Staff Availability</button>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let staffData = [];
+
+  async function load() {
+    const d = await fetch('/api/settings/staff-availability-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled ?? true;
+    document.getElementById('global-open').value = d.global_open_time || '09:00';
+    document.getElementById('global-close').value = d.global_close_time || '19:00';
+    document.getElementById('any-available').checked = d.allow_ai_to_offer_any_available ?? true;
+    document.getElementById('round-robin').checked = d.round_robin_new_clients ?? true;
+    staffData = d.staff || [];
+    renderStaff();
+  }
+
+  function renderStaff() {
+    const container = document.getElementById('staff-blocks');
+    container.innerHTML = '';
+    staffData.forEach((s, si) => {
+      const initials = s.name.split(' ').map(w => w[0]).join('').toUpperCase();
+      const block = document.createElement('div');
+      block.className = 'card';
+      let schedRows = '';
+      (s.schedule || []).forEach((day, di) => {
+        schedRows += `
+          <div class="sch-day">${day.day.slice(0,3)}</div>
+          <label class="mini-toggle"><input type="checkbox" data-si="${si}" data-di="${di}" class="day-open" ${day.open ? 'checked' : ''}><span class="mini-slider"></span></label>
+          <input type="time" data-si="${si}" data-di="${di}" class="day-start" value="${day.start}">
+          <input type="time" data-si="${si}" data-di="${di}" class="day-end" value="${day.end}">
+        `;
+      });
+      block.innerHTML = `
+        <div class="staff-header">
+          <div class="staff-avatar" style="background:${s.color}">${initials}</div>
+          <div class="staff-name">${s.name}</div>
+          <label class="toggle"><input type="checkbox" data-si="${si}" class="staff-active" ${s.active ? 'checked' : ''}><span class="slider"></span></label>
+        </div>
+        <div class="staff-meta-row">
+          <div class="meta-item"><span class="meta-label">Max/day:</span><input type="number" data-si="${si}" class="max-bookings" value="${s.max_bookings_per_day}" min="1" max="20"></div>
+          <div class="meta-item"><span class="meta-label">Buffer (min):</span><input type="number" data-si="${si}" class="buffer-min" value="${s.buffer_between_appts}" min="0" max="60"></div>
+          <div class="meta-item">
+            <label class="mini-toggle"><input type="checkbox" data-si="${si}" class="new-clients" ${s.accepts_new_clients ? 'checked' : ''}><span class="mini-slider"></span></label>
+            <span class="meta-label" style="margin-left:.3rem">New clients</span>
+          </div>
+        </div>
+        <div class="schedule-grid">
+          <div class="sch-head">Day</div><div class="sch-head">Open</div><div class="sch-head">Start</div><div class="sch-head">End</div>
+          ${schedRows}
+        </div>
+      `;
+      container.appendChild(block);
+    });
+
+    container.querySelectorAll('.staff-active').forEach(cb => {
+      cb.addEventListener('change', e => { staffData[+e.target.dataset.si].active = e.target.checked; });
+    });
+    container.querySelectorAll('.max-bookings').forEach(inp => {
+      inp.addEventListener('change', e => { staffData[+e.target.dataset.si].max_bookings_per_day = parseInt(e.target.value) || 8; });
+    });
+    container.querySelectorAll('.buffer-min').forEach(inp => {
+      inp.addEventListener('change', e => { staffData[+e.target.dataset.si].buffer_between_appts = parseInt(e.target.value) || 0; });
+    });
+    container.querySelectorAll('.new-clients').forEach(cb => {
+      cb.addEventListener('change', e => { staffData[+e.target.dataset.si].accepts_new_clients = e.target.checked; });
+    });
+    container.querySelectorAll('.day-open').forEach(cb => {
+      cb.addEventListener('change', e => { staffData[+e.target.dataset.si].schedule[+e.target.dataset.di].open = e.target.checked; });
+    });
+    container.querySelectorAll('.day-start').forEach(inp => {
+      inp.addEventListener('change', e => { staffData[+e.target.dataset.si].schedule[+e.target.dataset.di].start = e.target.value; });
+    });
+    container.querySelectorAll('.day-end').forEach(inp => {
+      inp.addEventListener('change', e => { staffData[+e.target.dataset.si].schedule[+e.target.dataset.di].end = e.target.value; });
+    });
+  }
+
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      global_open_time: document.getElementById('global-open').value,
+      global_close_time: document.getElementById('global-close').value,
+      allow_ai_to_offer_any_available: document.getElementById('any-available').checked,
+      round_robin_new_clients: document.getElementById('round-robin').checked,
+      staff: staffData,
+    };
+    await fetch('/api/settings/staff-availability-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

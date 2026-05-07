@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Waitlist Analytics — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .monthly-row { display: flex; align-items: flex-end; gap: 3px; height: 90px; }
+    .monthly-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+    .m-added { width: 100%; background: var(--accent); opacity: .65; }
+    .m-conv { width: 100%; background: var(--green); opacity: .8; }
+    .m-lbl { font-size: .5rem; color: var(--muted); margin-top: 3px; }
+    .info-row { display: flex; gap: 1rem; }
+    .info-box { flex: 1; background: var(--surface2); border-radius: 10px; padding: .85rem 1rem; }
+    .info-lbl { font-size: .62rem; color: var(--muted); margin-bottom: .25rem; text-transform: uppercase; letter-spacing: .06em; }
+    .info-val { font-size: .95rem; font-weight: 800; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Waitlist Analytics</div>
+  <p class="page-sub">Track how many callers join the waitlist and how many convert to confirmed bookings. Monitor wait times and the most in-demand services.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-size" style="color:var(--accent)">—</div><div class="stat-lbl">Current Waitlist</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-conv" style="color:var(--green)">—</div><div class="stat-lbl">Converted (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-wait" style="color:var(--yellow)">—</div><div class="stat-lbl">Avg Wait (days)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-rate" style="color:var(--green)">—</div><div class="stat-lbl">Conversion Rate</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-svc" style="color:var(--accent)">—</div><div class="stat-lbl">Top Request</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Monthly Waitlist Added vs Converted</div>
+    <div class="monthly-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/waitlist-stats').then(r => r.json());
+    document.getElementById('h-size').textContent = data.waitlist_size;
+    document.getElementById('h-conv').textContent = data.converted_30d;
+    document.getElementById('h-wait').textContent = data.avg_wait_days + 'd';
+    document.getElementById('h-rate').textContent = data.conversion_rate_pct.toFixed(1) + '%';
+    document.getElementById('h-svc').textContent = data.top_requested_service;
+    const monthly = data.monthly || [];
+    const maxAdded = Math.max(...monthly.map(m => m.added), 1);
+    const bars = document.getElementById('monthly-bars');
+    monthly.forEach(m => {
+      const ah = Math.max((m.added / maxAdded * 80).toFixed(0), 2);
+      const ch = Math.max((m.converted / maxAdded * 80).toFixed(0), 2);
+      bars.innerHTML += '<div class="monthly-col"><div class="m-added" style="height:' + ah + 'px" title="' + m.month + ': ' + m.added + ' added"></div><div class="m-conv" style="height:' + ch + 'px" title="' + m.month + ': ' + m.converted + ' converted (' + m.rate + '%)"></div><div class="m-lbl">' + m.month.slice(0,3) + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

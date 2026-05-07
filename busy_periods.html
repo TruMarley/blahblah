@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Busy Periods — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .period-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: .85rem; }
+    .period-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .85rem; }
+    .period-label { font-size: 1rem; font-weight: 900; }
+    .period-time { font-size: .75rem; color: var(--muted); font-weight: 600; }
+    .period-score { font-size: 1.1rem; font-weight: 900; }
+    .bar-track { background: var(--surface2); border-radius: 8px; height: 20px; overflow: hidden; margin-bottom: .75rem; }
+    .bar-fill { height: 100%; border-radius: 8px; transition: width .5s ease; }
+    .period-stats { display: flex; gap: 1.5rem; }
+    .stat { display: flex; flex-direction: column; gap: .15rem; }
+    .stat-val { font-size: .88rem; font-weight: 800; }
+    .stat-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Busy Periods</div>
+  <p class="page-sub">Average call volume and bookings by time block — identify when your shop needs the most AI coverage.</p>
+  <div id="periods"></div>
+</div>
+<script>
+  function lerpColor(t) {
+    // muted #444 → accent #a78bfa
+    const r = Math.round(0x44 + t*(0xa7-0x44));
+    const g = Math.round(0x44 + t*(0x8b-0x44));
+    const b = Math.round(0x44 + t*(0xfa-0x44));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  async function load() {
+    const r = await fetch('/api/analytics/busy-periods');
+    const d = await r.json();
+    const periods = d.periods || [];
+    const maxScore = Math.max(...periods.map(p => p.busyness_score), 1);
+
+    document.getElementById('periods').innerHTML = periods.map(p => {
+      const t = p.busyness_score / 100;
+      const color = lerpColor(t);
+      const pct = (p.busyness_score / maxScore * 100).toFixed(1);
+      let intensity = p.busyness_score >= 80 ? '🔥 Very Busy' : p.busyness_score >= 60 ? '📈 Busy' : p.busyness_score >= 40 ? '〰️ Moderate' : '😌 Slow';
+      return `<div class="period-card">
+        <div class="period-header">
+          <div>
+            <div class="period-label">${esc(p.label)}</div>
+            <div class="period-time">${esc(p.start_time)} – ${esc(p.end_time)}</div>
+          </div>
+          <div class="period-score" style="color:${color}">${p.busyness_score}</div>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%;background:${color};opacity:.85"></div>
+        </div>
+        <div class="period-stats">
+          <div class="stat"><div class="stat-val">${p.avg_calls}</div><div class="stat-label">Avg Calls</div></div>
+          <div class="stat"><div class="stat-val" style="color:var(--green)">${p.avg_bookings}</div><div class="stat-label">Avg Bookings</div></div>
+          <div class="stat"><div class="stat-val" style="color:${color}">${intensity}</div><div class="stat-label">Intensity</div></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

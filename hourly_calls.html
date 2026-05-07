@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hourly Calls — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { width: 100%; overflow-x: auto; }
+    .legend { display: flex; gap: 1.5rem; margin-top: 1rem; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+    .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; }
+    .stat-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .3rem; }
+    .stat-value { font-size: 1.5rem; font-weight: 900; letter-spacing: -.04em; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Hourly Call Volume</div>
+  <p class="page-sub">Call distribution by hour over the past 7 days, colored by booking rate.</p>
+
+  <div class="stats-row" id="stats-row" style="margin-bottom:1.5rem"></div>
+
+  <div class="card">
+    <div class="card-title">Calls by Hour</div>
+    <div class="chart-wrap">
+      <svg id="chart" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible"></svg>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> High booking rate (60%+)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div> Mid (40–59%)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> Low (&lt;40%)</div>
+    </div>
+  </div>
+</div>
+<script>
+  function barColor(rate) {
+    if (rate >= 60) return '#34d399';
+    if (rate >= 40) return '#fbbf24';
+    return '#f87171';
+  }
+
+  function fmtHour(h) {
+    if (h === 0) return '12am';
+    if (h === 12) return '12pm';
+    return h < 12 ? h + 'am' : (h-12) + 'pm';
+  }
+
+  function fmtDur(s) {
+    const m = Math.floor(s/60), sec = s%60;
+    return `${m}:${String(sec).padStart(2,'0')}`;
+  }
+
+  async function load() {
+    const r = await fetch('/api/analytics/hourly-calls');
+    const d = await r.json();
+    const hours = d.hours || [];
+
+    const maxCount = Math.max(...hours.map(h => h.call_count), 1);
+    const totalCalls = hours.reduce((a,h) => a + h.call_count, 0);
+    const peakHour = hours.reduce((a,b) => b.call_count > a.call_count ? b : a, hours[0]);
+    const avgBooking = Math.round(hours.filter(h=>h.call_count>0).reduce((a,h)=>a+h.booking_rate_pct,0) / Math.max(hours.filter(h=>h.call_count>0).length,1));
+
+    document.getElementById('stats-row').innerHTML = [
+      {label:'Total Calls (7d)', value: totalCalls, cls:''},
+      {label:'Peak Hour', value: fmtHour(peakHour?.hour||0), cls:'accent'},
+      {label:'Avg Booking Rate', value: avgBooking+'%', cls:'green'},
+    ].map(s => `<div class="stat-card"><div class="stat-label">${s.label}</div><div class="stat-value" style="${s.cls==='accent'?'color:var(--accent)':s.cls==='green'?'color:var(--green)':''}">${s.value}</div></div>`).join('');
+
+    const W = 820, BAR_W = 26, GAP = 8, PAD_L = 40, PAD_R = 10, PAD_T = 10, PAD_B = 40;
+    const chartW = 24 * (BAR_W + GAP) - GAP + PAD_L + PAD_R;
+    const chartH = 220 + PAD_T + PAD_B;
+    const barArea = 220;
+
+    let rects = '', labels = '', ylines = '';
+    for (let yi = 0; yi <= 4; yi++) {
+      const v = Math.round(maxCount * (yi/4));
+      const y = PAD_T + barArea - (yi/4)*barArea;
+      ylines += `<line x1="${PAD_L}" y1="${y}" x2="${chartW-PAD_R}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      ylines += `<text x="${PAD_L-6}" y="${y+4}" text-anchor="end" font-size="10" fill="#555">${v}</text>`;
+    }
+
+    hours.forEach((h, i) => {
+      const x = PAD_L + i * (BAR_W + GAP);
+      const barH = maxCount > 0 ? Math.max(2, (h.call_count / maxCount) * barArea) : 2;
+      const y = PAD_T + barArea - barH;
+      const color = barColor(h.booking_rate_pct);
+      const dur = fmtDur(h.avg_duration_seconds);
+      const tip = `${h.call_count} calls | ${h.booking_rate_pct}% booked | avg ${dur}`;
+      rects += `<rect x="${x}" y="${y}" width="${BAR_W}" height="${barH}" fill="${color}" rx="4" opacity=".85"><title>${fmtHour(h.hour)}: ${tip}</title></rect>`;
+      if (h.hour % 2 === 0) {
+        labels += `<text x="${x + BAR_W/2}" y="${PAD_T + barArea + 20}" text-anchor="middle" font-size="10" fill="#555">${fmtHour(h.hour)}</text>`;
+      }
+    });
+
+    const svg = document.getElementById('chart');
+    svg.setAttribute('viewBox', `0 0 ${chartW} ${chartH}`);
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', chartH);
+    svg.innerHTML = ylines + rects + labels;
+  }
+  load();
+</script>
+</body>
+</html>

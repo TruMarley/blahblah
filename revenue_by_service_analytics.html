@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue by Service — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem .9rem; text-align: center; }
+    .hero-label { font-size: .6rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.1rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .svc-row { display: flex; align-items: center; gap: .75rem; padding: .65rem 0; border-bottom: 1px solid var(--border); }
+    .svc-row:last-child { border-bottom: none; }
+    .svc-rank { font-size: .65rem; font-weight: 900; color: var(--muted); width: 18px; text-align: center; flex-shrink: 0; }
+    .svc-name { font-size: .85rem; font-weight: 700; flex: 1; }
+    .svc-right { text-align: right; flex-shrink: 0; }
+    .svc-rev { font-size: .88rem; font-weight: 900; color: var(--accent); }
+    .svc-meta { font-size: .68rem; color: var(--muted); margin-top: .1rem; }
+    .bar-track { height: 3px; background: var(--surface2); border-radius: 3px; margin-top: .4rem; flex: 1; }
+    .bar-fill { height: 3px; border-radius: 3px; background: var(--accent); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue by Service</div>
+  <p class="page-sub">See which services are driving the most revenue so you can double down on what's working — and identify low-performers that might need pricing adjustments or promotional pushes.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Total Service Revenue</div>
+      <div class="hero-val" id="h-total" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Top Service</div>
+      <div class="hero-val" id="h-top" style="color:var(--yellow);font-size:.9rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Services Tracked</div>
+      <div class="hero-val" id="h-count" style="color:var(--muted)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Revenue Ranking</div>
+    <div id="svc-list"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['#a78bfa','#60a5fa','#34d399','#fbbf24','#f87171','#818cf8','#2dd4bf','#fb923c','#e879f9','#38bdf8'];
+  async function load() {
+    const d = await fetch('/api/analytics/revenue-by-service-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_revenue != null ? '$' + Number(d.total_revenue).toLocaleString() : '—';
+    document.getElementById('h-top').textContent = d.top_service || '—';
+    const svcs = d.services || [];
+    document.getElementById('h-count').textContent = svcs.length;
+    const mx = Math.max(...svcs.map(s => s.revenue), 1);
+    const el = document.getElementById('svc-list');
+    svcs.forEach((s, i) => {
+      const color = s.color || COLORS[i % COLORS.length];
+      const pct = ((s.revenue / mx) * 100).toFixed(1);
+      el.innerHTML += `<div class="svc-row">
+        <div class="svc-rank">${i+1}</div>
+        <div style="flex:1">
+          <div class="svc-name" style="color:${color}">${esc(s.name)}</div>
+          <div style="display:flex;align-items:center;gap:.5rem;margin-top:.35rem">
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+          </div>
+        </div>
+        <div class="svc-right">
+          <div class="svc-rev" style="color:${color}">$${Number(s.revenue).toLocaleString()}</div>
+          <div class="svc-meta">${s.count} appts · $${s.avg_ticket}/avg</div>
+        </div>
+      </div>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

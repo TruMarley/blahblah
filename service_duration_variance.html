@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Duration Variance — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .chart-wrap { height: 260px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    th { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: .4rem .6rem; text-align: left; border-bottom: 1px solid var(--border); }
+    td { padding: .5rem .6rem; border-bottom: 1px solid rgba(30,30,30,.5); color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    .var-low { color: var(--green); }
+    .var-med { color: var(--yellow); }
+    .var-high { color: var(--red); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Service Duration Variance</div>
+  <p class="page-sub">How consistently each service is completed within its scheduled time — high variance means more scheduling risk.</p>
+  <div class="card">
+    <div class="card-title">Avg Duration vs. Variance by Service</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Variance Detail Table</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Service</th><th>Avg (min)</th><th>Variance (±min)</th><th>Samples</th><th>Risk</th></tr>
+        </thead>
+        <tbody id="tbl-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/service-duration-variance');
+    const d = await r.json();
+    const services = d.services || [];
+
+    const svg = document.getElementById('chart');
+    const W=700, H=260, pL=80, pR=20, pT=14, pB=30;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n=services.length;
+    const barW=cW/n*0.55;
+    const xStep=cW/n;
+    const maxAvg=Math.max(...services.map(s=>s.avg_minutes+s.variance_minutes))*1.2;
+    const xOf=i=>pL+i*xStep+xStep/2;
+    const yOf=v=>pT+cH-v/maxAvg*cH;
+
+    // gridlines
+    [30,60,90,120].filter(v=>v<maxAvg).forEach(v=>{
+      const y=yOf(v);
+      svg.innerHTML+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML+=`<text x="${pL-4}" y="${y+3.5}" font-size="8" fill="#555" text-anchor="end">${v}m</text>`;
+    });
+
+    services.forEach((s,i)=>{
+      const cx=xOf(i);
+      const avgH=cH*s.avg_minutes/maxAvg;
+      const varH=cH*s.variance_minutes/maxAvg;
+      const pct=s.variance_minutes/s.avg_minutes;
+      const color=pct<0.15?'rgba(52,211,153,.7)':pct<0.25?'rgba(251,191,36,.7)':'rgba(248,113,113,.7)';
+      // base bar (avg)
+      svg.innerHTML+=`<rect x="${cx-barW/2}" y="${yOf(s.avg_minutes)}" width="${barW}" height="${avgH}" rx="4" fill="rgba(167,139,250,.5)"/>`;
+      // variance extension
+      svg.innerHTML+=`<rect x="${cx-barW/2+2}" y="${yOf(s.avg_minutes+s.variance_minutes)}" width="${barW-4}" height="${varH}" rx="0" fill="${color}" opacity=".7"/>`;
+      svg.innerHTML+=`<text x="${cx}" y="${H-4}" font-size="8.5" fill="#555" text-anchor="middle">${esc(s.service)}</text>`;
+      svg.innerHTML+=`<text x="${cx}" y="${yOf(s.avg_minutes+s.variance_minutes)-5}" font-size="8" fill="${color}" text-anchor="middle">±${s.variance_minutes}m</text>`;
+    });
+
+    // table
+    const tbody = document.getElementById('tbl-body');
+    services.forEach(s=>{
+      const pct=s.variance_minutes/s.avg_minutes;
+      const riskClass=pct<0.15?'var-low':pct<0.25?'var-med':'var-high';
+      const riskLabel=pct<0.15?'Low':pct<0.25?'Medium':'High';
+      tbody.innerHTML+=`<tr>
+        <td><strong>${esc(s.service)}</strong></td>
+        <td>${s.avg_minutes} min</td>
+        <td>±${s.variance_minutes} min</td>
+        <td>${s.sample_count}</td>
+        <td class="${riskClass}">${riskLabel}</td>
+      </tr>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

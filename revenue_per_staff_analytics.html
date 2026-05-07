@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revenue Per Staff — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .staff-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .9rem; }
+    .staff-rank { font-size: .75rem; font-weight: 900; color: var(--muted); width: 18px; text-align: center; flex-shrink: 0; }
+    .staff-name { font-size: .85rem; font-weight: 700; width: 70px; flex-shrink: 0; }
+    .staff-bar-wrap { flex: 1; }
+    .staff-bar-track { background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+    .staff-bar-fill { height: 100%; border-radius: 4px; background: var(--accent); }
+    .staff-meta { font-size: .7rem; color: var(--muted); margin-top: .2rem; }
+    .staff-rev { font-size: .85rem; font-weight: 900; color: var(--green); width: 58px; text-align: right; flex-shrink: 0; }
+    .table { width: 100%; border-collapse: collapse; }
+    .table th { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: .4rem .6rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .table td { font-size: .78rem; padding: .55rem .6rem; border-bottom: 1px solid var(--border); }
+    .table tr:last-child td { border-bottom: none; }
+    .gold { color: var(--yellow); font-weight: 700; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Revenue Per Staff</div>
+  <p class="page-sub">See how much revenue each team member generates per month, their appointment count, average ticket size, and rebook rate.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--green)">—</div><div class="stat-lbl">Total Staff Revenue (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-top" style="color:var(--yellow)">—</div><div class="stat-lbl">Top Earner</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-count" style="color:var(--accent)">—</div><div class="stat-lbl">Staff Members</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Revenue Ranking</div>
+    <div id="staff-bars"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Full Breakdown</div>
+    <table class="table">
+      <thead><tr><th>#</th><th>Stylist</th><th>Appointments</th><th>Revenue</th><th>Avg Ticket</th><th>Rebook %</th></tr></thead>
+      <tbody id="tbl-body"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/revenue-per-staff-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = '$' + d.total_staff_revenue.toLocaleString();
+    document.getElementById('h-top').textContent = d.top_earner;
+    document.getElementById('h-count').textContent = d.staff.length;
+    const sb = document.getElementById('staff-bars');
+    const maxRev = Math.max(...d.staff.map(s => s.revenue_30d));
+    d.staff.forEach((s, i) => {
+      const w = (s.revenue_30d / maxRev * 100).toFixed(1);
+      const rankClass = i === 0 ? ' gold' : '';
+      sb.innerHTML += '<div class="staff-row"><div class="staff-rank' + rankClass + '">' + (i+1) + '</div><div class="staff-name">' + s.name + '</div><div class="staff-bar-wrap"><div class="staff-bar-track"><div class="staff-bar-fill" style="width:' + w + '%"></div></div><div class="staff-meta">' + s.appointments_30d + ' appts · $' + s.avg_ticket.toFixed(0) + ' avg ticket</div></div><div class="staff-rev">$' + s.revenue_30d.toLocaleString() + '</div></div>';
+    });
+    const tb = document.getElementById('tbl-body');
+    d.staff.forEach((s, i) => {
+      const cls = i === 0 ? ' class="gold"' : '';
+      tb.innerHTML += '<tr><td' + cls + '>' + (i+1) + '</td><td' + cls + '>' + s.name + '</td><td>' + s.appointments_30d + '</td><td style="color:var(--green);font-weight:700">$' + s.revenue_30d.toLocaleString() + '</td><td>$' + s.avg_ticket.toFixed(0) + '</td><td>' + s.rebook_rate_pct.toFixed(1) + '%</td></tr>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

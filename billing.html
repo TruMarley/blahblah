@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Billing — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    /* Plan card */
+    .plan-card { background: linear-gradient(135deg, rgba(167,139,250,.1), rgba(52,211,153,.05)); border: 1px solid rgba(167,139,250,.2); border-radius: 16px; padding: 1.75rem 2rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; }
+    .plan-left { flex: 1; }
+    .plan-badge { display: inline-block; font-size: .7rem; font-weight: 800; padding: .2rem .6rem; border-radius: 6px; background: rgba(167,139,250,.2); color: var(--accent); border: 1px solid rgba(167,139,250,.3); margin-bottom: .6rem; }
+    .plan-name { font-size: 1.4rem; font-weight: 900; margin-bottom: .2rem; }
+    .plan-price { font-size: 2rem; font-weight: 900; color: var(--green); letter-spacing: -.04em; }
+    .plan-price span { font-size: .9rem; color: var(--muted); font-weight: 400; }
+    .plan-next { font-size: .78rem; color: var(--muted); margin-top: .4rem; }
+    .plan-right { display: flex; flex-direction: column; gap: .6rem; align-items: flex-end; }
+    .upgrade-btn { background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: .65rem 1.4rem; font-size: .85rem; font-weight: 800; cursor: pointer; font-family: inherit; }
+    .plan-features { font-size: .78rem; color: var(--muted); text-align: right; line-height: 1.8; }
+    /* Payment method */
+    .pm-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 1.25rem; }
+    .pm-icon { font-size: 2rem; }
+    .pm-info { flex: 1; }
+    .pm-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .25rem; }
+    .pm-number { font-size: .95rem; font-weight: 700; }
+    .pm-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: .45rem .9rem; font-size: .78rem; font-weight: 600; cursor: not-allowed; font-family: inherit; position: relative; }
+    .pm-btn::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); right: 0; background: #222; color: var(--muted); font-size: .7rem; padding: .35rem .65rem; border-radius: 6px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .15s; border: 1px solid var(--border); }
+    .pm-btn:hover::after { opacity: 1; }
+    /* Invoice table */
+    .inv-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .inv-header { padding: .9rem 1.25rem; border-bottom: 1px solid var(--border); }
+    .inv-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: .6rem 1.25rem; border-bottom: 1px solid var(--border); text-align: left; }
+    thead th.right { text-align: right; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: .8rem 1.25rem; font-size: .83rem; vertical-align: middle; }
+    tbody td.right { text-align: right; }
+    .date-cell { color: var(--muted); font-size: .78rem; }
+    .amount-cell { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .status-badge { display: inline-block; padding: .15rem .55rem; border-radius: 99px; font-size: .7rem; font-weight: 800; }
+    .s-paid   { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .s-failed { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+    .dl-btn { background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: .9rem; padding: .2rem .4rem; border-radius: 5px; transition: color .15s; }
+    .dl-btn:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Billing</div>
+  <p class="page-sub">Manage your plan, payment method, and download invoices.</p>
+
+  <div class="plan-card">
+    <div class="plan-left">
+      <div class="plan-badge">CURRENT PLAN</div>
+      <div class="plan-name" id="p-name">—</div>
+      <div class="plan-price" id="p-price">—<span>/month</span></div>
+      <div class="plan-next" id="p-next">—</div>
+    </div>
+    <div class="plan-right">
+      <button class="upgrade-btn">Upgrade to Pro →</button>
+      <div class="plan-features">Unlimited calls · SMS reminders<br>Analytics · Priority support</div>
+    </div>
+  </div>
+
+  <div class="pm-card">
+    <div class="pm-icon">💳</div>
+    <div class="pm-info">
+      <div class="pm-label">Payment Method</div>
+      <div class="pm-number" id="pm-number">—</div>
+    </div>
+    <button class="pm-btn" data-tip="Contact support@ringdesk.ai to update payment">Update Payment</button>
+  </div>
+
+  <div class="inv-card">
+    <div class="inv-header"><div class="inv-title">Invoice History</div></div>
+    <table>
+      <thead><tr><th>Period</th><th class="right">Amount</th><th>Status</th><th class="right">PDF</th></tr></thead>
+      <tbody id="inv-body"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/billing');
+    const d = await r.json();
+
+    document.getElementById('p-name').textContent = d.plan_name + ' Plan';
+    document.getElementById('p-price').innerHTML = '$' + d.plan_price.toLocaleString() + '<span>/month</span>';
+    document.getElementById('p-next').textContent = 'Next billing date: ' + fmtDate(d.next_billing_date);
+
+    const pm = d.payment_method || {};
+    document.getElementById('pm-number').textContent = (pm.brand || 'Card') + ' ending in ' + (pm.last4 || '——');
+
+    document.getElementById('inv-body').innerHTML = (d.invoices || []).map(inv => {
+      const sc = inv.status === 'paid' ? 's-paid' : 's-failed';
+      return `<tr>
+        <td class="date-cell">${fmtPeriod(inv.date)}</td>
+        <td class="amount-cell right">$${inv.amount.toFixed(2)}</td>
+        <td><span class="status-badge ${sc}">${inv.status.charAt(0).toUpperCase()+inv.status.slice(1)}</span></td>
+        <td class="right"><button class="dl-btn" title="Download PDF">⬇</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+  }
+  function fmtPeriod(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('en-US', {month:'long', year:'numeric'});
+  }
+  load();
+</script>
+</body>
+</html>

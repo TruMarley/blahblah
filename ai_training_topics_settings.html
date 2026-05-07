@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Training Topics — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .trained-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; padding-bottom: 1.1rem; border-bottom: 1px solid var(--border); }
+    .trained-label { font-size: .8rem; font-weight: 600; color: var(--muted); }
+    .trained-val { font-size: .78rem; color: var(--green); font-weight: 700; }
+    .cat-chips { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .cat-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: .25rem .65rem; font-size: .72rem; color: var(--muted); cursor: pointer; transition: .15s; font-weight: 600; }
+    .cat-chip.active { background: rgba(167,139,250,.15); border-color: var(--accent); color: var(--accent); }
+    .qa-list { display: flex; flex-direction: column; gap: .6rem; margin-bottom: .85rem; }
+    .qa-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .8rem .9rem; }
+    .qa-top { display: flex; align-items: flex-start; gap: .5rem; margin-bottom: .4rem; }
+    .qa-num { font-size: .68rem; font-weight: 800; color: var(--accent); min-width: 18px; padding-top: .1rem; }
+    .qa-q { font-size: .82rem; font-weight: 700; flex: 1; }
+    .qa-a { font-size: .75rem; color: var(--muted); line-height: 1.45; }
+    .remove-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }
+    .remove-btn:hover { color: var(--red); }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 100%; }
+    input:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .78rem; padding: .45rem .65rem; outline: none; resize: vertical; min-height: 52px; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .25rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .field-wrap { margin-bottom: .65rem; }
+    .add-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--accent); font-size: .78rem; font-weight: 700; padding: .38rem .7rem; cursor: pointer; }
+    .add-btn:hover { border-color: var(--accent); }
+    .test-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .9rem; min-height: 60px; font-size: .8rem; color: var(--muted); line-height: 1.5; margin-top: .5rem; }
+    .test-box.has-response { color: var(--text); border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">AI Training Topics</div>
+  <p class="page-sub">Teach your AI the answers to the most common questions callers ask. Organize knowledge by category — the AI uses these Q&amp;A pairs to give accurate, on-brand answers every time.</p>
+  <div class="card">
+    <div class="card-title">Knowledge Base</div>
+    <div class="trained-row">
+      <span class="trained-label">Last Trained</span>
+      <span class="trained-val" id="last-trained">—</span>
+    </div>
+    <div class="cat-chips" id="cat-chips"></div>
+    <div class="qa-list" id="qa-list"></div>
+    <div class="field-wrap">
+      <div class="field-label">Question</div>
+      <input type="text" id="new-q" placeholder="What the caller might ask...">
+    </div>
+    <div class="field-wrap">
+      <div class="field-label">Answer</div>
+      <textarea id="new-a" rows="3" placeholder="What the AI should say in response..."></textarea>
+    </div>
+    <button class="add-btn" onclick="addQA()">+ Add Q&amp;A</button>
+    <button class="save-btn" onclick="save()">Save &amp; Retrain AI</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Test a Question</div>
+    <div class="field-wrap">
+      <div class="field-label">Ask a test question</div>
+      <div style="display:flex;gap:.5rem">
+        <input type="text" id="test-q" placeholder="e.g. What time do you open?" style="flex:1">
+        <button class="add-btn" onclick="testQ()">Ask</button>
+      </div>
+    </div>
+    <div class="test-box" id="test-box">Ask a question above to see how the AI would respond using your training data.</div>
+  </div>
+</div>
+<div class="toast" id="toast">Saved &amp; Retrained!</div>
+<script>
+  let categories = {};
+  let activeCat = '';
+  let nextId = 100;
+  const CAT_KEYS = ['Services', 'Pricing', 'Policies', 'Local Info', 'Promotions'];
+  function renderCatChips() {
+    const el = document.getElementById('cat-chips');
+    el.innerHTML = '';
+    CAT_KEYS.forEach(cat => {
+      const active = cat === activeCat ? ' active' : '';
+      el.innerHTML += `<div class="cat-chip${active}" onclick="switchCat('${esc(cat)}')">${esc(cat)} <span style="color:var(--muted);font-weight:400">${(categories[cat] || []).length}</span></div>`;
+    });
+  }
+  function switchCat(cat) {
+    activeCat = cat;
+    renderCatChips();
+    renderQAs();
+  }
+  function renderQAs() {
+    const el = document.getElementById('qa-list');
+    const list = categories[activeCat] || [];
+    el.innerHTML = '';
+    if (!list.length) {
+      el.innerHTML = `<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:.75rem">No Q&amp;A pairs in this category yet.</div>`;
+      return;
+    }
+    list.forEach((qa, i) => {
+      el.innerHTML += `<div class="qa-item">
+        <div class="qa-top">
+          <div class="qa-num">#${i+1}</div>
+          <div class="qa-q">${esc(qa.question)}</div>
+          <button class="remove-btn" onclick="removeQA('${esc(activeCat)}', ${i})">✕</button>
+        </div>
+        <div class="qa-a">${esc(qa.answer)}</div>
+      </div>`;
+    });
+  }
+  function addQA() {
+    const q = document.getElementById('new-q').value.trim();
+    const a = document.getElementById('new-a').value.trim();
+    if (!q || !a || !activeCat) return;
+    if (!categories[activeCat]) categories[activeCat] = [];
+    categories[activeCat].push({ id: nextId++, question: q, answer: a });
+    document.getElementById('new-q').value = '';
+    document.getElementById('new-a').value = '';
+    renderCatChips();
+    renderQAs();
+  }
+  function removeQA(cat, i) {
+    categories[cat].splice(i, 1);
+    renderCatChips();
+    renderQAs();
+  }
+  function testQ() {
+    const q = document.getElementById('test-q').value.trim().toLowerCase();
+    const box = document.getElementById('test-box');
+    if (!q) return;
+    for (const cat of CAT_KEYS) {
+      const list = categories[cat] || [];
+      for (const qa of list) {
+        const qwords = q.split(' ').filter(w => w.length > 3);
+        if (qwords.some(w => qa.question.toLowerCase().includes(w))) {
+          box.textContent = qa.answer;
+          box.classList.add('has-response');
+          return;
+        }
+      }
+    }
+    box.textContent = 'No matching training data found. Add a Q&A pair for this topic.';
+    box.classList.remove('has-response');
+  }
+  async function load() {
+    const d = await fetch('/api/settings/ai-training-topics-cfg').then(r => r.json());
+    document.getElementById('last-trained').textContent = d.last_trained || 'Never';
+    categories = d.categories || {};
+    CAT_KEYS.forEach(k => { if (!categories[k]) categories[k] = []; });
+    const allIds = CAT_KEYS.flatMap(k => (categories[k] || []).map(q => q.id || 0));
+    if (allIds.length) nextId = Math.max(...allIds) + 1;
+    activeCat = CAT_KEYS[0];
+    renderCatChips();
+    renderQAs();
+  }
+  async function save() {
+    const data = { categories };
+    await fetch('/api/settings/ai-training-topics-cfg', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const d2 = await fetch('/api/settings/ai-training-topics-cfg').then(r => r.json());
+    document.getElementById('last-trained').textContent = d2.last_trained || '—';
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500);
+  }
+  function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  load();
+</script>
+</body>
+</html>

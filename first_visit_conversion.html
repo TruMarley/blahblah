@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>First Visit Conversion — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .chart-wrap { height: 220px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">First Visit Conversion</div>
+  <p class="page-sub">Percentage of first-time visitors who book a second appointment within 30 days — your strongest signal of client retention health.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">6-Month Average</div>
+      <div class="hero-val" id="h-avg" style="color:var(--green)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Latest Month</div>
+      <div class="hero-val" id="h-cur" style="color:var(--accent)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">First-Visit → Rebook Rate — 6 Months</div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 700 220" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="fvGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#34d399" stop-opacity=".2"/>
+            <stop offset="100%" stop-color="#34d399" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/first-visit-conversion');
+    const d = await r.json();
+    document.getElementById('h-avg').textContent = d.avg_conversion + '%';
+    const months = d.months || [];
+    const last = months[months.length - 1];
+    document.getElementById('h-cur').textContent = last ? last.conversion_pct + '%' : '—';
+
+    const svg = document.getElementById('chart');
+    const W=700, H=220, pL=44, pR=16, pT=14, pB=34;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n = months.length;
+    const xStep = cW / (n - 1);
+    const minV = 0, maxV = 100;
+    const yOf = v => pT + cH - (v - minV) / (maxV - minV) * cH;
+
+    [25, 50, 75].forEach(v => {
+      const y = yOf(v);
+      svg.innerHTML += `<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML += `<text x="${pL-4}" y="${y+3}" font-size="8.5" fill="#555" text-anchor="end">${v}%</text>`;
+    });
+
+    const pts = months.map((m, i) => [pL + i * xStep, yOf(m.conversion_pct)]);
+    const area = `M ${pts[0][0]} ${pT+cH} L ${pts.map(p=>p.join(',')).join(' L ')} L ${pts[n-1][0]} ${pT+cH} Z`;
+    svg.innerHTML += `<path d="${area}" fill="url(#fvGrad)"/>`;
+    svg.innerHTML += `<polyline fill="none" stroke="#34d399" stroke-width="2.5" stroke-linejoin="round" points="${pts.map(p=>p.join(',')).join(' ')}"/>`;
+
+    const avgY = yOf(d.avg_conversion);
+    svg.innerHTML += `<line x1="${pL}" y1="${avgY}" x2="${W-pR}" y2="${avgY}" stroke="rgba(167,139,250,.4)" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+
+    pts.forEach((p, i) => {
+      svg.innerHTML += `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#34d399"/>`;
+      svg.innerHTML += `<text x="${p[0]}" y="${p[1]-8}" font-size="8" fill="rgba(52,211,153,.9)" text-anchor="middle">${months[i].conversion_pct}%</text>`;
+      svg.innerHTML += `<text x="${p[0]}" y="${H-4}" font-size="9" fill="#555" text-anchor="middle">${months[i].month}</text>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

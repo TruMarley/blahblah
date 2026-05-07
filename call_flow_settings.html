@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Flow Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.4rem; }
+    .field-group { margin-bottom: 1.1rem; }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; display: block; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .85rem; padding: .5rem .75rem; font-family: inherit; width: 100%; outline: none; }
+    .f-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .85rem; padding: .5rem .75rem; font-family: inherit; width: 100%; outline: none; cursor: pointer; }
+    .inline-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .toggle-info .toggle-name { font-size: .85rem; font-weight: 700; }
+    .toggle-info .toggle-desc { font-size: .74rem; color: var(--muted); margin-top: .1rem; }
+    .tog { width: 36px; height: 20px; background: var(--border); border-radius: 99px; position: relative; cursor: pointer; flex-shrink: 0; transition: background .2s; }
+    .tog.on { background: rgba(167,139,250,.6); }
+    .tog::after { content:''; position:absolute; top:3px; left:3px; width:14px; height:14px; background:#fff; border-radius:50%; transition:transform .2s; }
+    .tog.on::after { transform: translateX(16px); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
+    .save-row { display: flex; align-items: center; gap: 1rem; margin-top: 1.4rem; }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.5rem; border-radius: 9px; border: 1px solid rgba(52,211,153,.4); background: rgba(52,211,153,.1); color: var(--green); cursor: pointer; font-family: inherit; }
+    .save-btn:hover { background: rgba(52,211,153,.2); }
+    .saved-msg { font-size: .78rem; color: var(--green); font-weight: 700; opacity: 0; transition: opacity .3s; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Call Flow Settings</div>
+  <p class="page-sub">Control how the AI handles each incoming call — from greeting style to escalation thresholds.</p>
+  <div class="card">
+    <div class="card-title">Call Flow Configuration</div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">AI Call Handling</div>
+        <div class="toggle-desc">Enable AI to answer and process all incoming calls</div>
+      </div>
+      <div class="tog" id="tog-enabled" onclick="toggleKey('enabled')"></div>
+    </div>
+    <hr class="divider">
+    <div class="field-group">
+      <label class="field-label" for="greeting">Greeting Style</label>
+      <select class="f-select" id="greeting">
+        <option value="professional">Professional</option>
+        <option value="friendly">Friendly &amp; Casual</option>
+        <option value="concise">Concise &amp; Direct</option>
+      </select>
+    </div>
+    <div class="inline-row field-group">
+      <div>
+        <label class="field-label" for="hold">Max Hold (seconds)</label>
+        <input class="f-input" type="number" id="hold" min="15" max="300" step="15">
+      </div>
+      <div>
+        <label class="field-label" for="escalate">Escalate After (turns)</label>
+        <input class="f-input" type="number" id="escalate" min="2" max="15" step="1">
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Collect Caller Name</div>
+        <div class="toggle-desc">Ask for name at start of call</div>
+      </div>
+      <div class="tog" id="tog-collect_name" onclick="toggleKey('collect_name')"></div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Collect Call Reason</div>
+        <div class="toggle-desc">Ask purpose before routing to booking or info</div>
+      </div>
+      <div class="tog" id="tog-collect_reason" onclick="toggleKey('collect_reason')"></div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Offer Callback</div>
+        <div class="toggle-desc">Give caller option to receive a callback instead of holding</div>
+      </div>
+      <div class="tog" id="tog-offer_callback" onclick="toggleKey('offer_callback')"></div>
+    </div>
+    <div class="save-row">
+      <button class="save-btn" onclick="save()">Save Settings</button>
+      <span class="saved-msg" id="saved-msg">✓ Saved</span>
+    </div>
+  </div>
+</div>
+<script>
+  let config = {};
+  const boolKeys = ['enabled','collect_name','collect_reason','offer_callback'];
+  async function load() {
+    const r = await fetch('/api/call-flow-settings');
+    config = await r.json();
+    document.getElementById('greeting').value = config.greeting_style || 'professional';
+    document.getElementById('hold').value = config.max_hold_seconds || 60;
+    document.getElementById('escalate').value = config.escalate_after_turns || 5;
+    boolKeys.forEach(k => setTog(k, config[k]));
+  }
+  function setTog(key, val) {
+    const el = document.getElementById('tog-' + key);
+    if (el) el.classList.toggle('on', !!val);
+  }
+  function toggleKey(key) {
+    config[key] = !config[key];
+    setTog(key, config[key]);
+  }
+  async function save() {
+    config.greeting_style = document.getElementById('greeting').value;
+    config.max_hold_seconds = parseInt(document.getElementById('hold').value) || 60;
+    config.escalate_after_turns = parseInt(document.getElementById('escalate').value) || 5;
+    await fetch('/api/call-flow-settings', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(config)});
+    const msg = document.getElementById('saved-msg');
+    msg.style.opacity = '1';
+    setTimeout(() => { msg.style.opacity = '0'; }, 2000);
+  }
+  load();
+</script>
+</body>
+</html>

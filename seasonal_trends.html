@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seasonal Trends — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.9rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .legend { display: flex; gap: 1.5rem; margin-bottom: .75rem; font-size: .75rem; }
+    .leg-item { display: flex; align-items: center; gap: .4rem; }
+    .leg-box { width: 14px; height: 10px; border-radius: 3px; }
+    .leg-line { width: 24px; height: 2px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Seasonal Trends</div>
+  <p class="page-sub">12-month revenue pattern — identify slow periods and peak seasons.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Peak Month</div>
+      <div class="hero-val" style="color:var(--yellow)" id="h-peak-month">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Peak Revenue</div>
+      <div class="hero-val" style="color:var(--accent)" id="h-peak-rev">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Monthly Avg</div>
+      <div class="hero-val" id="h-avg">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Revenue by Month</div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-box" style="background:#a78bfa;opacity:.7"></div><span>Monthly Revenue</span></div>
+      <div class="leg-item"><div class="leg-line" style="background:#fbbf24"></div><span style="color:#fbbf24">12-Month Avg</span></div>
+    </div>
+    <svg id="chart" width="100%" style="display:block;overflow:visible"></svg>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/seasonal-trends');
+    const d = await r.json();
+    document.getElementById('h-peak-month').textContent = d.peak_month || '—';
+    document.getElementById('h-peak-rev').textContent = '$' + (d.peak_revenue||0).toLocaleString();
+    document.getElementById('h-avg').textContent = '$' + (d.avg_revenue||0).toLocaleString();
+
+    const months = d.months || [];
+    const W=720, H=200, PL=8, PR=8, PT=16, PB=30, cW=W-PL-PR, cH=H-PT-PB, n=months.length;
+    const maxRev = Math.max(...months.map(m=>m.revenue), 1);
+    const barW = Math.floor(cW/n * 0.65);
+    const xOf = i => PL + i * cW/n + (cW/n - barW)/2;
+    const yOf = v => PT + cH - (v/maxRev)*cH;
+    const avgY = yOf(d.avg_revenue);
+
+    let bars = '', labels = '';
+    months.forEach((m, i) => {
+      const bh = (m.revenue/maxRev)*cH;
+      const by = PT + cH - bh;
+      const isPeak = m.month === d.peak_month;
+      bars += `<rect x="${xOf(i)}" y="${by}" width="${barW}" height="${bh}" fill="${isPeak ? '#fbbf24' : '#a78bfa'}" opacity="${isPeak ? '.9' : '.65'}" rx="3">
+        <title>${m.month}: $${m.revenue.toLocaleString()}</title></rect>`;
+      labels += `<text x="${xOf(i)+barW/2}" y="${H-8}" text-anchor="middle" font-size="9" fill="#555">${esc(m.month)}</text>`;
+    });
+
+    const avgLine = `<line x1="${PL}" y1="${avgY}" x2="${W-PR}" y2="${avgY}" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="5,3" opacity=".7"/>`;
+
+    const svg = document.getElementById('chart');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('height', H);
+    svg.innerHTML = bars + avgLine + labels;
+  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

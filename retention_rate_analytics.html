@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Retention Analytics — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .cohort-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .6rem; }
+    .cohort-label { font-size: .78rem; width: 90px; flex-shrink: 0; }
+    .cohort-bar-wrap { flex: 1; background: var(--surface2); border-radius: 6px; height: 22px; overflow: hidden; }
+    .cohort-bar { height: 100%; border-radius: 6px; }
+    .cohort-pct { font-size: .75rem; font-weight: 900; width: 44px; text-align: right; }
+    .cohort-count { font-size: .65rem; color: var(--muted); width: 36px; text-align: right; }
+    .monthly-row { display: flex; align-items: flex-end; gap: 4px; height: 90px; }
+    .monthly-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .m-bar-ret { width: 100%; border-radius: 3px 3px 0 0; background: var(--green); opacity: .75; }
+    .m-bar-new { width: 100%; background: var(--accent); opacity: .55; }
+    .m-lbl { font-size: .55rem; color: var(--muted); margin-top: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Retention Analytics</div>
+  <p class="page-sub">Understand how well you keep clients coming back. Track retention by visit cohort, monthly returning vs. new client mix, and overall churn to focus retention efforts.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-ret" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Overall Retention</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-new" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">New Clients (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-ret2" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Returning (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-churn" style="color:var(--red)">—</div>
+      <div class="stat-lbl">Churned (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-visits" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Avg Visits/Client/Yr</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Retention by Visit Cohort</div>
+    <div id="cohort-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly New vs Returning</div>
+    <div class="monthly-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/retention-rate-stats').then(r => r.json());
+    document.getElementById('h-ret').textContent = data.overall_retention_rate_pct.toFixed(1) + '%';
+    document.getElementById('h-new').textContent = data.new_clients_30d;
+    document.getElementById('h-ret2').textContent = data.returning_clients_30d;
+    document.getElementById('h-churn').textContent = data.churned_clients_30d;
+    document.getElementById('h-visits').textContent = data.avg_visits_per_client_yr.toFixed(1);
+
+    const cList = document.getElementById('cohort-list');
+    (data.cohorts || []).forEach(c => {
+      const color = c.retained_pct >= 85 ? 'var(--green)' : c.retained_pct >= 70 ? 'var(--yellow)' : 'var(--red)';
+      cList.innerHTML += `
+        <div class="cohort-row">
+          <div class="cohort-label">${c.label}</div>
+          <div class="cohort-bar-wrap"><div class="cohort-bar" style="width:${c.retained_pct}%;background:${color};opacity:.8"></div></div>
+          <div class="cohort-pct" style="color:${color}">${c.retained_pct.toFixed(1)}%</div>
+          <div class="cohort-count">${c.count}</div>
+        </div>`;
+    });
+
+    const monthly = data.monthly || [];
+    const maxTotal = Math.max(...monthly.map(m => m.new + m.returning), 1);
+    const bars = document.getElementById('monthly-bars');
+    monthly.forEach(m => {
+      const rh = Math.max((m.returning / maxTotal * 80).toFixed(0), 1);
+      const nh = Math.max((m.new / maxTotal * 80).toFixed(0), 1);
+      bars.innerHTML += `
+        <div class="monthly-col">
+          <div class="m-bar-ret" style="height:${rh}px" title="${m.month}: ${m.returning} returning (${m.retention_pct}%)"></div>
+          <div class="m-bar-new" style="height:${nh}px" title="${m.month}: ${m.new} new"></div>
+          <div class="m-lbl">${m.month.slice(0,3)}</div>
+        </div>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

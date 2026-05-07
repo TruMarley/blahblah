@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seasonal Promos — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    .promo-card { border-radius: 12px; padding: 1.1rem; margin-bottom: .75rem; border-left: 4px solid transparent; background: var(--surface2); border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .promo-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+    .promo-name { font-size: .95rem; font-weight: 800; }
+    .promo-discount { font-size: .82rem; font-weight: 700; padding: .15rem .55rem; border-radius: 6px; }
+    .promo-dates { font-size: .7rem; color: var(--muted); margin-bottom: .45rem; }
+    .promo-services { display: flex; flex-wrap: wrap; gap: .3rem; }
+    .svc-chip { background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: 5px; padding: .1rem .4rem; font-size: .68rem; color: var(--muted); }
+    .promo-stats { font-size: .7rem; color: var(--muted); margin-top: .4rem; }
+    .promo-inactive { opacity: .4; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Seasonal Promotions</div>
+  <p class="page-sub">Create time-limited promos for holidays, slow seasons, and special events. Your AI mentions active promotions during booking calls to drive uptake.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-bookings" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Promo Bookings (30d)</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-revenue" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Promo Revenue</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-avg-discount" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Avg Discount Given</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">AI Behavior</div>
+    <div class="row">
+      <div><div class="row-label">Enable Promotions</div><div class="row-sub">Activate the promo system</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">AI Mentions Active Promos</div><div class="row-sub">AI brings up promos unprompted</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-mentions"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Mention at Booking</div><div class="row-sub">AI mentions when booking an eligible service</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-booking"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Mention at Reminder</div><div class="row-sub">Include promo in appointment reminders</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-reminder"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Promotions</div>
+    <div id="promo-list"></div>
+    <button class="save-btn" onclick="save()">Save Promo Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/seasonal-promos-cfg').then(r => r.json());
+    document.getElementById('h-bookings').textContent = data.total_promo_bookings_30d;
+    document.getElementById('h-revenue').textContent = '$' + data.promo_revenue_30d.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+    document.getElementById('h-avg-discount').textContent = '$' + data.avg_discount_given.toFixed(2);
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('ai-mentions').checked = data.ai_mentions_active_promos;
+    document.getElementById('ai-booking').checked = data.ai_mentions_at_booking;
+    document.getElementById('ai-reminder').checked = data.ai_mentions_at_reminder;
+    renderPromos();
+  }
+
+  function renderPromos() {
+    const list = document.getElementById('promo-list');
+    list.innerHTML = '';
+    (data.promos||[]).forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'promo-card' + (p.active ? '' : ' promo-inactive');
+      card.style.borderLeftColor = p.color;
+      const discStr = p.discount_type === 'percent' ? p.discount_value + '% off' : '$' + p.discount_value + ' off';
+      card.innerHTML = `
+        <div class="promo-top">
+          <div class="promo-name" style="color:${p.color}">${p.name}</div>
+          <div style="display:flex;align-items:center;gap:.6rem">
+            <div class="promo-discount" style="background:${p.color}22;color:${p.color};border:1px solid ${p.color}44">${discStr}</div>
+            <label class="toggle"><input type="checkbox" class="promo-toggle" data-id="${p.id}" ${p.active?'checked':''}><span class="slider"></span></label>
+          </div>
+        </div>
+        <div class="promo-dates">${p.start_date} &rarr; ${p.end_date}</div>
+        <div class="promo-services">${(p.services||[]).map(s => `<span class="svc-chip">${s}</span>`).join('')}</div>
+        <div class="promo-stats">${p.bookings} bookings historically</div>
+      `;
+      list.appendChild(card);
+    });
+    list.querySelectorAll('.promo-toggle').forEach(cb => cb.addEventListener('change', e => {
+      const p = data.promos.find(x => x.id === e.target.dataset.id);
+      if (p) { p.active = e.target.checked; renderPromos(); }
+    }));
+  }
+
+  async function save() {
+    const payload = {
+      ...data,
+      enabled: document.getElementById('enabled').checked,
+      ai_mentions_active_promos: document.getElementById('ai-mentions').checked,
+      ai_mentions_at_booking: document.getElementById('ai-booking').checked,
+      ai_mentions_at_reminder: document.getElementById('ai-reminder').checked,
+    };
+    await fetch('/api/settings/seasonal-promos-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

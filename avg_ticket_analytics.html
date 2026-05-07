@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Avg Ticket — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .heroes { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .hero { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem; }
+    .hero-label { font-size: .63rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; }
+    .hero-value { font-size: 1.55rem; font-weight: 900; letter-spacing: -.03em; }
+    .hero-sub { font-size: .68rem; color: var(--muted); margin-top: .15rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .bar-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .38rem; }
+    .bar-label { font-size: .72rem; color: var(--muted); width: 42px; text-align: right; flex-shrink: 0; }
+    .bar-bg { flex: 1; background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; }
+    .bar-val { font-size: .7rem; width: 55px; text-align: right; flex-shrink: 0; }
+    .staff-row { display: flex; align-items: center; gap: .55rem; margin-bottom: .45rem; }
+    .staff-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .staff-name { font-size: .78rem; flex: 1; }
+    .staff-bar-bg { width: 130px; background: var(--surface2); border-radius: 4px; height: 6px; overflow: hidden; flex-shrink: 0; }
+    .staff-bar-fill { height: 100%; border-radius: 4px; }
+    .staff-val { font-size: .72rem; font-weight: 700; width: 45px; text-align: right; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    th { text-align: left; font-size: .67rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding-bottom: .6rem; border-bottom: 1px solid var(--border); }
+    td { padding: .5rem 0; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    td.num { font-weight: 700; }
+    td.yellow { color: var(--yellow); }
+    @media (max-width: 600px) { .heroes { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Average Ticket</div>
+  <p class="page-sub">Average revenue per appointment — by month, by service, and by staff. Rising average ticket means upsells and premium services are working.</p>
+
+  <div class="heroes">
+    <div class="hero">
+      <div class="hero-label">Avg Ticket (30d)</div>
+      <div class="hero-value" id="h-avg" style="color:var(--yellow)">—</div>
+      <div class="hero-sub" id="h-prev-sub">vs — prior month</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Ticket Growth</div>
+      <div class="hero-value" id="h-growth" style="color:var(--green)">—</div>
+      <div class="hero-sub">month over month</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Total Revenue (30d)</div>
+      <div class="hero-value" id="h-rev" style="color:var(--accent)">—</div>
+      <div class="hero-sub" id="h-txn-sub">— transactions</div>
+    </div>
+    <div class="hero">
+      <div class="hero-label">Top Service</div>
+      <div class="hero-value" id="h-top" style="color:var(--green); font-size:1rem; padding-top:.25rem">—</div>
+      <div class="hero-sub">highest avg ticket</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Avg Ticket</div>
+    <div id="monthly-chart"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">By Service</div>
+    <div id="service-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">By Staff Member</div>
+    <div id="staff-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Detail</div>
+    <table>
+      <thead><tr><th>Month</th><th>Avg Ticket</th><th>Revenue</th><th>Transactions</th></tr></thead>
+      <tbody id="monthly-table"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/analytics/avg-ticket-stats').then(r => r.json());
+    document.getElementById('h-avg').textContent = '$' + d.avg_ticket_30d.toFixed(2);
+    document.getElementById('h-prev-sub').textContent = 'vs $' + d.avg_ticket_prev_30d.toFixed(2) + ' prior month';
+    const gr = d.ticket_growth_pct;
+    const grEl = document.getElementById('h-growth');
+    grEl.textContent = (gr >= 0 ? '+' : '') + gr.toFixed(1) + '%';
+    grEl.style.color = gr >= 0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('h-rev').textContent = '$' + Math.round(d.total_revenue_30d).toLocaleString();
+    document.getElementById('h-txn-sub').textContent = d.total_transactions_30d + ' transactions';
+    document.getElementById('h-top').textContent = d.highest_ticket_service;
+
+    const maxMonth = Math.max(...d.monthly.map(m => m.avg_ticket));
+    const chart = document.getElementById('monthly-chart');
+    d.monthly.forEach(m => {
+      const pct = maxMonth > 0 ? (m.avg_ticket / maxMonth * 100) : 0;
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = `<div class="bar-label">${m.month}</div><div class="bar-bg"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:var(--yellow)"></div></div><div class="bar-val" style="color:var(--yellow)">$${m.avg_ticket.toFixed(0)}</div>`;
+      chart.appendChild(row);
+    });
+
+    const maxSvc = Math.max(...d.by_service.map(s => s.avg_ticket));
+    const svcList = document.getElementById('service-list');
+    d.by_service.forEach(s => {
+      const pct = maxSvc > 0 ? (s.avg_ticket / maxSvc * 100) : 0;
+      const row = document.createElement('div');
+      row.className = 'staff-row';
+      row.innerHTML = `<div class="staff-dot" style="background:${s.color}"></div><div class="staff-name">${s.service}</div><div class="staff-bar-bg"><div class="staff-bar-fill" style="width:${pct.toFixed(1)}%;background:${s.color}"></div></div><div class="staff-val" style="color:${s.color}">$${s.avg_ticket.toFixed(0)}</div>`;
+      svcList.appendChild(row);
+    });
+
+    const maxStaff = Math.max(...d.by_staff.map(s => s.avg_ticket));
+    const staffList = document.getElementById('staff-list');
+    d.by_staff.forEach(s => {
+      const pct = maxStaff > 0 ? (s.avg_ticket / maxStaff * 100) : 0;
+      const row = document.createElement('div');
+      row.className = 'staff-row';
+      row.innerHTML = `<div class="staff-dot" style="background:${s.color}"></div><div class="staff-name">${s.name} <span style="color:var(--muted);font-size:.68rem">${s.transactions_30d} appts</span></div><div class="staff-bar-bg"><div class="staff-bar-fill" style="width:${pct.toFixed(1)}%;background:${s.color}"></div></div><div class="staff-val" style="color:${s.color}">$${s.avg_ticket.toFixed(0)}</div>`;
+      staffList.appendChild(row);
+    });
+
+    const tbody = document.getElementById('monthly-table');
+    d.monthly.forEach(m => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${m.month}</td><td class="num yellow">$${m.avg_ticket.toFixed(2)}</td><td class="num">$${Math.round(m.total_revenue).toLocaleString()}</td><td class="num">${m.total_transactions}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  load();
+</script>
+</body>
+</html>

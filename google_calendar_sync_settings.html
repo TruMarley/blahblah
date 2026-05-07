@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Google Calendar Sync — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    input[type=text] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; flex: 1; }
+    input[type=text]:focus { border-color: var(--accent); }
+    .connect-btn { background: #4285f4; color: #fff; font-size: .82rem; font-weight: 700; border: none; border-radius: 8px; padding: .55rem 1.1rem; cursor: pointer; }
+    .connect-btn:hover { opacity: .88; }
+    .status-badge { font-size: .72rem; font-weight: 700; border-radius: 6px; padding: .2rem .6rem; }
+    .status-connected { background: rgba(52,211,153,.1); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+    .status-disconnected { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.2); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Google Calendar Sync</div>
+  <p class="page-sub">Keep your Google Calendar in perfect sync with RingDesk bookings. New appointments appear instantly; cancellations and reschedules update automatically.</p>
+  <div class="card">
+    <div class="card-title">Connection</div>
+    <div class="row">
+      <div><div class="row-label">Enable Calendar Sync</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Status</div></div>
+      <span class="status-badge" id="status-badge">—</span>
+    </div>
+    <div class="row" style="gap:.6rem">
+      <div style="flex:1"><div class="row-label">Calendar ID</div><div class="row-sub">Paste your Google Calendar ID below</div></div>
+    </div>
+    <div style="display:flex;gap:.5rem;margin-bottom:1rem;">
+      <input type="text" id="calendar-id" placeholder="yourname@gmail.com or calendar ID">
+    </div>
+    <button class="connect-btn" id="connect-btn" onclick="connectGoogle()">Connect Google Account</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Sync Options</div>
+    <div class="row">
+      <div><div class="row-label">Sync Direction</div></div>
+      <select id="sync-dir">
+        <option value="both">Both ways</option>
+        <option value="to_google">RingDesk → Google only</option>
+        <option value="from_google">Google → RingDesk only</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Sync New Bookings</div></div>
+      <label class="toggle"><input type="checkbox" id="sync-new"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Sync Cancellations</div></div>
+      <label class="toggle"><input type="checkbox" id="sync-cancel"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Sync Reschedules</div></div>
+      <label class="toggle"><input type="checkbox" id="sync-reschedule"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Block Calendar Slots</div><div class="row-sub">Existing Google events block new bookings</div></div>
+      <label class="toggle"><input type="checkbox" id="block-slots"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Colour-Code by Service</div><div class="row-sub">Different services show as different colours</div></div>
+      <label class="toggle"><input type="checkbox" id="color-code"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Include Client Phone in Event</div><div class="row-sub">Phone added to Google Calendar event description</div></div>
+      <label class="toggle"><input type="checkbox" id="include-phone"><span class="slider"></span></label>
+    </div>
+    <button class="save-btn" onclick="save()">Save Sync Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let data = {};
+  async function load() {
+    data = await fetch('/api/settings/google-calendar-sync-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = data.enabled;
+    document.getElementById('calendar-id').value = data.calendar_id || '';
+    const badge = document.getElementById('status-badge');
+    if (data.connected) { badge.textContent = 'Connected'; badge.className = 'status-badge status-connected'; }
+    else { badge.textContent = 'Not connected'; badge.className = 'status-badge status-disconnected'; }
+    document.getElementById('sync-dir').value = data.sync_direction;
+    document.getElementById('sync-new').checked = data.sync_new_bookings;
+    document.getElementById('sync-cancel').checked = data.sync_cancellations;
+    document.getElementById('sync-reschedule').checked = data.sync_reschedules;
+    document.getElementById('block-slots').checked = data.block_calendar_slots;
+    document.getElementById('color-code').checked = data.color_code_by_service;
+    document.getElementById('include-phone').checked = data.include_client_phone_in_event;
+  }
+  function connectGoogle() { alert('Google OAuth flow would open here.'); }
+  async function save() {
+    const payload = { ...data,
+      enabled: document.getElementById('enabled').checked,
+      calendar_id: document.getElementById('calendar-id').value,
+      sync_direction: document.getElementById('sync-dir').value,
+      sync_new_bookings: document.getElementById('sync-new').checked,
+      sync_cancellations: document.getElementById('sync-cancel').checked,
+      sync_reschedules: document.getElementById('sync-reschedule').checked,
+      block_calendar_slots: document.getElementById('block-slots').checked,
+      color_code_by_service: document.getElementById('color-code').checked,
+      include_client_phone_in_event: document.getElementById('include-phone').checked,
+    };
+    await fetch('/api/settings/google-calendar-sync-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

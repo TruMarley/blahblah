@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Time Distribution — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    .svc-row { display: grid; grid-template-columns: 120px 1fr 60px 70px; gap: .75rem; align-items: center; margin-bottom: .8rem; }
+    .svc-name { font-size: .82rem; font-weight: 600; }
+    .bar-wrap { background: var(--surface2); border-radius: 5px; height: 9px; overflow: hidden; }
+    .bar { height: 100%; border-radius: 5px; }
+    .svc-min { font-size: .75rem; font-weight: 700; text-align: right; }
+    .svc-cnt { font-size: .7rem; color: var(--muted); text-align: right; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Service Time Distribution</div>
+  <p class="page-sub">See how long each service actually takes. Use this to optimize your scheduling, set accurate durations, and reduce buffer time waste.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Most Common</div>
+      <div class="hero-val" id="h-top" style="color:var(--accent);font-size:1.2rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Avg Duration</div>
+      <div class="hero-val" id="h-avg" style="color:var(--yellow)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total Hours</div>
+      <div class="hero-val" id="h-hrs" style="color:var(--green)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Average Duration by Service</div>
+    <div id="svc-chart"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['var(--accent)','var(--green)','var(--yellow)','#60a5fa','var(--red)','#fb923c'];
+  async function load() {
+    const d = await fetch('/api/analytics/service-time-distribution').then(r => r.json());
+    document.getElementById('h-top').textContent = d.most_common_service || '—';
+    document.getElementById('h-avg').textContent = d.avg_duration_minutes ? d.avg_duration_minutes+'m' : '—';
+    document.getElementById('h-hrs').textContent = d.total_service_hours ? d.total_service_hours+'h' : '—';
+    const svcs = d.services || [];
+    const maxM = Math.max(...svcs.map(s => s.avg_min), 1);
+    document.getElementById('svc-chart').innerHTML = svcs.map((s,i) => `
+      <div class="svc-row">
+        <span class="svc-name">${esc(s.name)}</span>
+        <div class="bar-wrap"><div class="bar" style="width:${(s.avg_min/maxM*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]}"></div></div>
+        <span class="svc-min" style="color:${COLORS[i%COLORS.length]}">${s.avg_min}m</span>
+        <span class="svc-cnt">${s.count} appts</span>
+      </div>
+    `).join('');
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

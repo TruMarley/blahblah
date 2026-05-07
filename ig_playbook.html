@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk — Instagram Playbook for Barbers</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0a; --surface: #111; --surface2: #161616;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --blue: #60a5fa; --orange: #f97316;
+      --pink: #ec4899; --ig: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    .header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent-light); }
+    .header-right { display: flex; gap: 1rem; align-items: center; }
+    .header-right a { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
+
+    /* Hero */
+    .hero {
+      background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(236,72,153,0.12) 0%, transparent 70%);
+      padding: 4rem 2rem 3rem; text-align: center;
+    }
+    .ig-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(236,72,153,0.12); border: 1px solid rgba(236,72,153,0.3);
+      color: var(--pink); font-size: 0.75rem; font-weight: 700;
+      padding: 5px 14px; border-radius: 20px; margin-bottom: 1.5rem;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .hero h1 { font-size: clamp(2rem, 6vw, 3rem); font-weight: 900; color: #fff; letter-spacing: -0.04em; margin-bottom: 0.75rem; }
+    .hero h1 em { font-style: normal; color: var(--pink); }
+    .hero p { color: var(--muted); font-size: 0.95rem; max-width: 520px; margin: 0 auto; line-height: 1.6; }
+
+    .main { max-width: 960px; margin: 0 auto; padding: 2.5rem 2rem 4rem; }
+
+    /* Section headers */
+    .section-header { margin-bottom: 1.5rem; }
+    .section-label { font-size: 0.68rem; font-weight: 700; color: var(--pink); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+    .section-title { font-size: 1.3rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; }
+
+    /* Tactic cards */
+    .tactics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-bottom: 3rem; }
+    .tactic-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.5rem; position: relative; overflow: hidden;
+    }
+    .tactic-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    }
+    .tactic-card.t1::before { background: var(--ig); }
+    .tactic-card.t2::before { background: linear-gradient(90deg, #f97316, #fbbf24); }
+    .tactic-card.t3::before { background: linear-gradient(90deg, #7c3aed, #60a5fa); }
+
+    .tactic-num { font-size: 0.65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+    .tactic-icon { font-size: 1.8rem; margin-bottom: 0.75rem; }
+    .tactic-title { font-size: 1rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem; line-height: 1.2; }
+    .tactic-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.6; margin-bottom: 1rem; }
+    .tactic-result {
+      background: var(--surface2); border-radius: 7px; padding: 0.6rem 0.8rem;
+      font-size: 0.75rem; color: var(--green); font-weight: 600;
+    }
+    .tactic-result::before { content: "📊 "; }
+
+    /* Posting schedule */
+    .schedule-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.75rem; margin-bottom: 2rem;
+    }
+    .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; margin-top: 1.25rem; }
+    .day-col { text-align: center; }
+    .day-name { font-size: 0.68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.5rem; }
+    .day-slot {
+      border-radius: 8px; padding: 0.6rem 0.25rem;
+      font-size: 0.65rem; font-weight: 600; line-height: 1.3;
+      min-height: 56px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 3px;
+    }
+    .day-slot.post-reel { background: rgba(236,72,153,0.12); border: 1px solid rgba(236,72,153,0.25); color: var(--pink); }
+    .day-slot.post-carousel { background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25); color: var(--accent-light); }
+    .day-slot.post-story { background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.25); color: var(--orange); }
+    .day-slot.rest { background: #0e0e0e; border: 1px dashed #1a1a1a; color: var(--muted2); }
+    .day-slot .slot-icon { font-size: 1rem; }
+
+    .schedule-legend {
+      display: flex; gap: 1.25rem; flex-wrap: wrap; margin-top: 1rem;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--muted); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    /* Caption templates */
+    .captions-section { margin-bottom: 2rem; }
+    .captions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.25rem; }
+    .caption-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.25rem;
+    }
+    .caption-type { font-size: 0.68rem; font-weight: 700; color: var(--pink); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; }
+    .caption-text {
+      font-size: 0.82rem; color: #bbb; line-height: 1.7;
+      font-family: 'Georgia', serif; white-space: pre-line;
+    }
+    .caption-text strong { color: #fff; font-family: inherit; }
+    .btn-copy-caption {
+      margin-top: 0.75rem; background: none; border: 1px solid var(--border2);
+      color: var(--muted); font-size: 0.72rem; padding: 5px 12px;
+      border-radius: 6px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-copy-caption:hover { border-color: var(--pink); color: var(--pink); }
+
+    /* Hashtag strategy */
+    .hashtag-section { margin-bottom: 2rem; }
+    .hashtag-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.75rem; margin-top: 1.25rem;
+    }
+    .hashtag-tier { margin-bottom: 1.5rem; }
+    .hashtag-tier:last-child { margin-bottom: 0; }
+    .tier-label {
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 0.6rem; display: flex; align-items: center; gap: 6px;
+    }
+    .tier-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .hashtag-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .hashtag {
+      background: var(--surface2); border: 1px solid var(--border2);
+      color: var(--blue); font-size: 0.75rem; padding: 3px 10px;
+      border-radius: 20px; font-family: monospace;
+    }
+
+    /* Story ideas */
+    .stories-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-top: 1.25rem; margin-bottom: 2rem; }
+    .story-card {
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 12px; padding: 1rem; text-align: center;
+      aspect-ratio: 9/16; max-height: 220px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .story-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: var(--ig); opacity: 0.08;
+    }
+    .story-card .si { font-size: 2rem; margin-bottom: 0.5rem; position: relative; }
+    .story-card .st { font-size: 0.72rem; font-weight: 700; color: #fff; position: relative; line-height: 1.3; }
+    .story-card .sd { font-size: 0.62rem; color: var(--muted); position: relative; margin-top: 4px; line-height: 1.3; }
+
+    /* RingDesk tie-in */
+    .ringdesk-section {
+      background: linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(99,102,241,0.08) 100%);
+      border: 1px solid rgba(124,58,237,0.3); border-radius: 16px;
+      padding: 2rem; margin-top: 2rem;
+    }
+    .ringdesk-section h3 { font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem; }
+    .ringdesk-section p { color: var(--muted); font-size: 0.85rem; line-height: 1.6; margin-bottom: 1.25rem; }
+    .ringdesk-steps { display: flex; flex-direction: column; gap: 0.75rem; }
+    .rd-step { display: flex; align-items: flex-start; gap: 10px; font-size: 0.85rem; color: #ccc; line-height: 1.5; }
+    .rd-num {
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(124,58,237,0.25); border: 1px solid rgba(124,58,237,0.4);
+      color: var(--accent-light); font-size: 0.7rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .rd-step strong { color: #fff; }
+
+    @media (max-width: 768px) {
+      .tactics-grid { grid-template-columns: 1fr; }
+      .captions-grid { grid-template-columns: 1fr; }
+      .stories-grid { grid-template-columns: repeat(2, 1fr); }
+      .week-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <div class="header-right">
+    <a href="/outreach">Outreach Templates</a>
+    <a href="/dm-tracker">DM Tracker</a>
+    <a href="/dashboard">Dashboard</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="ig-badge">📸 Instagram Playbook</div>
+  <h1>Grow your shop on <em>Instagram</em>.<br>Let AI handle the calls that follow.</h1>
+  <p>3 proven tactics from 2025–2026 research + a full posting schedule, caption templates, and hashtag strategy built for barbershops.</p>
+</div>
+
+<div class="main">
+
+  <!-- 3 Core Tactics -->
+  <div class="section-header">
+    <div class="section-label">Research-Backed</div>
+    <div class="section-title">3 Tactics That Work Right Now</div>
+  </div>
+
+  <div class="tactics-grid">
+    <div class="tactic-card t1">
+      <div class="tactic-num">Tactic 01</div>
+      <div class="tactic-icon">🎬</div>
+      <div class="tactic-title">"Hero Moment" Before-After Reels</div>
+      <div class="tactic-desc">Post 2x/week. Lead with a 3-second attention hook — then cut to the transformation reveal. Caption should name the exact cut style and hair type. This triggers saves and shares, pushing you to non-followers in your area.</div>
+      <div class="tactic-result">Drives algorithm reach to local non-followers</div>
+    </div>
+    <div class="tactic-card t2">
+      <div class="tactic-num">Tactic 02</div>
+      <div class="tactic-icon">#️⃣</div>
+      <div class="tactic-title">3-Tier Hashtag Layering</div>
+      <div class="tactic-desc">Stack: Broad (#barberlife) + Niche (#skinfade #beardtrim) + Hyper-local (#MiamiBarber #BrickellCuts). Avoid mega-hashtags — precision beats volume. Location + service combos reach people actively looking to book locally.</div>
+      <div class="tactic-result">Reaches buyers, not just followers — higher booking intent</div>
+    </div>
+    <div class="tactic-card t3">
+      <div class="tactic-num">Tactic 03</div>
+      <div class="tactic-icon">🔗</div>
+      <div class="tactic-title">3-Click Booking Rule + Story Links</div>
+      <div class="tactic-desc">Visitor → profile → story/post → booking. Link stickers in Stories + pinned booking post at top of feed. Weekday deal Stories with link stickers cut cost-per-booked-appointment to $1.78 in documented cases.</div>
+      <div class="tactic-result">27% increase in midweek bookings at $1.78 cost/booking</div>
+    </div>
+  </div>
+
+  <!-- Posting Schedule -->
+  <div class="section-header">
+    <div class="section-label">Content Calendar</div>
+    <div class="section-title">Weekly Posting Schedule</div>
+  </div>
+
+  <div class="schedule-card">
+    <p style="font-size:0.82rem;color:var(--muted);">Post between <strong style="color:#fff;">7–9 AM</strong> or <strong style="color:#fff;">6–9 PM</strong> — when barbers and clients are scrolling. Engage with every comment in the first hour.</p>
+    <div class="week-grid">
+      <div class="day-col">
+        <div class="day-name">Mon</div>
+        <div class="day-slot post-reel"><span class="slot-icon">🎬</span>Before/After Reel</div>
+      </div>
+      <div class="day-col">
+        <div class="day-name">Tue</div>
+        <div class="day-slot post-story"><span class="slot-icon">⚡</span>Booking Story + Link</div>
+      </div>
+      <div class="day-col">
+        <div class="day-name">Wed</div>
+        <div class="day-slot post-carousel"><span class="slot-icon">🖼</span>Style Carousel (3–5 cuts)</div>
+      </div>
+      <div class="day-col">
+        <div class="day-name">Thu</div>
+        <div class="day-slot post-story"><span class="slot-icon">📊</span>Poll Story ("Which fade?")</div>
+      </div>
+      <div class="day-col">
+        <div class="day-name">Fri</div>
+        <div class="day-slot post-reel"><span class="slot-icon">🎬</span>Weekend Promo Reel</div>
+      </div>
+      <div class="day-col">
+        <div class="day-name">Sat</div>
+        <div class="day-slot post-story"><span class="slot-icon">📸</span>BTS Story (shop busy)</div>
+      </div>
+      <div class="day-col">
+        <div class="day-name">Sun</div>
+        <div class="day-slot rest"><span class="slot-icon">😴</span>Rest or Repurpose</div>
+      </div>
+    </div>
+    <div class="schedule-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--pink)"></div> Reel (2x/wk)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent-light)"></div> Carousel (1x/wk)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div> Story (2-3x/wk)</div>
+    </div>
+  </div>
+
+  <!-- Caption Templates -->
+  <div class="captions-section">
+    <div class="section-header">
+      <div class="section-label">Copy-Paste Ready</div>
+      <div class="section-title">Caption Templates</div>
+    </div>
+    <div class="captions-grid">
+      <div class="caption-card">
+        <div class="caption-type">🎬 Before/After Reel</div>
+        <div class="caption-text">This is what a <strong>fresh fade</strong> does for confidence.
+
+Walk in with overgrown hair. Walk out like a different person.
+
+[Client name] came in for a skin fade + beard lineup. This is the result. 🔥
+
+📅 Book your spot — link in bio.
+📍 [Your city] · [Your neighborhood]</div>
+        <button class="btn-copy-caption" onclick="copyCaption(this)">Copy caption</button>
+      </div>
+      <div class="caption-card">
+        <div class="caption-type">📅 Weekend Booking Push</div>
+        <div class="caption-text">Weekend spots are filling up fast. 🗓
+
+We've got a few slots left for Saturday morning — don't wait until your barber is fully booked.
+
+✂️ Haircut + Beard: $65
+✂️ Fade: $45
+✂️ Kids cut: $30
+
+Book now → link in bio
+(Or just call — our AI answers 24/7 even when we're cutting)</div>
+        <button class="btn-copy-caption" onclick="copyCaption(this)">Copy caption</button>
+      </div>
+      <div class="caption-card">
+        <div class="caption-type">💬 Engagement Post</div>
+        <div class="caption-text">Drop your honest opinion 👇
+
+Which fade style do YOU prefer?
+
+1️⃣ Skin fade (bald at the sides)
+2️⃣ Low fade (keeps some length)
+3️⃣ Mid fade (classic, versatile)
+
+No wrong answers. We do all three.
+
+Tag a friend who needs to pick one. 👀</div>
+        <button class="btn-copy-caption" onclick="copyCaption(this)">Copy caption</button>
+      </div>
+      <div class="caption-card">
+        <div class="caption-type">🤖 AI Receptionist Post</div>
+        <div class="caption-text">We never miss a call anymore.
+
+Our AI receptionist answers 24/7 — even at midnight — and books your appointment automatically. You get a confirmation text in seconds.
+
+No waiting on hold. No voicemail. Just book. 📱
+
+Try it: call [YOUR NUMBER] right now. Alex answers.
+
+Link in bio to book online too. 👆</div>
+        <button class="btn-copy-caption" onclick="copyCaption(this)">Copy caption</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hashtag Strategy -->
+  <div class="hashtag-section">
+    <div class="section-header">
+      <div class="section-label">Copy These</div>
+      <div class="section-title">Hashtag Strategy (3-Tier)</div>
+    </div>
+    <div class="hashtag-card">
+      <div class="hashtag-tier">
+        <div class="tier-label" style="color:var(--pink)"><div class="tier-dot" style="background:var(--pink)"></div>Tier 1 — Broad Industry (use 3–4)</div>
+        <div class="hashtag-wrap">
+          <span class="hashtag">#barberlife</span><span class="hashtag">#barber</span>
+          <span class="hashtag">#barbershop</span><span class="hashtag">#menshaircut</span>
+          <span class="hashtag">#haircut</span><span class="hashtag">#barbersofinstagram</span>
+        </div>
+      </div>
+      <div class="hashtag-tier">
+        <div class="tier-label" style="color:var(--orange)"><div class="tier-dot" style="background:var(--orange)"></div>Tier 2 — Niche Service (use 4–6)</div>
+        <div class="hashtag-wrap">
+          <span class="hashtag">#skinfade</span><span class="hashtag">#lowfade</span>
+          <span class="hashtag">#midfade</span><span class="hashtag">#beardtrim</span>
+          <span class="hashtag">#beardgang</span><span class="hashtag">#fadehaircut</span>
+          <span class="hashtag">#tapercut</span><span class="hashtag">#freshcut</span>
+          <span class="hashtag">#shapeup</span><span class="hashtag">#edgeup</span>
+        </div>
+      </div>
+      <div class="hashtag-tier">
+        <div class="tier-label" style="color:var(--blue)"><div class="tier-dot" style="background:var(--blue)"></div>Tier 3 — Hyper-Local (use 3–4, replace with YOUR city)</div>
+        <div class="hashtag-wrap">
+          <span class="hashtag">#[City]Barber</span><span class="hashtag">#[City]Barbershop</span>
+          <span class="hashtag">#[Neighborhood]Cuts</span><span class="hashtag">#[City]Hair</span>
+          <span class="hashtag">#[City]Men</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Story Ideas -->
+  <div class="section-header">
+    <div class="section-label">Stories That Convert</div>
+    <div class="section-title">Story Ideas for This Week</div>
+  </div>
+  <div class="stories-grid">
+    <div class="story-card"><div class="si">📊</div><div class="st">Poll: "Which fade are you getting this week?"</div><div class="sd">→ DM people who vote to book</div></div>
+    <div class="story-card"><div class="si">⏰</div><div class="st">Countdown to weekend slots closing</div><div class="sd">→ Add booking link sticker</div></div>
+    <div class="story-card"><div class="si">🎥</div><div class="st">15-sec time lapse of a full cut in progress</div><div class="sd">→ Show the craft, add song</div></div>
+    <div class="story-card"><div class="si">💬</div><div class="st">Repost client's story tag + add a booking link</div><div class="sd">→ Social proof converts</div></div>
+  </div>
+
+  <!-- RingDesk tie-in -->
+  <div class="ringdesk-section">
+    <h3>🤖 Close the Loop: Let AI Capture Every Lead Instagram Sends You</h3>
+    <p>Instagram is driving people to call your shop. If you're mid-cut when they call, they go to voicemail and never call back. RingDesk closes that gap — every call gets answered, every lead gets booked.</p>
+    <div class="ringdesk-steps">
+      <div class="rd-step"><span class="rd-num">1</span>Post a Reel → viewer sees it → calls your number</div>
+      <div class="rd-step"><span class="rd-num">2</span><strong>RingDesk AI answers immediately</strong> — even if you're cutting</div>
+      <div class="rd-step"><span class="rd-num">3</span>Books the appointment, sends SMS confirmation with your address</div>
+      <div class="rd-step"><span class="rd-num">4</span>New booking appears in your dashboard — you didn't miss a thing</div>
+    </div>
+    <div style="margin-top:1.25rem;">
+      <a href="/onboarding" style="display:inline-block;background:var(--accent);color:#fff;padding:11px 24px;border-radius:8px;font-size:0.875rem;font-weight:700;text-decoration:none;">Set Up Your AI Receptionist →</a>
+      <a href="/twilio-setup" style="display:inline-block;margin-left:0.75rem;color:var(--muted);font-size:0.82rem;text-decoration:none;">How to connect your number</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function copyCaption(btn) {
+    const text = btn.previousElementSibling.innerText;
+    navigator.clipboard.writeText(text);
+    btn.textContent = 'Copied! ✓';
+    setTimeout(() => btn.textContent = 'Copy caption', 2000);
+  }
+</script>
+</body>
+</html>

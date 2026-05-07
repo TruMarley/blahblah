@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>No-Show Settings — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 660px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: .7rem 0; border-bottom: 1px solid var(--border); }
+    .toggle-row:last-of-type { border-bottom: none; }
+    .toggle-label { font-size: .88rem; font-weight: 700; }
+    .toggle-sub { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+    .toggle { position: relative; width: 38px; height: 21px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #222; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .slider:before { content: ''; position: absolute; width: 15px; height: 15px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: rgba(167,139,250,.3); }
+    input:checked + .slider:before { transform: translateX(17px); background: var(--accent); }
+    .inline-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin: 1rem 0 .5rem; }
+    .field-group { margin-bottom: .9rem; }
+    .field-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; display: block; }
+    .field-sub { font-size: .68rem; color: var(--muted); margin-top: .18rem; }
+    .f-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .48rem .7rem; font-family: inherit; width: 100%; outline: none; }
+    .save-btn { font-size: .82rem; font-weight: 800; padding: .55rem 1.4rem; border-radius: 9px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; width: 100%; margin-top: 1rem; }
+    .save-btn:hover { background: rgba(167,139,250,.2); }
+    .saved-msg { font-size: .75rem; color: var(--green); font-weight: 700; text-align: center; margin-top: .5rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">No-Show Settings</div>
+  <p class="page-sub">Automatically track and respond to clients who miss appointments — protect your team's time.</p>
+  <div class="card">
+    <div class="card-title">No-Show Policy</div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Track No-Shows</div><div class="toggle-sub">AI flags clients who miss appointments without cancelling</div></div>
+      <label class="toggle"><input type="checkbox" id="f-enabled"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Auto-Block Repeat Offenders</div><div class="toggle-sub">Prevent future bookings after max no-shows reached</div></div>
+      <label class="toggle"><input type="checkbox" id="f-block"><span class="slider"></span></label>
+    </div>
+    <div class="inline-2">
+      <div class="field-group">
+        <label class="field-label">Max No-Shows Before Block</label>
+        <input class="f-input" type="number" id="f-max" min="1" max="10" placeholder="3">
+        <div class="field-sub">Block after this many no-shows</div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Send Warning After (no-shows)</label>
+        <input class="f-input" type="number" id="f-warn" min="1" max="9" placeholder="2">
+        <div class="field-sub">Warn the client before blocking</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">No-Show Fee</div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Charge No-Show Fee</div><div class="toggle-sub">Automatically charge clients who miss without notice</div></div>
+      <label class="toggle"><input type="checkbox" id="f-charge"><span class="slider"></span></label>
+    </div>
+    <div class="field-group" style="margin-top:.85rem">
+      <label class="field-label">No-Show Fee Amount ($)</label>
+      <input class="f-input" type="number" id="f-fee" min="5" max="200" step="5" placeholder="25">
+    </div>
+    <button class="save-btn" onclick="save()">Save No-Show Settings</button>
+    <div class="saved-msg" id="saved-msg"></div>
+  </div>
+</div>
+<script>
+  let data = {};
+  async function load() {
+    const r = await fetch('/api/no-show-settings');
+    data = await r.json();
+    document.getElementById('f-enabled').checked = !!data.enabled;
+    document.getElementById('f-block').checked = !!data.auto_block_repeat;
+    document.getElementById('f-max').value = data.max_no_shows_before_block ?? 3;
+    document.getElementById('f-warn').value = data.send_warning_after ?? 2;
+    document.getElementById('f-charge').checked = !!data.charge_no_show_fee;
+    document.getElementById('f-fee').value = data.no_show_fee_dollars ?? 25;
+  }
+  async function save() {
+    data.enabled = document.getElementById('f-enabled').checked;
+    data.auto_block_repeat = document.getElementById('f-block').checked;
+    data.max_no_shows_before_block = parseInt(document.getElementById('f-max').value) || 3;
+    data.send_warning_after = parseInt(document.getElementById('f-warn').value) || 2;
+    data.charge_no_show_fee = document.getElementById('f-charge').checked;
+    data.no_show_fee_dollars = parseInt(document.getElementById('f-fee').value) || 25;
+    await fetch('/api/no-show-settings', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const msg = document.getElementById('saved-msg');
+    msg.textContent = '✓ Saved';
+    setTimeout(() => { msg.textContent = ''; }, 2000);
+  }
+  load();
+</script>
+</body>
+</html>

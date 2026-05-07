@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Peak Hour Analytics — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .hourly-row { display: flex; align-items: flex-end; gap: 2px; height: 100px; }
+    .hourly-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+    .h-bar { width: 100%; border-radius: 3px 3px 0 0; transition: opacity .2s; }
+    .h-bar:hover { opacity: 1 !important; }
+    .h-lbl { font-size: .42rem; color: var(--muted); margin-top: 3px; writing-mode: vertical-rl; transform: rotate(180deg); height: 26px; }
+    .info-row { display: flex; gap: 1rem; margin-bottom: .6rem; }
+    .info-box { flex: 1; background: var(--surface2); border-radius: 10px; padding: .85rem 1rem; }
+    .info-lbl { font-size: .62rem; color: var(--muted); margin-bottom: .25rem; text-transform: uppercase; letter-spacing: .06em; }
+    .info-val { font-size: .95rem; font-weight: 800; }
+    .monthly-row { display: flex; align-items: flex-end; gap: 3px; height: 80px; }
+    .monthly-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+    .m-bar { width: 100%; background: var(--accent); opacity: .7; border-radius: 3px 3px 0 0; }
+    .m-lbl { font-size: .5rem; color: var(--muted); margin-top: 3px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Peak Hour Analytics</div>
+  <p class="page-sub">Understand when your salon is busiest. Identify peak call hours, slow periods, and your highest-traffic day of the week to optimize staffing and promotions.</p>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="stat-val" id="h-peak" style="color:var(--yellow)">—</div>
+      <div class="stat-lbl">Peak Hour</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-peak-calls" style="color:var(--accent)">—</div>
+      <div class="stat-lbl">Peak Calls/hr</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-slow" style="color:var(--muted)">—</div>
+      <div class="stat-lbl">Slowest Hour</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-busiest" style="color:var(--green)">—</div>
+      <div class="stat-lbl">Busiest Day</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="h-avg" style="color:var(--muted)">—</div>
+      <div class="stat-lbl">Avg Calls/hr</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Call Volume by Hour</div>
+    <div class="hourly-row" id="hourly-bars"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Monthly Call Volume</div>
+    <div class="monthly-row" id="monthly-bars"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const data = await fetch('/api/analytics/peak-hour-stats').then(r => r.json());
+    document.getElementById('h-peak').textContent = data.peak_hour_label;
+    document.getElementById('h-peak-calls').textContent = data.peak_calls;
+    document.getElementById('h-slow').textContent = data.slowest_hour_label;
+    document.getElementById('h-busiest').textContent = data.busiest_day;
+    document.getElementById('h-avg').textContent = data.avg_calls_per_hour;
+
+    const hours = data.hours || [];
+    const maxCalls = Math.max(...hours.map(h => h.calls), 1);
+    const peakHour = hours.find(h => h.calls === data.peak_calls);
+    const bars = document.getElementById('hourly-bars');
+    hours.forEach(h => {
+      const ht = Math.max((h.calls / maxCalls * 90).toFixed(0), 2);
+      const isPeak = peakHour && h.hour === peakHour.hour;
+      const color = isPeak ? 'var(--yellow)' : 'var(--accent)';
+      const opacity = isPeak ? '1' : '0.55';
+      bars.innerHTML += `<div class="hourly-col">
+        <div class="h-bar" style="height:${ht}px;background:${color};opacity:${opacity}" title="${h.label}: ${h.calls} calls, ${h.booked} booked"></div>
+        <div class="h-lbl">${h.label}</div>
+      </div>`;
+    });
+
+    const monthly = data.monthly || [];
+    const maxM = Math.max(...monthly.map(m => m.total_calls), 1);
+    const mbars = document.getElementById('monthly-bars');
+    monthly.forEach(m => {
+      const mh = Math.max((m.total_calls / maxM * 72).toFixed(0), 2);
+      mbars.innerHTML += `<div class="monthly-col">
+        <div class="m-bar" style="height:${mh}px" title="${m.month}: ${m.total_calls} calls, peak at ${m.peak_hour}:00"></div>
+        <div class="m-lbl">${m.month.slice(0,3)}</div>
+      </div>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

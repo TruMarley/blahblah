@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>No-Show Policy — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .8rem; padding: .55rem .75rem; outline: none; resize: vertical; min-height: 56px; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .28rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .field-wrap { margin-bottom: .9rem; }
+    .fee-row { display: flex; gap: .75rem; align-items: flex-start; flex-wrap: wrap; margin-bottom: .9rem; }
+    .fee-opt { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .7rem .9rem; display: flex; align-items: center; gap: .5rem; cursor: pointer; flex: 1; min-width: 130px; }
+    .fee-opt input[type=radio] { accent-color: var(--accent); width: 15px; height: 15px; flex-shrink: 0; }
+    .fee-opt-label { font-size: .8rem; font-weight: 700; }
+    .fee-opt-sub { font-size: .7rem; color: var(--muted); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">No-Show Policy</div>
+  <p class="page-sub">Protect your revenue from last-minute no-shows and late cancellations. Require a card on file and configure automated fees — your AI communicates the policy clearly during booking.</p>
+
+  <div class="card">
+    <div class="card-title">Policy</div>
+    <div class="row">
+      <div><div class="row-label">Enable No-Show Policy</div><div class="row-sub">Enforce fees for no-shows and late cancellations</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Require Card on File</div><div class="row-sub">Clients must provide card at booking</div></div>
+      <label class="toggle"><input type="checkbox" id="require-card"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Waive First Offense</div><div class="row-sub">Give new or first-time no-shows a pass</div></div>
+      <label class="toggle"><input type="checkbox" id="waive-first"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Block After No-Shows</div><div class="row-sub">Auto-block client after this many no-shows</div></div>
+      <input type="number" id="block-after" min="1" max="10" placeholder="2">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Grace Period (minutes)</div><div class="row-sub">Minutes late before considered a no-show</div></div>
+      <input type="number" id="grace-period" min="0" max="60" placeholder="10">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Fee Structure</div>
+    <div class="field-label">Fee Type</div>
+    <div class="fee-row">
+      <label class="fee-opt">
+        <input type="radio" name="fee-type" value="flat">
+        <div><div class="fee-opt-label">Flat Fee</div><div class="fee-opt-sub">Fixed dollar amount</div></div>
+      </label>
+      <label class="fee-opt">
+        <input type="radio" name="fee-type" value="percentage">
+        <div><div class="fee-opt-label">Percentage</div><div class="fee-opt-sub">% of service price</div></div>
+      </label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Flat Fee ($)</div><div class="row-sub">Charged for no-show (flat mode)</div></div>
+      <input type="number" id="fee-flat" min="1" max="500" placeholder="25">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Percentage Fee (%)</div><div class="row-sub">% of appointment value (% mode)</div></div>
+      <input type="number" id="fee-pct" min="1" max="100" placeholder="50">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Maximum Fee ($)</div><div class="row-sub">Cap on the no-show fee charged</div></div>
+      <input type="number" id="max-fee" min="1" max="1000" placeholder="100">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notify Before Charge</div><div class="row-sub">Send SMS warning before charging fee</div></div>
+      <label class="toggle"><input type="checkbox" id="notify-before"><span class="slider"></span></label>
+    </div>
+    <div class="field-wrap" style="margin-top:.9rem">
+      <div class="field-label">Client Notification Message</div>
+      <textarea id="notify-msg" rows="2"></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Reminders</div>
+    <div class="row">
+      <div><div class="row-label">AI Sends Pre-Appointment Reminder</div><div class="row-sub">Reminder reduces no-shows significantly</div></div>
+      <label class="toggle"><input type="checkbox" id="ai-reminder"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Remind Hours Before</div><div class="row-sub">How many hours before to send reminder</div></div>
+      <input type="number" id="reminder-hours" min="1" max="72" placeholder="24">
+    </div>
+    <button class="save-btn" onclick="save()">Save No-Show Policy</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  async function load() {
+    const d = await fetch('/api/settings/no-show-policy-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled ?? true;
+    document.getElementById('require-card').checked = d.require_card_on_file ?? true;
+    document.getElementById('waive-first').checked = d.waive_first_offense ?? true;
+    document.getElementById('block-after').value = d.block_after_no_shows ?? 2;
+    document.getElementById('grace-period').value = d.grace_period_minutes ?? 10;
+    const feeType = d.fee_type || 'flat';
+    document.querySelectorAll('input[name=fee-type]').forEach(r => { r.checked = r.value === feeType; });
+    document.getElementById('fee-flat').value = d.fee_flat ?? 25;
+    document.getElementById('fee-pct').value = d.fee_pct ?? 50;
+    document.getElementById('max-fee').value = d.max_fee ?? 100;
+    document.getElementById('notify-before').checked = d.notify_before_charge ?? true;
+    document.getElementById('notify-msg').value = d.notify_message || '';
+    document.getElementById('ai-reminder').checked = d.ai_sends_reminder_before ?? true;
+    document.getElementById('reminder-hours').value = d.reminder_hours_before ?? 24;
+  }
+  async function save() {
+    const feeTypeEl = document.querySelector('input[name=fee-type]:checked');
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      require_card_on_file: document.getElementById('require-card').checked,
+      waive_first_offense: document.getElementById('waive-first').checked,
+      block_after_no_shows: parseInt(document.getElementById('block-after').value) || 2,
+      grace_period_minutes: parseInt(document.getElementById('grace-period').value) || 10,
+      fee_type: feeTypeEl ? feeTypeEl.value : 'flat',
+      fee_flat: parseInt(document.getElementById('fee-flat').value) || 25,
+      fee_pct: parseInt(document.getElementById('fee-pct').value) || 50,
+      max_fee: parseInt(document.getElementById('max-fee').value) || 100,
+      notify_before_charge: document.getElementById('notify-before').checked,
+      notify_message: document.getElementById('notify-msg').value,
+      ai_sends_reminder_before: document.getElementById('ai-reminder').checked,
+      reminder_hours_before: parseInt(document.getElementById('reminder-hours').value) || 24,
+    };
+    await fetch('/api/settings/no-show-policy-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

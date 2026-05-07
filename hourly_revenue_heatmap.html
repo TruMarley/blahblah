@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hourly Revenue Heatmap — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.6rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .heatmap-wrap { overflow-x: auto; }
+    .heatmap { display: grid; gap: 3px; }
+    .hm-cell { border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: .62rem; font-weight: 700; color: rgba(255,255,255,.6); cursor: default; transition: opacity .15s; }
+    .hm-cell:hover { opacity: .8; }
+    .hm-label-row { display: flex; gap: 3px; margin-bottom: 3px; padding-left: 38px; }
+    .hm-hour-label { font-size: .6rem; color: var(--muted); text-align: center; }
+    .hm-row { display: flex; align-items: center; gap: 3px; }
+    .hm-day-label { font-size: .65rem; color: var(--muted); width: 32px; text-align: right; flex-shrink: 0; }
+    .legend-bar { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; font-size: .7rem; color: var(--muted); }
+    .legend-gradient { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(to right, #161616, rgba(167,139,250,.9)); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Hourly Revenue Heatmap</div>
+  <p class="page-sub">Revenue intensity by day and hour — find your peak windows and schedule staff accordingly.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Peak Slot</div>
+      <div class="hero-val" id="h-peak" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Peak Revenue</div>
+      <div class="hero-val" id="h-rev" style="color:var(--green)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Revenue by Day &amp; Hour</div>
+    <div class="heatmap-wrap" id="heatmap-wrap"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/hourly-revenue-heatmap');
+    const d = await r.json();
+    const cells = d.cells || [];
+    const days = d.days || [];
+    const hours = d.hours || [];
+    const maxRev = Math.max(...cells.map(c=>c.revenue_cents));
+    const peak = cells.reduce((a,b)=>b.revenue_cents>a.revenue_cents?b:a, cells[0]||{});
+    document.getElementById('h-peak').textContent = peak.day && peak.hour ? `${peak.day} ${peak.hour}` : '—';
+    document.getElementById('h-rev').textContent = peak.revenue_cents ? '$' + (peak.revenue_cents/100).toFixed(0) : '—';
+
+    const cellW = Math.max(44, Math.floor((Math.min(window.innerWidth,760)-80) / hours.length));
+    const cellH = 36;
+
+    const wrap = document.getElementById('heatmap-wrap');
+    // header row
+    let html = `<div class="hm-label-row">`;
+    hours.forEach(h => {
+      html += `<div class="hm-hour-label" style="width:${cellW}px">${esc(h)}</div>`;
+    });
+    html += '</div>';
+    days.forEach(day => {
+      html += `<div class="hm-row">`;
+      html += `<div class="hm-day-label">${esc(day)}</div>`;
+      hours.forEach(hour => {
+        const cell = cells.find(c=>c.day===day&&c.hour===hour) || {revenue_cents:0};
+        const pct = maxRev ? cell.revenue_cents/maxRev : 0;
+        const alpha = 0.08 + pct * 0.82;
+        const rev = '$' + (cell.revenue_cents/100).toFixed(0);
+        html += `<div class="hm-cell" style="width:${cellW}px;height:${cellH}px;background:rgba(167,139,250,${alpha.toFixed(2)})" title="${day} ${hour}: ${rev}">${rev}</div>`;
+      });
+      html += '</div>';
+    });
+    wrap.innerHTML = html;
+
+    // legend
+    wrap.innerHTML += `<div class="legend-bar"><span>Low</span><div class="legend-gradient"></div><span>High</span></div>`;
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

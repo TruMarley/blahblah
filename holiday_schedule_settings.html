@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Holiday Schedule — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .holiday-list { display: flex; flex-direction: column; gap: .65rem; margin-bottom: 1.1rem; }
+    .holiday-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .holiday-header { display: flex; align-items: center; gap: .6rem; margin-bottom: .4rem; }
+    .holiday-name { font-size: .85rem; font-weight: 700; flex: 1; }
+    .holiday-date { font-size: .75rem; color: var(--accent); font-weight: 600; min-width: 80px; text-align: right; }
+    .holiday-controls { display: flex; align-items: center; gap: .5rem; }
+    .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 20px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--red); }
+    input:checked + .slider::before { transform: translateX(16px); background: #fff; }
+    .rm-btn { background: none; border: none; color: var(--red); cursor: pointer; font-size: .85rem; opacity: .6; }
+    .rm-btn:hover { opacity: 1; }
+    .holiday-msg { font-size: .75rem; color: var(--muted); font-style: italic; margin-top: .15rem; padding-left: .1rem; }
+    input[type=text], input[type=date] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 100%; }
+    input[type=date] { color-scheme: dark; }
+    input:focus { border-color: var(--accent); }
+    .add-grid { display: grid; grid-template-columns: 1fr 160px; gap: .45rem; margin-bottom: .55rem; }
+    .add-btn { background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: .82rem; font-weight: 700; padding: .42rem 1rem; cursor: pointer; width: 100%; }
+    .add-btn:hover { opacity: .88; }
+    .field-label { font-size: .62rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .18rem; }
+    .empty-note { font-size: .78rem; color: var(--muted); text-align: center; padding: .5rem; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Holiday Schedule</div>
+  <p class="page-sub">Set your shop's holiday closures ahead of time. When a client calls on a holiday, the AI plays the holiday message and doesn't attempt to book. Toggle "Closed" off if you'll be open on that date.</p>
+
+  <div class="card">
+    <div class="card-title">Holidays</div>
+    <div class="holiday-list" id="holiday-list"></div>
+    <div class="add-grid">
+      <div><div class="field-label">Holiday Name</div><input type="text" id="new-name" placeholder="e.g. Thanksgiving"></div>
+      <div><div class="field-label">Date</div><input type="date" id="new-date"></div>
+    </div>
+    <button class="add-btn" onclick="addHoliday()">+ Add Holiday</button>
+    <button class="save-btn" onclick="save()">Save Holiday Schedule</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let holidays = [];
+  let nextId = 100;
+
+  function renderList() {
+    const el = document.getElementById('holiday-list');
+    if (holidays.length === 0) { el.innerHTML = '<div class="empty-note">No holidays added.</div>'; return; }
+    holidays.sort((a, b) => a.date.localeCompare(b.date));
+    el.innerHTML = holidays.map((h, i) => `<div class="holiday-item">
+      <div class="holiday-header">
+        <span class="holiday-name">${esc(h.name)}</span>
+        <span class="holiday-date">${esc(h.date)}</span>
+        <div class="holiday-controls">
+          <label class="toggle" title="Closed"><input type="checkbox" ${h.closed ? 'checked' : ''} onchange="toggleClosed(${i})"><span class="slider"></span></label>
+          <button class="rm-btn" onclick="removeHoliday(${i})">&#x2715;</button>
+        </div>
+      </div>
+      ${h.closed && h.custom_message ? `<div class="holiday-msg">"${esc(h.custom_message)}"</div>` : ''}
+    </div>`).join('');
+  }
+
+  function addHoliday() {
+    const name = document.getElementById('new-name').value.trim();
+    const date = document.getElementById('new-date').value;
+    if (!name || !date) return;
+    holidays.push({ id: 'h' + (nextId++), name, date, closed: true, custom_message: `We're closed for ${name}. See you next time!` });
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-date').value = '';
+    renderList();
+  }
+
+  function removeHoliday(i) { holidays.splice(i, 1); renderList(); }
+  function toggleClosed(i) { holidays[i].closed = !holidays[i].closed; renderList(); }
+
+  async function load() {
+    const d = await fetch('/api/settings/holiday-schedule-cfg').then(r => r.json());
+    holidays = d.holidays || [];
+    renderList();
+  }
+
+  async function save() {
+    await fetch('/api/settings/holiday-schedule-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ holidays }) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  load();
+</script>
+</body>
+</html>

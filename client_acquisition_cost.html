@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Acquisition Cost — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 2rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .legend { display: flex; gap: 1.25rem; margin-bottom: 1rem; }
+    .leg-item { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--muted); }
+    .leg-dot { width: 9px; height: 9px; border-radius: 2px; }
+    .chart-wrap { height: 240px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Acquisition Cost</div>
+  <p class="page-sub">Marketing spend vs. new clients — track your cost to acquire each new customer.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Avg CAC</div>
+      <div class="hero-val" id="h-cac" style="color:var(--red)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Latest Month CAC</div>
+      <div class="hero-val" id="h-cur" style="color:var(--accent)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">6-Month CAC Trend</div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#a78bfa"></div>Marketing Spend</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#34d399"></div>New Clients</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#fbbf24;border-radius:50%"></div>CAC ($)</div>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 760 240" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const r = await fetch('/api/analytics/client-acquisition-cost');
+    const d = await r.json();
+    document.getElementById('h-cac').textContent = '$' + d.avg_cac.toFixed(2);
+    const months = d.months || [];
+    const last = months[months.length-1];
+    document.getElementById('h-cur').textContent = last ? '$' + last.cac_dollars.toFixed(2) : '—';
+
+    const svg = document.getElementById('chart');
+    const W=760, H=240, pL=56, pR=56, pT=14, pB=34;
+    const cW=W-pL-pR, cH=H-pT-pB;
+    const n = months.length;
+    const slotW = cW/n;
+    const bW = slotW*0.28;
+    const maxSpend = Math.max(...months.map(m=>m.marketing_spend), 1);
+    const maxClients = Math.max(...months.map(m=>m.new_clients), 1);
+    const maxCAC = Math.max(...months.map(m=>m.cac_dollars), 1);
+
+    // left axis: spend
+    [0,.25,.5,.75,1].forEach(f => {
+      const y = pT + cH*(1-f);
+      svg.innerHTML += `<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#1e1e1e" stroke-width="1"/>`;
+      svg.innerHTML += `<text x="${pL-4}" y="${y+3}" font-size="8" fill="#555" text-anchor="end">$${Math.round(maxSpend*f)}</text>`;
+    });
+
+    // right axis: CAC
+    [0, 25, 50, 75, 100].filter(v => v <= maxCAC*1.1).forEach(v => {
+      const y = pT + cH - (v/maxCAC)*cH;
+      svg.innerHTML += `<text x="${W-pR+4}" y="${y+3}" font-size="8" fill="rgba(251,191,36,.5)" text-anchor="start">$${v}</text>`;
+    });
+
+    const cacPts = [];
+    months.forEach((m,i) => {
+      const cx = pL + i*slotW + slotW/2;
+      const spendH = (m.marketing_spend/maxSpend)*cH;
+      const clientH = (m.new_clients/maxClients)*cH;
+      svg.innerHTML += `<rect x="${cx-bW-1}" y="${pT+cH-spendH}" width="${bW}" height="${spendH}" rx="2" fill="#a78bfa" opacity=".55"/>`;
+      svg.innerHTML += `<rect x="${cx+1}" y="${pT+cH-clientH}" width="${bW}" height="${clientH}" rx="2" fill="#34d399" opacity=".65"/>`;
+      svg.innerHTML += `<text x="${cx}" y="${H-4}" font-size="9" fill="#555" text-anchor="middle">${m.month}</text>`;
+      const cy = pT + cH - (m.cac_dollars/maxCAC)*cH;
+      cacPts.push([cx, cy]);
+    });
+
+    if (cacPts.length > 1) {
+      svg.innerHTML += `<polyline fill="none" stroke="#fbbf24" stroke-width="2" stroke-dasharray="5 3" stroke-linejoin="round" points="${cacPts.map(p=>p.join(',')).join(' ')}"/>`;
+    }
+    cacPts.forEach((p,i) => {
+      svg.innerHTML += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#fbbf24" opacity=".9"/>`;
+      svg.innerHTML += `<text x="${p[0]}" y="${p[1]-6}" font-size="7.5" fill="rgba(251,191,36,.8)" text-anchor="middle">$${months[i].cac_dollars.toFixed(0)}</text>`;
+    });
+  }
+  load();
+</script>
+</body>
+</html>

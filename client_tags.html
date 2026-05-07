@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Tags — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.1rem; }
+    .tags-grid { display: flex; flex-wrap: wrap; gap: .75rem; }
+    .tag-chip { display: flex; align-items: center; gap: .5rem; padding: .5rem .9rem; border-radius: 99px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04); }
+    .tag-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .tag-name { font-size: .82rem; font-weight: 800; }
+    .tag-count { font-size: .72rem; color: var(--muted); }
+    .tag-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .85rem; padding: 0 0 0 .25rem; line-height: 1; transition: color .15s; }
+    .tag-del:hover { color: var(--red); }
+    .add-form { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+    .add-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .83rem; padding: .45rem .75rem; font-family: inherit; flex: 1; min-width: 140px; }
+    .color-input { width: 40px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); padding: 2px; cursor: pointer; }
+    .add-btn { font-size: .78rem; font-weight: 800; padding: .45rem 1rem; border-radius: 8px; border: 1px solid rgba(167,139,250,.4); background: rgba(167,139,250,.1); color: var(--accent); cursor: pointer; font-family: inherit; white-space: nowrap; transition: all .15s; }
+    .add-btn:hover { background: rgba(167,139,250,.2); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Client Tags</div>
+  <p class="page-sub">Organize clients with custom tags — segment your audience for targeted follow-up.</p>
+
+  <div class="card">
+    <div class="card-title">All Tags</div>
+    <div class="tags-grid" id="tags-grid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Add New Tag</div>
+    <div class="add-form">
+      <input class="add-input" id="tag-name" type="text" placeholder="Tag name…" maxlength="24">
+      <input class="color-input" id="tag-color" type="color" value="#a78bfa">
+      <button class="add-btn" onclick="addTag()">+ Add Tag</button>
+    </div>
+  </div>
+</div>
+<script>
+  let tags = [];
+
+  async function load() {
+    const r = await fetch('/api/client-tags');
+    const d = await r.json();
+    tags = d.tags || [];
+    render();
+  }
+
+  function render() {
+    document.getElementById('tags-grid').innerHTML = tags.map(t => `
+      <div class="tag-chip" id="chip-${t.id}">
+        <div class="tag-dot" style="background:${esc(t.color)}"></div>
+        <span class="tag-name">${esc(t.name)}</span>
+        <span class="tag-count">${t.client_count}</span>
+        <button class="tag-del" onclick="delTag('${t.id}')" title="Delete tag">✕</button>
+      </div>`).join('');
+  }
+
+  async function addTag() {
+    const name = document.getElementById('tag-name').value.trim();
+    const color = document.getElementById('tag-color').value;
+    if (!name) return;
+    const r = await fetch('/api/client-tags', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, color})});
+    const d = await r.json();
+    tags.push(d.tag);
+    document.getElementById('tag-name').value = '';
+    render();
+  }
+
+  async function delTag(id) {
+    await fetch(`/api/client-tags/${id}`, {method:'DELETE'});
+    tags = tags.filter(t => t.id !== id);
+    render();
+  }
+
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

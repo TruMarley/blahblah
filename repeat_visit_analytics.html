@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Repeat Visits — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1.25rem; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem .9rem; }
+    .stat-val { font-size: 1.1rem; font-weight: 900; }
+    .stat-lbl { font-size: .63rem; color: var(--muted); margin-top: .1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .bucket-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .7rem; }
+    .bucket-label { font-size: .78rem; color: var(--text); width: 80px; flex-shrink: 0; }
+    .bucket-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+    .bucket-fill { height: 100%; border-radius: 4px; }
+    .bucket-pct { font-size: .75rem; font-weight: 700; width: 40px; text-align: right; }
+    .trend-row { display: flex; align-items: flex-end; gap: .5rem; height: 90px; }
+    .trend-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .35rem; }
+    .trend-bar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; }
+    .trend-bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--green); opacity: .75; min-height: 4px; }
+    .trend-lbl { font-size: .58rem; color: var(--muted); }
+    .trend-val { font-size: .62rem; font-weight: 700; color: var(--green); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Repeat Visits</div>
+  <p class="page-sub">Track how often clients return and how visit frequency changes over time. Healthy repeat rates indicate strong client loyalty and effective AI follow-up.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-val" id="h-total" style="color:var(--accent)">—</div><div class="stat-lbl">Clients (30d)</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-repeat" style="color:var(--green)">—</div><div class="stat-lbl">Repeat Client %</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-avg" style="color:var(--yellow)">—</div><div class="stat-lbl">Avg Visits / Client</div></div>
+    <div class="stat-pill"><div class="stat-val" id="h-interval" style="color:var(--muted)">—</div><div class="stat-lbl">Top Interval (days)</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Visit Frequency Buckets</div>
+    <div id="bucket-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">6-Month Repeat Rate Trend</div>
+    <div class="trend-row" id="trend-row"></div>
+  </div>
+</div>
+<script>
+  const COLORS = ['var(--red)','var(--yellow)','var(--accent)','#60a5fa','var(--green)'];
+  async function load() {
+    const d = await fetch('/api/analytics/repeat-visit-stats').then(r => r.json());
+    document.getElementById('h-total').textContent = d.total_clients_30d;
+    document.getElementById('h-repeat').textContent = d.repeat_client_pct.toFixed(1) + '%';
+    document.getElementById('h-avg').textContent = d.avg_visits_per_client.toFixed(1);
+    document.getElementById('h-interval').textContent = d.top_repeat_interval_days + 'd';
+    const bl = document.getElementById('bucket-list');
+    const maxP = Math.max(...d.buckets.map(b => b.pct));
+    d.buckets.forEach((b, i) => {
+      const w = (b.pct / maxP * 100).toFixed(1);
+      bl.innerHTML += '<div class="bucket-row"><div class="bucket-label">' + b.label + '</div><div class="bucket-track"><div class="bucket-fill" style="width:' + w + '%;background:' + COLORS[i % COLORS.length] + '"></div></div><div class="bucket-pct" style="color:' + COLORS[i % COLORS.length] + '">' + b.pct.toFixed(1) + '%</div></div>';
+    });
+    const tr = document.getElementById('trend-row');
+    const maxV = Math.max(...d.monthly.map(m => m.repeat_pct));
+    d.monthly.forEach(m => {
+      const h = Math.max(6, (m.repeat_pct / maxV * 78)).toFixed(1);
+      tr.innerHTML += '<div class="trend-col"><div class="trend-val">' + m.repeat_pct.toFixed(1) + '%</div><div class="trend-bar-wrap"><div class="trend-bar" style="height:' + h + 'px"></div></div><div class="trend-lbl">' + m.month + '</div></div>';
+    });
+  }
+  load();
+</script>
+</body>
+</html>

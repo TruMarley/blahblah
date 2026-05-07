@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Peak Booking Windows — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.8rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .rank-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1.1rem; margin-bottom: .65rem; display: flex; align-items: center; gap: 1rem; }
+    .rank-num { font-size: 1.4rem; font-weight: 900; color: var(--muted); min-width: 2rem; text-align: center; }
+    .rank-body { flex: 1; }
+    .rank-label { font-size: .95rem; font-weight: 800; margin-bottom: .1rem; }
+    .rank-meta { font-size: .72rem; color: var(--muted); }
+    .rank-right { text-align: right; }
+    .rank-count { font-size: 1.1rem; font-weight: 900; }
+    .rank-rev { font-size: .72rem; color: var(--muted); }
+    .bar-track { width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin-top: .55rem; }
+    .bar-fill { height: 4px; border-radius: 2px; }
+    .rank-1 .rank-num { color: var(--yellow); }
+    .rank-2 .rank-num { color: var(--accent); }
+    .rank-3 .rank-num { color: var(--green); }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Peak Booking Windows</div>
+  <p class="page-sub">Your highest-demand day &amp; hour combinations — staff up during these windows to maximize capacity.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">#1 Peak Window</div>
+      <div class="hero-val" id="h-peak" style="color:var(--yellow); font-size:1.3rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Peak Bookings</div>
+      <div class="hero-val" id="h-count" style="color:var(--accent)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Top 5 Booking Windows</div>
+    <div id="rank-list"></div>
+  </div>
+</div>
+<script>
+  const RANK_COLORS = ['var(--yellow)','var(--accent)','var(--green)','#60a5fa','var(--muted)'];
+  async function load() {
+    const r = await fetch('/api/analytics/peak-booking-windows');
+    const d = await r.json();
+    const windows = d.windows || [];
+    if (windows.length) {
+      document.getElementById('h-peak').textContent = windows[0].label;
+      document.getElementById('h-count').textContent = windows[0].booking_count + ' bookings';
+    }
+    const maxCount = Math.max(...windows.map(w=>w.booking_count));
+    const list = document.getElementById('rank-list');
+    windows.forEach((w, i) => {
+      const color = RANK_COLORS[i];
+      const pct = (w.booking_count / maxCount * 100).toFixed(0);
+      list.innerHTML += `
+        <div class="rank-row rank-${i+1}">
+          <div class="rank-num">#${i+1}</div>
+          <div class="rank-body">
+            <div class="rank-label">${esc(w.label)}</div>
+            <div class="rank-meta">avg $${(w.avg_revenue_cents/100).toFixed(0)} revenue per booking</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+          </div>
+          <div class="rank-right">
+            <div class="rank-count" style="color:${color}">${w.booking_count}</div>
+            <div class="rank-rev">bookings</div>
+          </div>
+        </div>`;
+    });
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>

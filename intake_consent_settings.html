@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Intake &amp; Consent — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input[type=number]:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; min-width: 120px; cursor: pointer; }
+    select:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .8rem; padding: .55rem .75rem; outline: none; resize: vertical; min-height: 80px; font-family: inherit; line-height: 1.5; }
+    textarea:focus { border-color: var(--accent); }
+    .field-label { font-size: .72rem; color: var(--muted); margin-bottom: .28rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .consent-preview { background: #0e0b18; border: 1px solid rgba(167,139,250,.15); border-radius: 10px; padding: .8rem 1rem; margin-top: .75rem; }
+    .preview-label { font-size: .6rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .preview-text { font-size: .78rem; color: var(--muted); line-height: 1.6; font-style: italic; }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Intake &amp; Consent</div>
+  <p class="page-sub">Collect client health information and consent before their first visit. Knowing allergies and sensitivities upfront protects your clients and your business — the AI sends the form automatically.</p>
+
+  <div class="card">
+    <div class="card-title">Intake Form Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Intake Form</div><div class="row-sub">Send form to new clients before first visit</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Require Before First Visit</div><div class="row-sub">Client must complete before booking is confirmed</div></div>
+      <label class="toggle"><input type="checkbox" id="require-first"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div class="row-label">Send Form Via</div>
+      <select id="send-via">
+        <option value="sms">SMS</option>
+        <option value="email">Email</option>
+        <option value="both">Both</option>
+      </select>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Form Expires (days)</div><div class="row-sub">Re-send after this many days for re-consent</div></div>
+      <input type="number" id="expires-days" min="30" max="730" placeholder="365">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Require Signature</div><div class="row-sub">Client must sign the consent form digitally</div></div>
+      <label class="toggle"><input type="checkbox" id="require-sig"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Health Information</div>
+    <div class="row">
+      <div><div class="row-label">Collect Allergy Info</div><div class="row-sub">Ask about product allergies and sensitivities</div></div>
+      <label class="toggle"><input type="checkbox" id="allergies"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Collect Hair Type</div><div class="row-sub">Fine, coarse, curly, color-treated, etc.</div></div>
+      <label class="toggle"><input type="checkbox" id="hair-type"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Collect Skin Type</div><div class="row-sub">Normal, sensitive, oily, dry — for facial/spa services</div></div>
+      <label class="toggle"><input type="checkbox" id="skin-type"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Consent Language</div>
+    <div class="field-label">Consent text shown to client</div>
+    <textarea id="consent-text" rows="4"></textarea>
+    <div class="consent-preview">
+      <div class="preview-label">Client View</div>
+      <div class="preview-text" id="preview-text">I consent to the services requested and acknowledge that results may vary. I have disclosed any known allergies or sensitivities.</div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Intake Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  document.getElementById('consent-text').addEventListener('input', function() {
+    document.getElementById('preview-text').textContent = this.value;
+  });
+  async function load() {
+    const d = await fetch('/api/settings/intake-consent-cfg').then(r => r.json());
+    document.getElementById('enabled').checked = d.enabled ?? true;
+    document.getElementById('require-first').checked = d.require_before_first_visit ?? true;
+    document.getElementById('send-via').value = d.send_form_via || 'sms';
+    document.getElementById('expires-days').value = d.form_expires_days ?? 365;
+    document.getElementById('require-sig').checked = d.signature_required ?? false;
+    document.getElementById('allergies').checked = d.collect_allergies ?? true;
+    document.getElementById('hair-type').checked = d.collect_hair_type ?? true;
+    document.getElementById('skin-type').checked = d.collect_skin_type ?? false;
+    const ct = d.consent_text || '';
+    document.getElementById('consent-text').value = ct;
+    document.getElementById('preview-text').textContent = ct;
+  }
+  async function save() {
+    const data = { enabled: document.getElementById('enabled').checked, require_before_first_visit: document.getElementById('require-first').checked, send_form_via: document.getElementById('send-via').value, form_expires_days: parseInt(document.getElementById('expires-days').value) || 365, signature_required: document.getElementById('require-sig').checked, collect_allergies: document.getElementById('allergies').checked, collect_hair_type: document.getElementById('hair-type').checked, collect_skin_type: document.getElementById('skin-type').checked, consent_text: document.getElementById('consent-text').value };
+    await fetch('/api/settings/intake-consent-cfg', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  load();
+</script>
+</body>
+</html>

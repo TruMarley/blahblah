@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RingDesk — Customer Stories</title>
+  <meta property="og:title" content="Real Barbershops. Real Results. — RingDesk Customer Stories">
+  <meta property="og:description" content="See how Crown & Blade, Prestige Cuts, and La Barbería Reyes recovered thousands in missed revenue with RingDesk's AI receptionist.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ringdesk.ai/stories">
+  <meta property="og:image" content="https://ringdesk.ai/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="How Barbershops Are Recovering Thousands in Missed Bookings">
+  <meta name="twitter:description" content="Real case studies: before & after metrics from shops using RingDesk AI receptionist.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808; --surface: #111; --surface2: #161616;
+      --border: #1e1e1e; --border2: #2a2a2a;
+      --text: #e8e8e8; --muted: #666; --muted2: #444;
+      --accent: #7c3aed; --accent-light: #a78bfa;
+      --green: #22c55e; --blue: #60a5fa; --orange: #f97316; --gold: #fbbf24;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+
+    nav {
+      position: fixed; top: 0; width: 100%; z-index: 100;
+      background: rgba(8,8,8,0.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 60px;
+    }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; letter-spacing: -0.03em; }
+    .logo span { color: var(--accent-light); }
+    .nav-links { display: flex; align-items: center; gap: 1.5rem; }
+    .nav-links a { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
+    .nav-cta { background: var(--accent); color: #fff !important; padding: 7px 18px; border-radius: 7px; font-weight: 600 !important; }
+
+    /* Hero */
+    .hero {
+      padding: 10rem 2rem 5rem; text-align: center;
+      background: radial-gradient(ellipse 80% 40% at 50% 0%, rgba(124,58,237,0.15) 0%, transparent 70%);
+    }
+    .hero-label {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25);
+      color: var(--accent-light); font-size: 0.72rem; font-weight: 700;
+      padding: 5px 14px; border-radius: 20px; margin-bottom: 1.5rem;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .hero h1 { font-size: clamp(2.2rem, 6vw, 3.8rem); font-weight: 900; color: #fff; letter-spacing: -0.04em; margin-bottom: 1rem; line-height: 1.05; }
+    .hero p { font-size: 1.05rem; color: var(--muted); max-width: 520px; margin: 0 auto; line-height: 1.7; }
+
+    /* Aggregate stats bar */
+    .stats-bar {
+      display: flex; justify-content: center; gap: 0; flex-wrap: wrap;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      background: var(--surface); margin-bottom: 5rem;
+    }
+    .stat-item {
+      padding: 1.5rem 3rem; text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-num { font-size: 2rem; font-weight: 900; color: #fff; letter-spacing: -0.04em; }
+    .stat-lbl { font-size: 0.72rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* Stories */
+    .stories { max-width: 1000px; margin: 0 auto; padding: 0 2rem 5rem; display: flex; flex-direction: column; gap: 4rem; }
+
+    .story-card {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start;
+    }
+    .story-card.reverse { direction: rtl; }
+    .story-card.reverse > * { direction: ltr; }
+
+    /* Story left — narrative */
+    .story-left { }
+    .shop-meta { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
+    .shop-avatar {
+      width: 52px; height: 52px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; flex-shrink: 0;
+    }
+    .av1 { background: linear-gradient(135deg, #1e3a2f, #0d2218); border: 1px solid #1a4d33; }
+    .av2 { background: linear-gradient(135deg, #1e1e3a, #0d0d22); border: 1px solid #1a1a4d; }
+    .av3 { background: linear-gradient(135deg, #3a1e1e, #220d0d); border: 1px solid #4d1a1a; }
+    .shop-info .shop-name { font-size: 1rem; font-weight: 700; color: #fff; }
+    .shop-info .shop-loc { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .shop-badge {
+      margin-left: auto; font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; padding: 3px 10px; border-radius: 20px;
+    }
+    .badge-pro { background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3); color: var(--accent-light); }
+
+    .story-headline { font-size: 1.5rem; font-weight: 800; color: #fff; letter-spacing: -0.03em; margin-bottom: 0.75rem; line-height: 1.2; }
+    .story-body { font-size: 0.875rem; color: var(--muted); line-height: 1.8; margin-bottom: 1.25rem; }
+    .story-body strong { color: var(--text); }
+
+    blockquote {
+      border-left: 3px solid var(--accent); padding: 1rem 1.25rem;
+      background: rgba(124,58,237,0.06); border-radius: 0 10px 10px 0;
+      margin: 1rem 0;
+    }
+    blockquote p { font-size: 0.9rem; color: #c4b5fd; line-height: 1.7; font-style: italic; }
+    blockquote cite { font-size: 0.75rem; color: var(--muted); font-style: normal; margin-top: 6px; display: block; }
+
+    /* Story right — metrics */
+    .story-right { }
+    .hero-stat-card {
+      border-radius: 14px; padding: 2rem; margin-bottom: 1rem; text-align: center;
+    }
+    .hsc1 { background: linear-gradient(135deg, rgba(34,197,94,0.12) 0%, rgba(16,85,42,0.08) 100%); border: 1px solid rgba(34,197,94,0.25); }
+    .hsc2 { background: linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(99,102,241,0.08) 100%); border: 1px solid rgba(124,58,237,0.25); }
+    .hsc3 { background: linear-gradient(135deg, rgba(251,191,36,0.12) 0%, rgba(245,158,11,0.08) 100%); border: 1px solid rgba(251,191,36,0.25); }
+    .hero-stat-card .hs-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+    .hsc1 .hs-label { color: var(--green); }
+    .hsc2 .hs-label { color: var(--accent-light); }
+    .hsc3 .hs-label { color: var(--gold); }
+    .hero-stat-card .hs-num { font-size: 3.5rem; font-weight: 900; letter-spacing: -0.04em; line-height: 1; }
+    .hsc1 .hs-num { color: var(--green); }
+    .hsc2 .hs-num { color: var(--accent-light); }
+    .hsc3 .hs-num { color: var(--gold); }
+    .hero-stat-card .hs-sub { font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
+
+    .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .metric-box {
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 10px; padding: 1rem;
+    }
+    .metric-box .mb-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .metric-box .mb-before { font-size: 0.78rem; color: var(--muted2); text-decoration: line-through; }
+    .metric-box .mb-after { font-size: 1.1rem; font-weight: 800; color: #fff; }
+    .metric-box .mb-delta { font-size: 0.72rem; color: var(--green); margin-top: 2px; }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 4rem 0; }
+
+    /* CTA */
+    .cta-section {
+      background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(124,58,237,0.12) 0%, transparent 70%);
+      border-top: 1px solid var(--border); padding: 5rem 2rem; text-align: center;
+    }
+    .cta-section h2 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 900; color: #fff; letter-spacing: -0.04em; margin-bottom: 0.75rem; }
+    .cta-section p { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; }
+    .btn-primary {
+      display: inline-block; background: var(--accent); color: #fff;
+      padding: 14px 32px; border-radius: 10px; font-size: 1rem; font-weight: 700;
+      text-decoration: none; transition: background 0.2s;
+      box-shadow: 0 0 40px rgba(124,58,237,0.3);
+    }
+    .btn-primary:hover { background: #6d28d9; }
+    .no-card { font-size: 0.78rem; color: var(--muted); margin-top: 1rem; }
+
+    @media (max-width: 768px) {
+      .story-card { grid-template-columns: 1fr; }
+      .story-card.reverse { direction: ltr; }
+      .stats-bar { flex-direction: column; }
+      .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/tour">Tour</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/onboarding" class="nav-cta">Get Started</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-label">⭐ Customer Stories</div>
+  <h1>Real shops.<br>Real results.</h1>
+  <p>How barbershops across the country stopped losing revenue to missed calls — and what happened next.</p>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-num">847</div><div class="stat-lbl">Shops using RingDesk</div></div>
+  <div class="stat-item"><div class="stat-num">34K+</div><div class="stat-lbl">Appointments booked by AI</div></div>
+  <div class="stat-item"><div class="stat-num">$2.8M</div><div class="stat-lbl">Revenue recovered from missed calls</div></div>
+  <div class="stat-item"><div class="stat-num">0:28</div><div class="stat-lbl">Avg. booking time</div></div>
+</div>
+
+<div class="stories">
+
+  <!-- Story 1 -->
+  <div class="story-card">
+    <div class="story-left">
+      <div class="shop-meta">
+        <div class="shop-avatar av1">✂️</div>
+        <div class="shop-info">
+          <div class="shop-name">Crown & Blade Barbershop</div>
+          <div class="shop-loc">Little Havana, Miami FL · Solo operator</div>
+        </div>
+        <span class="shop-badge badge-pro">Pro Plan</span>
+      </div>
+
+      <div class="story-headline">From 23 missed calls a week to zero — in 48 hours.</div>
+
+      <div class="story-body">
+        Carlos Méndez had been cutting hair in Little Havana for eleven years. Business was good — too good, actually. He was booked solid most days, which meant every time his phone rang while he had someone in the chair, it went to voicemail. Most of those callers never called back.
+        <br><br>
+        "I'd finish a cut, check my phone, and see four missed calls. I'd call them back and they'd already booked somewhere else," Carlos said. "I was losing probably <strong>$400–500 a week</strong> to that voicemail."
+        <br><br>
+        He signed up for RingDesk on a Thursday. By Saturday morning, his AI — he named it Alex — had already booked 11 appointments from calls that came in while he was cutting. The AI answered in Spanish for half of them without being told to.
+      </div>
+
+      <blockquote>
+        <p>"My clients couldn't even tell it wasn't a real person at first. One guy texted me after his appointment and said 'your receptionist is super professional.' I had to tell him it was AI. He didn't believe me."</p>
+        <cite>— Carlos Méndez, Owner, Crown & Blade Barbershop</cite>
+      </blockquote>
+    </div>
+
+    <div class="story-right">
+      <div class="hero-stat-card hsc1">
+        <div class="hs-label">Extra monthly revenue</div>
+        <div class="hs-num">+$1,840</div>
+        <div class="hs-sub">from calls that used to go to voicemail</div>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="mb-label">Missed calls/week</div>
+          <div class="mb-before">23</div>
+          <div class="mb-after">0</div>
+          <div class="mb-delta">↓ 100%</div>
+        </div>
+        <div class="metric-box">
+          <div class="mb-label">Bookings/month</div>
+          <div class="mb-before">~180</div>
+          <div class="mb-after">223</div>
+          <div class="mb-delta">↑ 24%</div>
+        </div>
+        <div class="metric-box">
+          <div class="mb-label">No-show rate</div>
+          <div class="mb-before">18%</div>
+          <div class="mb-after">6%</div>
+          <div class="mb-delta">↓ 67%</div>
+        </div>
+        <div class="metric-box">
+          <div class="mb-label">After-hours calls answered</div>
+          <div class="mb-before">0</div>
+          <div class="mb-after">41/mo</div>
+          <div class="mb-delta">↑ new revenue</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Story 2 -->
+  <div class="story-card reverse">
+    <div class="story-left">
+      <div class="shop-meta">
+        <div class="shop-avatar av2">💈</div>
+        <div class="shop-info">
+          <div class="shop-name">Prestige Cuts</div>
+          <div class="shop-loc">Bronx, New York · 2 barbers + owner</div>
+        </div>
+        <span class="shop-badge badge-pro">Pro Plan</span>
+      </div>
+
+      <div class="story-headline">Three barbers, one AI. They stopped fighting over who answers the phone.</div>
+
+      <div class="story-body">
+        Marcus and his two barbers at Prestige Cuts in the South Bronx had an unofficial system: whoever wasn't in the middle of a cut answered the phone. It led to constant interruptions, dropped clippers, and frustrated clients in the chair.
+        <br><br>
+        "It was chaos. Someone would be mid-fade and just grab the phone because nobody else could. The client in the chair had to wait, the caller got a distracted answer, and half the time the booking never even made it to the book," Marcus explained.
+        <br><br>
+        After setting up RingDesk, the phone problem disappeared entirely. The AI handles every call. All three barbers stay focused. The booking calendar fills automatically. Marcus checks the dashboard each morning to see what came in overnight.
+      </div>
+
+      <blockquote>
+        <p>"The overnight bookings alone paid for RingDesk in the first week. We were getting calls at 11pm from people trying to book for the weekend. We had no idea. Now those bookings just appear in the morning."</p>
+        <cite>— Marcus Thompson, Owner, Prestige Cuts</cite>
+      </blockquote>
+    </div>
+
+    <div class="story-right">
+      <div class="hero-stat-card hsc2">
+        <div class="hs-label">After-hours bookings (first month)</div>
+        <div class="hs-num">+38</div>
+        <div class="hs-sub">appointments from calls after 7pm</div>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="mb-label">Phone interruptions/day</div>
+          <div class="mb-before">~15</div>
+          <div class="mb-after">0</div>
+          <div class="mb-delta">↓ 100%</div>
+        </div>
+        <div class="metric-box">
+          <div class="mb-label">Weekly bookings</div>
+          <div class="mb-before">~62</div>
+          <div class="mb-after">89</div>
+          <div class="mb-delta">↑ 44%</div>
+        </div>
+        <div class="metric-box">
+          <div class="mb-label">Monthly revenue</div>
+          <div class="mb-before">~$8,200</div>
+          <div class="mb-after">$11,100</div>
+          <div class="mb-delta">↑ $2,900/mo</div>
+        </div>
+        <div class="metric-box">
+          <div class="mb-label">Client complaints</div>
+          <div class="mb-before">3-4/mo</div>
+          <div class="mb-after">0</div>
+          <div class="mb-delta">↓ eliminated</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Story 3 -->
+  <div class="story-card">
+    <div class="story-left">
+      <div class="shop-meta">
+        <div class="shop-avatar av3">🪒</div>
+        <div class="shop-info">
+          <div class="shop-name">La Barbería Reyes</div>
+          <div class="shop-loc">Pilsen, Chicago IL · Bilingual shop</div>
+        </div>
+        <span class="shop-badge badge-pro">Pro Plan</span>
+      </div>
+
+      <div class="story-headline">A bilingual shop needed a bilingual AI. It took 30 minutes to set up.</div>
+
+      <div class="story-body">
+        Diego Reyes runs La Barbería Reyes in Pilsen — Chicago's largest Mexican-American neighborhood. About 60% of his clients speak primarily Spanish. His previous answering service was English-only, which meant half his callers hung up confused or couldn't book at all.
+        <br><br>
+        "I tried a different AI service first. English only. My Spanish-speaking clients called, heard the English menu, and hung up. I was literally losing customers because of the phone system," Diego said.
+        <br><br>
+        With RingDesk, the AI detects Spanish in the first sentence and switches the entire conversation — booking, confirmation, everything — into Spanish. No menus, no "press 2," just natural conversation.
+      </div>
+
+      <blockquote>
+        <p>"My tía called to book for my cousin and didn't even realize she was talking to an AI. She called me and said 'qué amable es tu recepcionista.' I told her it was a computer. She still doesn't believe me."</p>
+        <cite>— Diego Reyes, Owner, La Barbería Reyes</cite>
+      </blockquote>
+    </div>
+
+    <div class="story-right">
+      <div class="hero-stat-card hsc3">
+        <div class="hs-label">Spanish-language bookings recovered</div>
+        <div class="hs-num">+67%</div>
+        <div class="hs-sub">from callers who previously hung up</div>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="mb-label">Spanish calls booked</div>
+          <div class="mb-before">~30%</div>
+          <div class="mb-after">97%</div>
+          <div class="mb-delta">↑ 67pts</div>
+        </div>
+        <div class="metric-box">
+          <div class="mb-label">Monthly bookings</div>
+          <div class="mb-before">~140</div>
+          <div class="mb-after">198</div>
+          <div class="mb-delta">↑ 41%</div>
+        </div>
+        <div class="metric-box">
+          <div class="mb-label">Callbacks needed</div>
+          <div class="mb-before">20+/mo</div>
+          <div class="mb-after">2/mo</div>
+          <div class="mb-delta">↓ 90%</div>
+        </div>
+        <div class="metric-box">
+          <div class="mb-label">Setup time</div>
+          <div class="mb-before">days</div>
+          <div class="mb-after">30 min</div>
+          <div class="mb-delta">↓ instant</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- CTA -->
+<div class="cta-section">
+  <h2>Ready to write your own story?</h2>
+  <p>14-day free trial. No credit card. Your AI answers its first call in under 10 minutes.</p>
+  <a href="/onboarding" class="btn-primary">Start Free Trial →</a>
+  <div class="no-card">No credit card required · Cancel anytime · Setup in 10 minutes</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Waitlist Auto-Fill — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; width: 80px; }
+    input:focus { border-color: var(--accent); }
+    textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-size: .8rem; padding: .55rem .75rem; outline: none; resize: vertical; min-height: 72px; font-family: inherit; line-height: 1.5; margin-top: .45rem; }
+    textarea:focus { border-color: var(--accent); }
+    .msg-label { font-size: .78rem; font-weight: 600; color: var(--muted); margin-bottom: .1rem; }
+    .priority-list { display: flex; flex-direction: column; gap: .4rem; margin-top: .35rem; }
+    .priority-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: .5rem .8rem; display: flex; align-items: center; gap: .6rem; cursor: grab; }
+    .priority-handle { color: var(--muted); font-size: .85rem; }
+    .priority-rank { font-size: .68rem; font-weight: 800; color: var(--accent); width: 18px; }
+    .priority-label { font-size: .82rem; font-weight: 600; flex: 1; }
+    .var-chips { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .45rem; }
+    .var-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; padding: .12rem .4rem; font-size: .7rem; color: var(--accent); font-family: monospace; cursor: pointer; }
+    .var-chip:hover { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Waitlist Auto-Fill</div>
+  <p class="page-sub">When a cancellation creates an open slot, your AI automatically texts waitlisted clients in priority order and fills the gap — no manual work required. Set the rules once and let it run.</p>
+  <div class="card">
+    <div class="card-title">Waitlist Settings</div>
+    <div class="row">
+      <div><div class="row-label">Enable Auto-Fill</div><div class="row-sub">AI fills gaps from cancellations automatically</div></div>
+      <label class="toggle"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Max Waitlist Size</div><div class="row-sub">Clients allowed on the list at once</div></div>
+      <input type="number" id="max-size" min="1" max="200" placeholder="20">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Auto-Notify on Slot Open</div><div class="row-sub">SMS clients when a slot becomes available</div></div>
+      <label class="toggle"><input type="checkbox" id="auto-notify"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div><div class="row-label">Notify Window (hours ahead)</div><div class="row-sub">Only notify if slot is within this window</div></div>
+      <input type="number" id="notify-window" min="1" max="168" placeholder="48">
+    </div>
+    <div class="row">
+      <div><div class="row-label">Offer Expiry (hours)</div><div class="row-sub">How long client has to accept the slot</div></div>
+      <input type="number" id="expiry-hours" min="1" max="24" placeholder="2">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Priority Order</div>
+    <div class="row-sub" style="margin-bottom:.55rem">Clients are notified in this order when a slot opens</div>
+    <div class="priority-list" id="priority-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Notification Message</div>
+    <div class="msg-label">Sent when a slot opens for a waitlisted client</div>
+    <textarea id="msg-template" rows="4"></textarea>
+    <div class="var-chips">
+      <div class="var-chip" onclick="insertVar('{client_name}')">{client_name}</div>
+      <div class="var-chip" onclick="insertVar('{service}')">{service}</div>
+      <div class="var-chip" onclick="insertVar('{slot_time}')">{slot_time}</div>
+      <div class="var-chip" onclick="insertVar('{stylist}')">{stylist}</div>
+    </div>
+    <button class="save-btn" onclick="save()">Save Settings</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  const PRIORITY_LABELS = {first_come:'First Come, First Served', loyalty_tier:'Loyalty Tier', spend_amount:'Highest Spender'};
+  let priorityOrder = [];
+  function renderPriority() {
+    const el = document.getElementById('priority-list');
+    el.innerHTML = '';
+    priorityOrder.forEach((p,i) => {
+      el.innerHTML += `<div class="priority-item">
+        <div class="priority-handle">⠿</div>
+        <div class="priority-rank">${i+1}</div>
+        <div class="priority-label">${PRIORITY_LABELS[p]||p}</div>
+      </div>`;
+    });
+  }
+  function insertVar(v) {
+    const ta = document.getElementById('msg-template');
+    const s=ta.selectionStart,e=ta.selectionEnd;
+    ta.value=ta.value.substring(0,s)+v+ta.value.substring(e);
+    ta.selectionStart=ta.selectionEnd=s+v.length;
+    ta.focus();
+  }
+  async function load() {
+    const d = await fetch('/api/settings/waitlist-auto-fill-cfg').then(r=>r.json());
+    document.getElementById('enabled').checked = d.enabled;
+    document.getElementById('max-size').value = d.max_waitlist_size ?? 20;
+    document.getElementById('auto-notify').checked = d.auto_notify;
+    document.getElementById('notify-window').value = d.notify_window_hours ?? 48;
+    document.getElementById('expiry-hours').value = d.expiry_hours ?? 2;
+    priorityOrder = d.priority_order || ['first_come','loyalty_tier','spend_amount'];
+    renderPriority();
+    document.getElementById('msg-template').value = d.message_template || '';
+  }
+  async function save() {
+    const data = {
+      enabled: document.getElementById('enabled').checked,
+      max_waitlist_size: parseInt(document.getElementById('max-size').value)||20,
+      auto_notify: document.getElementById('auto-notify').checked,
+      notify_window_hours: parseInt(document.getElementById('notify-window').value)||48,
+      expiry_hours: parseInt(document.getElementById('expiry-hours').value)||2,
+      priority_order: priorityOrder,
+      message_template: document.getElementById('msg-template').value
+    };
+    await fetch('/api/settings/waitlist-auto-fill-cfg',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const t=document.getElementById('toast');
+    t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000);
+  }
+  load();
+</script>
+</body>
+</html>

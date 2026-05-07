@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Price List — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.25rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .row-label { font-size: .85rem; font-weight: 600; }
+    .row-sub { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2a2a2a; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #555; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+    input[type=text], input[type=number] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    input:focus { border-color: var(--accent); }
+    select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: .82rem; padding: .42rem .75rem; outline: none; }
+    select:focus { border-color: var(--accent); }
+    .cat-chips { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .cat-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: .2rem .6rem; font-size: .72rem; color: var(--muted); cursor: pointer; transition: .15s; }
+    .cat-chip.active { background: rgba(167,139,250,.15); border-color: var(--accent); color: var(--accent); }
+    .svc-list { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1rem; }
+    .svc-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: .8rem .9rem; display: flex; align-items: center; gap: .6rem; }
+    .svc-item.hidden { display: none; }
+    .svc-en { flex-shrink: 0; }
+    .svc-name { font-size: .83rem; font-weight: 700; flex: 1; }
+    .svc-cat { font-size: .65rem; color: var(--muted); margin-top: .1rem; text-transform: capitalize; }
+    .svc-dur { font-size: .78rem; color: var(--muted); min-width: 48px; text-align: right; }
+    .svc-price { font-size: .88rem; font-weight: 800; color: var(--accent); min-width: 44px; text-align: right; }
+    .remove-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }
+    .remove-btn:hover { color: var(--red); }
+    .add-form { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom: .5rem; }
+    .add-form input, .add-form select { width: 100%; }
+    .add-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--accent); font-size: .78rem; font-weight: 700; padding: .38rem .7rem; cursor: pointer; grid-column: span 2; justify-self: start; }
+    .add-btn:hover { border-color: var(--accent); }
+    .save-btn { width: 100%; background: var(--accent); color: #fff; font-size: .88rem; font-weight: 800; border: none; border-radius: 10px; padding: .8rem; cursor: pointer; margin-top: 1.25rem; }
+    .save-btn:hover { opacity: .88; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a2a1a; border: 1px solid var(--green); color: var(--green); font-size: .8rem; font-weight: 700; padding: .6rem 1.4rem; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Price List</div>
+  <p class="page-sub">Configure your service menu so the AI knows exactly what you offer, how long each service takes, and what to quote callers. The AI uses this list when booking and answering pricing questions.</p>
+  <div class="card">
+    <div class="card-title">AI Pricing Access</div>
+    <div class="row">
+      <div><div class="row-label">Show Prices to AI</div><div class="row-sub">AI can quote prices verbally when asked by callers</div></div>
+      <label class="toggle"><input type="checkbox" id="show-prices"><span class="slider"></span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Services</div>
+    <div class="cat-chips" id="cat-chips">
+      <div class="cat-chip active" data-cat="all" onclick="filterCat('all', this)">All</div>
+      <div class="cat-chip" data-cat="haircut" onclick="filterCat('haircut', this)">Haircut</div>
+      <div class="cat-chip" data-cat="color" onclick="filterCat('color', this)">Color</div>
+      <div class="cat-chip" data-cat="treatment" onclick="filterCat('treatment', this)">Treatment</div>
+      <div class="cat-chip" data-cat="nail" onclick="filterCat('nail', this)">Nail</div>
+    </div>
+    <div class="svc-list" id="svc-list"></div>
+    <div class="add-form">
+      <input type="text" id="new-name" placeholder="Service name">
+      <select id="new-cat">
+        <option value="haircut">Haircut</option>
+        <option value="color">Color</option>
+        <option value="treatment">Treatment</option>
+        <option value="nail">Nail</option>
+      </select>
+      <input type="number" id="new-dur" placeholder="Duration (min)" min="5">
+      <input type="number" id="new-price" placeholder="Price ($)" min="0">
+      <button class="add-btn" onclick="addSvc()">+ Add Service</button>
+    </div>
+    <button class="save-btn" onclick="save()">Save Price List</button>
+  </div>
+</div>
+<div class="toast" id="toast">Saved!</div>
+<script>
+  let services = [];
+  let nextId = 100;
+  let activeCat = 'all';
+  function renderSvcs() {
+    const el = document.getElementById('svc-list');
+    el.innerHTML = '';
+    services.forEach((s, i) => {
+      const hidden = activeCat !== 'all' && s.category !== activeCat ? 'hidden' : '';
+      el.innerHTML += `<div class="svc-item ${hidden}" data-cat="${esc(s.category)}">
+        <label class="toggle svc-en"><input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="services[${i}].enabled=this.checked"><span class="slider"></span></label>
+        <div style="flex:1">
+          <div class="svc-name">${esc(s.name)}</div>
+          <div class="svc-cat">${esc(s.category)}</div>
+        </div>
+        <div class="svc-dur">${s.duration}min</div>
+        <div class="svc-price">$${s.price}</div>
+        <button class="remove-btn" onclick="removeSvc(${i})">✕</button>
+      </div>`;
+    });
+  }
+  function filterCat(cat, el) {
+    activeCat = cat;
+    document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    renderSvcs();
+  }
+  function addSvc() {
+    const name = document.getElementById('new-name').value.trim();
+    if (!name) return;
+    services.push({ id: nextId++, name, category: document.getElementById('new-cat').value, duration: parseInt(document.getElementById('new-dur').value) || 30, price: parseFloat(document.getElementById('new-price').value) || 0, enabled: true });
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-dur').value = '';
+    document.getElementById('new-price').value = '';
+    renderSvcs();
+  }
+  function removeSvc(i) { services.splice(i, 1); renderSvcs(); }
+  async function load() {
+    const d = await fetch('/api/settings/price-list-cfg').then(r => r.json());
+    document.getElementById('show-prices').checked = d.show_prices_to_ai;
+    services = d.services || [];
+    if (services.length) nextId = Math.max(...services.map(s => s.id || 0)) + 1;
+    renderSvcs();
+  }
+  async function save() {
+    const data = { show_prices_to_ai: document.getElementById('show-prices').checked, services };
+    await fetch('/api/settings/price-list-cfg', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const t = document.getElementById('toast');
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  load();
+</script>
+</body>
+</html>

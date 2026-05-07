@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Performance Ranking — RingDesk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080808; --surface: #111; --surface2: #161616; --border: #1e1e1e; --text: #e8e8e8; --muted: #666; --accent: #a78bfa; --green: #34d399; --yellow: #fbbf24; --red: #f87171; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    nav { background: rgba(8,8,8,.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a.back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .main { max-width: 740px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    .page-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .3rem; }
+    .page-sub { font-size: .83rem; color: var(--muted); margin-bottom: 2rem; }
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center; }
+    .hero-label { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+    .hero-val { font-size: 1.7rem; font-weight: 900; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; overflow-x: auto; }
+    .card-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .82rem; min-width: 520px; }
+    th { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: .5rem .85rem; border-bottom: 1px solid var(--border); text-align: right; cursor: pointer; user-select: none; white-space: nowrap; }
+    th:first-child { text-align: left; }
+    th:hover { color: var(--accent); }
+    th.sorted { color: var(--accent); }
+    td { padding: .6rem .85rem; border-bottom: 1px solid #141414; text-align: right; }
+    td:first-child { text-align: left; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+    .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; font-size: .65rem; font-weight: 800; margin-right: .5rem; }
+    .rank-1 { background: rgba(251,191,36,.2); color: var(--yellow); }
+    .rank-2 { background: rgba(167,139,250,.15); color: var(--accent); }
+    .rank-3 { background: rgba(52,211,153,.15); color: var(--green); }
+    .rank-n { background: #1e1e1e; color: var(--muted); }
+    .staff-name { font-weight: 700; }
+    .star-fill { color: var(--yellow); }
+    .star-empty { color: #333; }
+    .no-show-good { color: var(--green); }
+    .no-show-mid { color: var(--yellow); }
+    .no-show-bad { color: var(--red); }
+    .sort-hint { font-size: .6rem; color: var(--muted); margin-top: .4rem; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Ring<span>Desk</span></a>
+  <a href="/dashboard" class="back">← Dashboard</a>
+</nav>
+<div class="main">
+  <div class="page-title">Staff Performance Ranking</div>
+  <p class="page-sub">Compare your team's output — click any column header to re-sort and find your top earners, highest-rated, and no-show patterns.</p>
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hero-label">Top Performer</div>
+      <div class="hero-val" id="h-top" style="color:var(--yellow);font-size:1.2rem">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Total Team Revenue</div>
+      <div class="hero-val" id="h-rev" style="color:var(--accent)">—</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Team Avg Rating</div>
+      <div class="hero-val" id="h-rating" style="color:var(--green)">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Staff Rankings</div>
+    <div class="sort-hint">Click column headers to sort</div>
+    <table id="staff-table">
+      <thead>
+        <tr>
+          <th onclick="sortBy('name')">#  Staff</th>
+          <th onclick="sortBy('appointments_completed')">Appts</th>
+          <th onclick="sortBy('revenue_generated')">Revenue</th>
+          <th onclick="sortBy('avg_rating')">Rating</th>
+          <th onclick="sortBy('no_show_rate_pct')">No-Show %</th>
+        </tr>
+      </thead>
+      <tbody id="staff-body"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  let staffData = [];
+  let sortKey = 'revenue_generated';
+  let sortDir = -1;
+
+  function stars(r) {
+    const full = Math.floor(r);
+    const half = r % 1 >= 0.5 ? 1 : 0;
+    return '★'.repeat(full) + (half?'½':'') + '☆'.repeat(5-full-half);
+  }
+
+  function sortBy(key) {
+    if (sortKey === key) sortDir *= -1;
+    else { sortKey = key; sortDir = -1; }
+    render();
+  }
+
+  function render() {
+    const sorted = [...staffData].sort((a,b)=>{
+      const av = a[sortKey], bv = b[sortKey];
+      return typeof av === 'string' ? av.localeCompare(bv)*sortDir : (av-bv)*sortDir;
+    });
+    const rankClasses = ['rank-1','rank-2','rank-3','rank-n','rank-n'];
+    document.getElementById('staff-body').innerHTML = sorted.map((s,i)=>{
+      const noShowClass = s.no_show_rate_pct<8?'no-show-good':s.no_show_rate_pct<14?'no-show-mid':'no-show-bad';
+      return `<tr>
+        <td><span class="rank-badge ${rankClasses[i]||'rank-n'}">${i+1}</span><span class="staff-name">${esc(s.name)}</span></td>
+        <td>${s.appointments_completed}</td>
+        <td style="color:var(--green);font-weight:700">$${s.revenue_generated.toLocaleString()}</td>
+        <td><span class="star-fill" title="${s.avg_rating}">${s.avg_rating}★</span></td>
+        <td class="${noShowClass}">${s.no_show_rate_pct}%</td>
+      </tr>`;
+    }).join('');
+    document.querySelectorAll('th').forEach(th=>th.classList.remove('sorted'));
+  }
+
+  async function load() {
+    const r = await fetch('/api/analytics/staff-performance-ranking');
+    const d = await r.json();
+    staffData = d.staff || [];
+    const topStaff = staffData.reduce((a,b)=>b.revenue_generated>a.revenue_generated?b:a, staffData[0]);
+    const totalRev = staffData.reduce((s,m)=>s+m.revenue_generated,0);
+    const avgRating = (staffData.reduce((s,m)=>s+m.avg_rating,0)/staffData.length).toFixed(1);
+    document.getElementById('h-top').textContent = topStaff ? topStaff.name : '—';
+    document.getElementById('h-rev').textContent = '$'+totalRev.toLocaleString();
+    document.getElementById('h-rating').textContent = avgRating + ' ★';
+    render();
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  load();
+</script>
+</body>
+</html>
