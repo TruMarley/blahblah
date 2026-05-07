@@ -12,5 +12,12 @@ venv/
 *.log
 nohup.out
 
+# Databases
+*.db
+
+# Sensitive data
+outreach_leads.csv
+signups.txt
+
 # macOS
 .DS_Store
