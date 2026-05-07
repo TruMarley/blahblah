@@ -342,6 +342,11 @@ async def dashboard():
     .stat-card.danger .value {{ color: #f87171; }}
     .stat-card.green .value {{ color: #4ade80; }}
 
+    /* Quick Actions */
+    .quick-actions {{ display:flex; gap:.6rem; flex-wrap:wrap; margin:0 2rem 1.5rem; }}
+    .qa-link {{ background:#111; border:1px solid #1e1e1e; color:#666; font-size:.78rem; font-weight:700; padding:.45rem 1rem; border-radius:99px; text-decoration:none; transition:border-color .15s,color .15s; }}
+    .qa-link:hover {{ border-color:#a78bfa; color:#e8e8e8; }}
+
     /* Sections */
     .sections {{ padding: 0 2rem 2rem; display: grid; gap: 1.5rem; }}
     .section {{
@@ -441,6 +446,13 @@ async def dashboard():
     <div class="label">All Time Booked</div>
     <div class="value">{stats['total_booked']}</div>
   </div>
+</div>
+
+<div class="quick-actions">
+  <a href="/call-log" class="qa-link">📞 Call Log &amp; Transcripts</a>
+  <a href="/review-request" class="qa-link">⭐ Review Requests</a>
+  <a href="/no-show-fee-settings" class="qa-link">🚫 No-Show Fee</a>
+  <a href="/no-shows" class="qa-link">📊 No-Show Analytics</a>
 </div>
 
 <div class="sections">
@@ -38322,6 +38334,104 @@ async def api_onboarding_complete(request: Request):
         f.write(_json.dumps(data) + "\n")
     return JSONResponse({"ok": True})
 
+@app.get("/no-show-fee-settings")
+async def no_show_fee_settings_page():
+    return FileResponse("no_show_fee_settings.html")
+
+
+async def review_request_job():
+    """Send review request SMS 2 hours after a confirmed appointment's end time."""
+    while True:
+        try:
+            from datetime import datetime as _dt, timedelta as _td
+            now = _dt.now()
+            # Look for confirmed appointments whose end time was 2-4 hours ago
+            # (2h window so we don't spam on re-runs)
+            lo = (now - _td(hours=4)).strftime("%Y-%m-%d %H:%M")
+            hi = (now - _td(hours=2)).strftime("%Y-%m-%d %H:%M")
+            import sqlite3 as _sq
+            conn = _sq.connect("appointments.db")
+            conn.row_factory = _sq.Row
+            rows = conn.execute(
+                """SELECT * FROM appointments
+                   WHERE status = 'confirmed'
+                   AND review_sms_sent = 0
+                   AND (date || ' ' || time) BETWEEN ? AND ?""",
+                (lo, hi)
+            ).fetchall()
+            conn.close()
+            for appt in rows:
+                end_time = (_dt.strptime(f"{appt['date']} {appt['time']}", "%Y-%m-%d %H:%M")
+                            + __import__('datetime').timedelta(minutes=appt['duration']))
+                if end_time <= now - __import__('datetime').timedelta(hours=2):
+                    msg = (f"Hi {appt['name']}! Thanks for visiting us today. "
+                           f"We'd love your feedback — leave us a quick Google review: "
+                           f"https://g.page/r/review  ⭐ It means the world to us!")
+                    _p, _m = appt['phone'], msg
+                    await asyncio.get_event_loop().run_in_executor(None, lambda p=_p, m=_m: send_sms(p, m))
+                    # Mark sent
+                    conn2 = _sq.connect("appointments.db")
+                    conn2.execute("UPDATE appointments SET review_sms_sent = 1 WHERE id = ?", (appt['id'],))
+                    conn2.commit()
+                    conn2.close()
+                    log.info(f"Review request sent to {appt['name']} ({appt['phone']})")
+        except Exception as e:
+            log.error(f"Review request job error: {e}")
+        await asyncio.sleep(1800)  # check every 30 minutes
+
+
+async def no_show_detection_job():
+    """Detect no-shows 30 min after appointment time and send fee SMS if configured."""
+    while True:
+        try:
+            from datetime import datetime as _dtns, timedelta as _tdns
+            import sqlite3 as _sqns, json as _jns, os as _ons
+            now = _dtns.now()
+            # appointments that were 30-90 min ago and still 'confirmed'
+            lo = (now - _tdns(minutes=90)).strftime("%Y-%m-%d %H:%M")
+            hi = (now - _tdns(minutes=30)).strftime("%Y-%m-%d %H:%M")
+            conn = _sqns.connect("appointments.db")
+            conn.row_factory = _sqns.Row
+            rows = conn.execute(
+                """SELECT * FROM appointments
+                   WHERE status = 'confirmed'
+                   AND no_show_sms_sent = 0
+                   AND (date || ' ' || time) BETWEEN ? AND ?""",
+                (lo, hi)
+            ).fetchall()
+            conn.close()
+            # Load fee config
+            cfg_file = "no_show_fee_settings.json"
+            cfg = {}
+            if _ons.path.exists(cfg_file):
+                try:
+                    cfg = _jns.loads(open(cfg_file).read())
+                except Exception:
+                    pass
+            auto_sms = cfg.get("auto_sms", True)
+            fee_amount = cfg.get("fee_amount", 25)
+            sms_template = cfg.get("sms_message",
+                "Hi {name}, we had you down for {time} today and missed you. "
+                "A ${fee} no-show fee may apply per our policy. "
+                "Reply to reschedule — we'd love to see you soon!")
+            for appt in rows:
+                # Mark as no-show
+                conn2 = _sqns.connect("appointments.db")
+                conn2.execute("UPDATE appointments SET status='no_show', no_show_sms_sent=1 WHERE id=?", (appt['id'],))
+                conn2.commit()
+                conn2.close()
+                if auto_sms:
+                    msg = sms_template.format(
+                        name=appt['name'], time=appt['time'], fee=fee_amount
+                    )
+                    _p2, _m2 = appt['phone'], msg
+                    await asyncio.get_event_loop().run_in_executor(None, lambda p=_p2, m=_m2: send_sms(p, m))
+                    log.info(f"No-show SMS sent to {appt['name']} ({appt['phone']})")
+        except Exception as e:
+            log.error(f"No-show detection job error: {e}")
+        await asyncio.sleep(900)  # check every 15 minutes
+
+
 async def reminder_job():
     """
     Background job: runs every hour.
@@ -38378,6 +38488,10 @@ async def startup():
     # Start background reminder job
     asyncio.create_task(reminder_job())
     log.info("Reminder job started (24h + 2h SMS reminders)")
+    asyncio.create_task(review_request_job())
+    log.info("Review request job started (auto SMS 2h after appointment)")
+    asyncio.create_task(no_show_detection_job())
+    log.info("No-show detection job started (auto-marks + SMS 30min after missed appt)")
     asyncio.create_task(follow_up_job())
     log.info("Follow-up job started (Day 3 + Day 7 post-booking SMS)")
     asyncio.create_task(call_summary_job())

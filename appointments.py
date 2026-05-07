@@ -32,6 +32,10 @@ def _migrate(db):
         db.execute("ALTER TABLE appointments ADD COLUMN reminder_2h INTEGER DEFAULT 0")
     if "sms_sent" not in cols:
         db.execute("ALTER TABLE appointments ADD COLUMN sms_sent INTEGER DEFAULT 0")
+    if "review_sms_sent" not in cols:
+        db.execute("ALTER TABLE appointments ADD COLUMN review_sms_sent INTEGER DEFAULT 0")
+    if "no_show_sms_sent" not in cols:
+        db.execute("ALTER TABLE appointments ADD COLUMN no_show_sms_sent INTEGER DEFAULT 0")
 
 
 def init_db():
