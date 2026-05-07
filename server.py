@@ -38367,7 +38367,8 @@ async def review_request_job():
                     msg = (f"Hi {appt['name']}! Thanks for visiting us today. "
                            f"We'd love your feedback — leave us a quick Google review: "
                            f"https://g.page/r/review  ⭐ It means the world to us!")
-                    await asyncio.get_event_loop().run_in_executor(None, lambda: send_sms(appt['phone'], msg))
+                    _p, _m = appt['phone'], msg
+                    await asyncio.get_event_loop().run_in_executor(None, lambda p=_p, m=_m: send_sms(p, m))
                     # Mark sent
                     conn2 = _sq.connect("appointments.db")
                     conn2.execute("UPDATE appointments SET review_sms_sent = 1 WHERE id = ?", (appt['id'],))
@@ -38423,7 +38424,8 @@ async def no_show_detection_job():
                     msg = sms_template.format(
                         name=appt['name'], time=appt['time'], fee=fee_amount
                     )
-                    await asyncio.get_event_loop().run_in_executor(None, lambda: send_sms(appt['phone'], msg))
+                    _p2, _m2 = appt['phone'], msg
+                    await asyncio.get_event_loop().run_in_executor(None, lambda p=_p2, m=_m2: send_sms(p, m))
                     log.info(f"No-show SMS sent to {appt['name']} ({appt['phone']})")
         except Exception as e:
             log.error(f"No-show detection job error: {e}")
